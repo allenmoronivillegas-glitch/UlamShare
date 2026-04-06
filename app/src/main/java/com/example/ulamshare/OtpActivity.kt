@@ -9,10 +9,12 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
 
 class OtpActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseFirestore
     private lateinit var etOtp1: EditText
     private lateinit var etOtp2: EditText
     private lateinit var etOtp3: EditText
@@ -27,6 +29,7 @@ class OtpActivity : AppCompatActivity() {
         setContentView(R.layout.activity_otp)
 
         auth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()
         verificationId = intent.getStringExtra("verificationId")
         val phone = intent.getStringExtra("phone") ?: ""
 
@@ -71,11 +74,10 @@ class OtpActivity : AppCompatActivity() {
                     }
                 }
                 override fun afterTextChanged(s: Editable?) {
-                    if (s?.length == 0 && i > 0) {
+                    if (s?.isEmpty() == true && i > 0) {
                         otpFields[i - 1].requestFocus()
                     }
                     
-                    // Auto-verify if all fields filled and bypass is active
                     if (allFieldsFilled() && checkboxAutoLogin.isChecked) {
                         verifyOtp()
                     }
@@ -97,20 +99,11 @@ class OtpActivity : AppCompatActivity() {
             return
         }
 
-        // BYPASS FOR TESTING: If verificationId is our "TEST_VERIFICATION_ID", just navigate
-        if (verificationId == "TEST_VERIFICATION_ID") {
-            Toast.makeText(this, "Test Mode: Verification Successful!", Toast.LENGTH_SHORT).show()
-            navigateToMain()
-            return
-        }
-
         if (verificationId != null) {
             val credential = PhoneAuthProvider.getCredential(verificationId!!, code)
             signInWithPhoneAuthCredential(credential)
         } else {
-            // Even if verificationId is null, let's bypass for your UI test if you want
-            Toast.makeText(this, "Bypassing verification for UI testing...", Toast.LENGTH_SHORT).show()
-            navigateToMain()
+            Toast.makeText(this, "Error: Verification ID missing. Check Register screen setup.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -118,30 +111,56 @@ class OtpActivity : AppCompatActivity() {
         auth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    createFirebaseEmailAccount()
+                    linkEmailToPhoneAccount()
                 } else {
                     Log.e("OtpActivity", "Verification failed", task.exception)
                     Toast.makeText(this, "Verification failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
-                    
-                    // Fallback for testing: Navigate even if Firebase credential fails
-                    Toast.makeText(this, "Bypassing failed verification for UI testing...", Toast.LENGTH_SHORT).show()
+                }
+            }
+    }
+
+    private fun linkEmailToPhoneAccount() {
+        val email = intent.getStringExtra("email") ?: ""
+        val password = intent.getStringExtra("password") ?: ""
+        val fullName = intent.getStringExtra("fullName") ?: ""
+        val phone = intent.getStringExtra("phone") ?: ""
+
+        val credential = com.google.firebase.auth.EmailAuthProvider
+            .getCredential(email, password)
+
+        auth.currentUser?.linkWithCredential(credential)
+            ?.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val userId = auth.currentUser?.uid
+                    if (userId != null) {
+                        saveUserToFirestore(userId, fullName, email, phone)
+                    }
+                } else {
+                    Toast.makeText(this, "Link failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
                     navigateToMain()
                 }
             }
     }
 
-    private fun createFirebaseEmailAccount() {
-        val email = intent.getStringExtra("email") ?: ""
-        val password = intent.getStringExtra("password") ?: ""
+    private fun saveUserToFirestore(userId: String, fullName: String, email: String, phone: String) {
+        val userMap = hashMapOf(
+            "uid" to userId,
+            "fullName" to fullName,
+            "email" to email,
+            "phone" to phone,
+            "createdAt" to com.google.firebase.Timestamp.now()
+        )
 
-        if (email.isNotEmpty() && password.isNotEmpty()) {
-            auth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this) { task ->
-                    navigateToMain()
-                }
-        } else {
-            navigateToMain()
-        }
+        db.collection("users").document(userId)
+            .set(userMap)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show()
+                navigateToMain()
+            }
+            .addOnFailureListener { e ->
+                Log.e("OtpActivity", "Error saving user", e)
+                navigateToMain() // Navigate anyway, user is authenticated
+            }
     }
 
     private fun navigateToMain() {

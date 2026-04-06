@@ -113,7 +113,7 @@
                 android:layout_height="54dp"
                 android:layout_marginTop="8dp"
                 android:background="@drawable/rounded_input_border"
-                android:hint="09****"
+                android:hint="0912345678"
                 android:inputType="phone"
                 android:padding="16dp"
                 android:textColor="#1A1C1E" />

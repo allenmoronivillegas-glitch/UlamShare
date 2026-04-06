@@ -12,7 +12,20 @@
           "package_name": "com.example.ulamshare"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "521750995424-6hr1i0eua438iskqul7q1co07bh6vfbq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.ulamshare",
+            "certificate_hash": "62fc26cac4a65e3403dacf240d0ee43c21ef6127"
+          }
+        },
+        {
+          "client_id": "521750995424-980s1e9jjfilklpidmm322n3f312o16h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCbXnPzx_QNzeZ9yWcF4NEv0oDEIpz44Q8"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "521750995424-980s1e9jjfilklpidmm322n3f312o16h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

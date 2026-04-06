@@ -6,6 +6,7 @@ import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.FirebaseException
@@ -34,11 +35,17 @@ class RegisterActivity : AppCompatActivity() {
         val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
         val etMobileNumber = findViewById<EditText>(R.id.etMobileNumber)
+        val tvLoginLink = findViewById<TextView>(R.id.tvLoginLink)
 
         initCallbacks()
 
         btnBack.setOnClickListener {
             finish()
+        }
+
+        tvLoginLink.setOnClickListener {
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
         }
 
         btnSendOtp.setOnClickListener {
@@ -84,7 +91,7 @@ class RegisterActivity : AppCompatActivity() {
                 
                 // BYPASS: Navigate even on failure so you can test the UI
                 val phone = findViewById<EditText>(R.id.etMobileNumber).text.toString()
-                navigateToOtp(phone, "TEST_VERIFICATION_ID")
+                Toast.makeText(this@RegisterActivity, "Verification failed: ${e.message}", Toast.LENGTH_LONG).show()
             }
 
             override fun onCodeSent(

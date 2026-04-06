@@ -11,10 +11,9 @@ import androidx.core.view.WindowInsetsControllerCompat
 open class BaseActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableFullScreen()
     }
 
-    private fun enableFullScreen() {
+    protected fun enableFullScreen() {
         // Classic FLAG_FULLSCREEN to hide status bar
         window.setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
