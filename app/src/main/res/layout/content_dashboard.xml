@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/alertGuestAccount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"
+        android:padding="16dp"
+        android:background="@drawable/rounded_soft_blue_rect"
+        android:backgroundTint="@color/orange_alert_bg"
+        android:elevation="2dp">
+        <ImageView
+            android:id="@+id/ivLock"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/padlock"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <TextView
+            android:id="@+id/tvAlertText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Create an account to track your donations, get receipts, and see your impact over time."
+            android:textColor="#3D2D1B"
+            android:textSize="13sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/ivLock"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cardTrendingCampaign"
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/bg_blue_green_gradient"
+        android:padding="20dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/tvTrendingTag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#40FFFFFF"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:text="🔥 TRENDING"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tvCampTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="25dp"
+            android:text="Typhoon Carina Relief Fund"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvTrendingTag" />
+
+        <ProgressBar
+            android:id="@+id/pbCampProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="8dp"
+            android:layout_marginBottom="40dp"
+            android:progress="78"
+            android:progressDrawable="@drawable/custom_progress_white"
+            app:layout_constraintBottom_toTopOf="@id/tvRaised"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/tvRaised"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="₱3.9M raised"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="78% • 2 days left"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <TextView
+        android:id="@+id/tvQuickDonateLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quick Donate"
+        android:textColor="@color/text_black"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:id="@+id/amountGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="24dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnDonate100"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/rounded_soft_blue_rect"
+            android:text="₱100"
+            android:textAllCaps="false"
+            android:textColor="@color/white" />
+
+        <Button
+            android:id="@+id/btnDonate300"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/rounded_soft_blue_rect"
+            android:text="₱300"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:cornerRadius="12dp" />
+
+        <Button
+            android:id="@+id/btnDonate500"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:backgroundTint="#EBF2FC"
+            android:background="@drawable/rounded_soft_blue_rect"
+            android:text="₱500"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:cornerRadius="12dp" />
+    </LinearLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cardActiveCampaign"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/rounded_input_border"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/ivCampaignIcon"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/rounded_soft_blue_rect"
+            android:backgroundTint="#EEF2F8"
+            android:padding="12dp"
+            android:src="@drawable/plant"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tvActiveCampTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Scholars for Tomorrow"
+            android:textColor="@color/text_black"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/ivCampaignIcon"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tvActiveCampSub"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="2dp"
+            android:text="Help 500 scholars finish college"
+            android:textColor="@color/text_grey"
+            android:textSize="13sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/ivCampaignIcon"
+            app:layout_constraintTop_toBottomOf="@id/tvActiveCampTitle" />
+
+        <ProgressBar
+            android:id="@+id/pbMiniProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="6dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:progress="62"
+            android:progressTint="@color/brand_blue"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/ivCampaignIcon"
+            app:layout_constraintTop_toBottomOf="@id/tvActiveCampSub" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:text="₱310K raised"
+            android:textColor="#A0A5AA"
+            android:textSize="12sp"
+            app:layout_constraintStart_toEndOf="@id/ivCampaignIcon"
+            app:layout_constraintTop_toBottomOf="@id/pbMiniProgress" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="62%"
+            android:textColor="#A0A5AA"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/pbMiniProgress" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</LinearLayout>

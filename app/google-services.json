@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "521750995424",
+    "project_id": "ulamshare-4f2b9",
+    "storage_bucket": "ulamshare-4f2b9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:521750995424:android:692fb4c5068d1bc19ecb85",
+        "android_client_info": {
+          "package_name": "com.example.ulamshare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbXnPzx_QNzeZ9yWcF4NEv0oDEIpz44Q8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
