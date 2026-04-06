@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "521750995424-n775inrqngaeufc9g364b4lrchar77dt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.ulamshare",
+            "certificate_hash": "825612c5a70bc6c8dce73aa556a56a7417b7d453"
+          }
+        },
+        {
           "client_id": "521750995424-980s1e9jjfilklpidmm322n3f312o16h.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -2,170 +2,155 @@ package com.example.ulamshare
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.util.Log
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.auth.*
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.FirebaseException // Ensure this is imported
+import java.util.concurrent.TimeUnit
 
 class OtpActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
-    private lateinit var etOtp1: EditText
-    private lateinit var etOtp2: EditText
-    private lateinit var etOtp3: EditText
-    private lateinit var etOtp4: EditText
-    private lateinit var etOtp5: EditText
-    private lateinit var etOtp6: EditText
-    private lateinit var checkboxAutoLogin: CheckBox
     private var verificationId: String? = null
+    private var phoneNumber: String? = null // To store the phone number for resending
+    private lateinit var resendCallbacks: PhoneAuthProvider.OnVerificationStateChangedCallbacks
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) { // Corrected line here
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_otp)
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
+
         verificationId = intent.getStringExtra("verificationId")
-        val phone = intent.getStringExtra("phone") ?: ""
+        phoneNumber = intent.getStringExtra("phone") // Get phone number from intent
+        val name = intent.getStringExtra("name")
+        val email = intent.getStringExtra("email")
+        val password = intent.getStringExtra("password")
 
-        etOtp1 = findViewById(R.id.etOtp1)
-        etOtp2 = findViewById(R.id.etOtp2)
-        etOtp3 = findViewById(R.id.etOtp3)
-        etOtp4 = findViewById(R.id.etOtp4)
-        etOtp5 = findViewById(R.id.etOtp5)
-        etOtp6 = findViewById(R.id.etOtp6)
-        checkboxAutoLogin = findViewById(R.id.checkboxAutoLogin)
+        Log.d("OtpActivity", "Received verificationId: $verificationId, phoneNumber: $phoneNumber")
+
         val btnVerify = findViewById<Button>(R.id.btnVerify)
-        val btnBack = findViewById<ImageButton>(R.id.btnBack)
-        val layoutAutoLogin = findViewById<LinearLayout>(R.id.layoutAutoLogin)
-        val tvOtpSubHeader = findViewById<TextView>(R.id.tvOtpSubHeader)
+        val tvResend = findViewById<TextView>(R.id.tvResend) // Get the resend TextView
 
-        if (phone.isNotEmpty()) {
-            tvOtpSubHeader.text = "Enter the 6-digit code sent to $phone"
-        }
-
-        setupOtpInputs()
-
-        btnBack.setOnClickListener { finish() }
-
-        layoutAutoLogin.setOnClickListener {
-            checkboxAutoLogin.isChecked = !checkboxAutoLogin.isChecked
-        }
+        initResendCallbacks()
 
         btnVerify.setOnClickListener {
-            verifyOtp()
+            val code = findViewById<EditText>(R.id.etOtp1).text.toString() +
+                    findViewById<EditText>(R.id.etOtp2).text.toString() +
+                    findViewById<EditText>(R.id.etOtp3).text.toString() +
+                    findViewById<EditText>(R.id.etOtp4).text.toString() +
+                    findViewById<EditText>(R.id.etOtp5).text.toString() +
+                    findViewById<EditText>(R.id.etOtp6).text.toString()
+
+            if (verificationId != null) {
+                Log.d("OtpActivity", "Attempting to verify OTP with code: $code")
+                val credential = PhoneAuthProvider.getCredential(verificationId!!, code)
+                verifyOtp(credential)
+            } else {
+                Toast.makeText(this, "Verification ID is missing. Cannot verify OTP.", Toast.LENGTH_LONG).show()
+                Log.e("OtpActivity", "Verification ID is null when trying to verify OTP.")
+            }
+        }
+
+        tvResend.setOnClickListener { // Set click listener for resend
+            Log.d("OtpActivity", "Resend OTP clicked. Phone number: $phoneNumber")
+            if (phoneNumber != null) {
+                resendOtp(phoneNumber!!)
+                Toast.makeText(this, "Resending OTP...", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Phone number not available to resend OTP.", Toast.LENGTH_LONG).show()
+                Log.e("OtpActivity", "Phone number is null when trying to resend OTP.")
+            }
+        }
+
+        // You can also add a click listener for btnBack here if you want it to navigate back
+        findViewById<ImageButton>(R.id.btnBack).setOnClickListener {
+            onBackPressed() // Or navigate to RegisterActivity directly if needed
         }
     }
 
-    private fun setupOtpInputs() {
-        val otpFields = arrayOf(etOtp1, etOtp2, etOtp3, etOtp4, etOtp5, etOtp6)
-        
-        for (i in 0 until otpFields.size) {
-            otpFields[i].addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    if (s?.length == 1 && i < otpFields.size - 1) {
-                        otpFields[i + 1].requestFocus()
-                    }
-                }
-                override fun afterTextChanged(s: Editable?) {
-                    if (s?.isEmpty() == true && i > 0) {
-                        otpFields[i - 1].requestFocus()
-                    }
-                    
-                    if (allFieldsFilled() && checkboxAutoLogin.isChecked) {
-                        verifyOtp()
-                    }
-                }
-            })
+    private fun initResendCallbacks() {
+        resendCallbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+            override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                Log.d("OtpActivity", "Resend verification completed automatically: ${credential.signInMethod}")
+                // This callback might be invoked if the SMS is automatically verified.
+                // In a resend scenario, we usually just care about onCodeSent.
+                // We can choose to verify the OTP directly here or let the user enter it.
+                // For now, let's keep the user entering it.
+            }
+
+            override fun onVerificationFailed(e: FirebaseException) {
+                Log.e("OtpActivity", "Resend verification failed: ${e.message}", e)
+                Toast.makeText(this@OtpActivity, "Error resending OTP: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+
+            override fun onCodeSent(newVerificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
+                Log.d("OtpActivity", "New OTP code sent. New Verification ID: $newVerificationId")
+                verificationId = newVerificationId // Update verificationId for the new OTP
+                Toast.makeText(this@OtpActivity, "New OTP sent!", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    private fun allFieldsFilled(): Boolean {
-        return etOtp1.text.length == 1 && etOtp2.text.length == 1 && etOtp3.text.length == 1 &&
-               etOtp4.text.length == 1 && etOtp5.text.length == 1 && etOtp6.text.length == 1
+    private fun resendOtp(phone: String) {
+        val options = PhoneAuthOptions.newBuilder(auth)
+            .setPhoneNumber(phone)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(this)
+            .setCallbacks(resendCallbacks)
+            .build()
+
+        PhoneAuthProvider.verifyPhoneNumber(options)
     }
 
-    private fun verifyOtp() {
-        val code = "${etOtp1.text}${etOtp2.text}${etOtp3.text}${etOtp4.text}${etOtp5.text}${etOtp6.text}"
-        
-        if (code.length < 6) {
-            Toast.makeText(this, "Please enter the complete 6-digit code", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        if (verificationId != null) {
-            val credential = PhoneAuthProvider.getCredential(verificationId!!, code)
-            signInWithPhoneAuthCredential(credential)
-        } else {
-            Toast.makeText(this, "Error: Verification ID missing. Check Register screen setup.", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun signInWithPhoneAuthCredential(credential: com.google.firebase.auth.PhoneAuthCredential) {
+    private fun verifyOtp(credential: PhoneAuthCredential) {
         auth.signInWithCredential(credential)
-            .addOnCompleteListener(this) { task ->
+            .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    linkEmailToPhoneAccount()
+                    Log.d("OtpActivity", "OTP verification successful.")
+                    linkEmail()
                 } else {
-                    Log.e("OtpActivity", "Verification failed", task.exception)
-                    Toast.makeText(this, "Verification failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                    Log.e("OtpActivity", "OTP verification failed: ${task.exception?.message}", task.exception)
+                    Toast.makeText(this, "OTP Failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
                 }
             }
     }
 
-    private fun linkEmailToPhoneAccount() {
-        val email = intent.getStringExtra("email") ?: ""
-        val password = intent.getStringExtra("password") ?: ""
-        val fullName = intent.getStringExtra("fullName") ?: ""
-        val phone = intent.getStringExtra("phone") ?: ""
+    private fun linkEmail() {
+        val email = intent.getStringExtra("email")!!
+        val password = intent.getStringExtra("password")!!
+        val name = intent.getStringExtra("name")!!
+        val phone = intent.getStringExtra("phone")!!
 
-        val credential = com.google.firebase.auth.EmailAuthProvider
-            .getCredential(email, password)
+        val credential = EmailAuthProvider.getCredential(email, password)
 
         auth.currentUser?.linkWithCredential(credential)
             ?.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val userId = auth.currentUser?.uid
-                    if (userId != null) {
-                        saveUserToFirestore(userId, fullName, email, phone)
-                    }
+                    Log.d("OtpActivity", "Email linked successfully.")
+                    val uid = auth.currentUser!!.uid
+
+                    val user = hashMapOf(
+                        "uid" to uid,
+                        "name" to name,
+                        "email" to email,
+                        "phone" to phone
+                    )
+
+                    db.collection("users").document(uid).set(user)
+                        .addOnSuccessListener { Log.d("OtpActivity", "User data saved to Firestore.") }
+                        .addOnFailureListener { e -> Log.e("OtpActivity", "Error saving user data to Firestore: ${e.message}", e) }
+
+                    startActivity(Intent(this, MainActivity::class.java))
+                    finish()
                 } else {
+                    Log.e("OtpActivity", "Email linking failed: ${task.exception?.message}", task.exception)
                     Toast.makeText(this, "Link failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
-                    navigateToMain()
                 }
             }
-    }
-
-    private fun saveUserToFirestore(userId: String, fullName: String, email: String, phone: String) {
-        val userMap = hashMapOf(
-            "uid" to userId,
-            "fullName" to fullName,
-            "email" to email,
-            "phone" to phone,
-            "createdAt" to com.google.firebase.Timestamp.now()
-        )
-
-        db.collection("users").document(userId)
-            .set(userMap)
-            .addOnSuccessListener {
-                Toast.makeText(this, "Registration Successful!", Toast.LENGTH_SHORT).show()
-                navigateToMain()
-            }
-            .addOnFailureListener { e ->
-                Log.e("OtpActivity", "Error saving user", e)
-                navigateToMain() // Navigate anyway, user is authenticated
-            }
-    }
-
-    private fun navigateToMain() {
-        val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
     }
 }
