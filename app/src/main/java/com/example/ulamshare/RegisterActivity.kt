@@ -108,7 +108,27 @@ class RegisterActivity : AppCompatActivity() {
                                 if (!document.exists()) {
                                     saveUserToFirestore(user.displayName ?: "User", user.email ?: "", "")
                                 } else {
-                                    navigateToMain()
+                                    CampaignAssignmentManager.syncForAuthenticatedUser(
+                                        context = this,
+                                        user = user,
+                                        profileSeed = mapOf(
+                                            "uid" to user.uid,
+                                            "fullName" to (user.displayName ?: "User"),
+                                            "email" to (user.email ?: "")
+                                        ),
+                                        onComplete = {
+                                            Toast.makeText(this, "Google authentication successful", Toast.LENGTH_SHORT).show()
+                                            navigateToMain()
+                                        },
+                                        onError = { e ->
+                                            Toast.makeText(
+                                                this,
+                                                "Signed in, but campaign sync failed: ${e.message}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                            navigateToMain()
+                                        }
+                                    )
                                 }
                             }
                     }
@@ -119,22 +139,26 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun saveUserToFirestore(fullName: String, email: String, phone: String) {
-        val uid = auth.currentUser?.uid ?: return
-        val userMap = hashMapOf(
-            "uid" to uid,
+        val user = auth.currentUser ?: return
+        val userMap = hashMapOf<String, Any>(
+            "uid" to user.uid,
             "fullName" to fullName,
             "email" to email,
             "phone" to phone
         )
 
-        db.collection("users").document(uid).set(userMap)
-            .addOnSuccessListener {
+        CampaignAssignmentManager.syncForAuthenticatedUser(
+            context = this,
+            user = user,
+            profileSeed = userMap,
+            onComplete = {
                 Toast.makeText(this, "Registration Successful", Toast.LENGTH_SHORT).show()
                 navigateToMain()
-            }
-            .addOnFailureListener { e ->
+            },
+            onError = { e ->
                 Toast.makeText(this, "Error saving data: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+        )
     }
 
     private fun navigateToMain() {

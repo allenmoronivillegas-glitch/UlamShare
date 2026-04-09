@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 
 class SplashActivity : BaseActivity() {
 
@@ -27,14 +28,29 @@ class SplashActivity : BaseActivity() {
     private fun checkUserStatus() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            // User is already logged in, go to MainActivity
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
+            CampaignAssignmentManager.ensureCampaignForAuthenticatedUser(
+                context = this,
+                user = currentUser,
+                profileSeed = currentUser.toProfileSeed(),
+                onComplete = {
+                    val intent = Intent(this, MainActivity::class.java)
+                    startActivity(intent)
+                    finish()
+                }
+            )
         } else {
-            // No user is logged in, go to WelcomeActivity
             val intent = Intent(this, WelcomeActivity::class.java)
             startActivity(intent)
+            finish()
         }
-        finish()
+    }
+
+    private fun FirebaseUser.toProfileSeed(): Map<String, Any> {
+        val seed = mutableMapOf<String, Any>(
+            "uid" to uid,
+            "email" to (email ?: "")
+        )
+        displayName?.takeIf { it.isNotBlank() }?.let { seed["fullName"] = it }
+        return seed
     }
 }

@@ -13,7 +13,11 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.*
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 
 class HomeFragment : Fragment() {
@@ -26,8 +30,10 @@ class HomeFragment : Fragment() {
     private lateinit var btnRegisterHeader: Button
     private lateinit var rvRecentlyAdded: RecyclerView
     private lateinit var emptyCampaignsCard: ConstraintLayout
+    private lateinit var tvEmptyCampaignsMessage: TextView
     private lateinit var adapter: CampaignAdapter
     private val campaignList = mutableListOf<Campaign>()
+    private var campaignsListener: ValueEventListener? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -47,6 +53,7 @@ class HomeFragment : Fragment() {
         btnRegisterHeader = view.findViewById(R.id.btnRegisterHeader)
         rvRecentlyAdded = view.findViewById(R.id.rvRecentlyAdded)
         emptyCampaignsCard = view.findViewById(R.id.emptyCampaignsCard)
+        tvEmptyCampaignsMessage = view.findViewById(R.id.tvEmptyCampaignsMessage)
 
         rvRecentlyAdded.layoutManager = LinearLayoutManager(requireContext())
         adapter = CampaignAdapter(campaignList)
@@ -84,31 +91,26 @@ class HomeFragment : Fragment() {
     }
 
     private fun fetchRecentCampaignsRealtime() {
-        dbRef.addValueEventListener(object : ValueEventListener {
+        campaignsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                Log.d("HomeFragment", "Data changed, children count: ${snapshot.childrenCount}")
+                Log.d("HomeFragment", "Realtime update received for campaigns")
+                val result = CampaignVisibility.filterVisibleCampaigns(snapshot, "HomeFragment")
                 campaignList.clear()
-                for (campaignSnapshot in snapshot.children) {
-                    try {
-                        val campaign = campaignSnapshot.getValue(Campaign::class.java)
-                        // If status check is too strict, check both cases or remove temporarily
-                        if (campaign != null && (campaign.status == "Published" || campaign.status == "published")) {
-                            campaignList.add(campaign)
-                        }
-                    } catch (e: Exception) {
-                        Log.e("HomeFragment", "Error parsing campaign: ${campaignSnapshot.key}", e)
-                    }
-                }
-                
-                campaignList.sortByDescending { it.createdAt }
+                campaignList.addAll(result.visibleCampaigns)
                 val recentList = if (campaignList.size > 3) campaignList.take(3) else campaignList
-                
+
                 campaignList.clear()
                 campaignList.addAll(recentList)
 
                 if (campaignList.isEmpty()) {
                     rvRecentlyAdded.visibility = View.GONE
                     emptyCampaignsCard.visibility = View.VISIBLE
+                    tvEmptyCampaignsMessage.text =
+                        if (result.totalCampaigns > 0 && result.filteredCount > 0) {
+                            "Campaigns exist, but none are Active and visible right now."
+                        } else {
+                            "No active campaigns yet."
+                        }
                 } else {
                     rvRecentlyAdded.visibility = View.VISIBLE
                     emptyCampaignsCard.visibility = View.GONE
@@ -120,7 +122,14 @@ class HomeFragment : Fragment() {
                 Log.e("HomeFragment", "Database error: ${error.message}")
                 rvRecentlyAdded.visibility = View.GONE
                 emptyCampaignsCard.visibility = View.VISIBLE
+                tvEmptyCampaignsMessage.text = "Unable to load campaigns right now."
             }
-        })
+        }
+        dbRef.addValueEventListener(campaignsListener!!)
+    }
+
+    override fun onDestroyView() {
+        campaignsListener?.let { dbRef.removeEventListener(it) }
+        super.onDestroyView()
     }
 }

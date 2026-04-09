@@ -15,6 +15,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.FirebaseUser
 
 class LoginActivity : AppCompatActivity() {
 
@@ -64,10 +65,10 @@ class LoginActivity : AppCompatActivity() {
             auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
-                        Toast.makeText(this, "Login Successful", Toast.LENGTH_SHORT).show()
-                        val intent = Intent(this, MainActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        startActivity(intent)
+                        handleAuthenticatedUser(
+                            user = auth.currentUser,
+                            successMessage = "Login Successful"
+                        )
                     } else {
                         Toast.makeText(this, "Login failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
                     }
@@ -98,14 +99,50 @@ class LoginActivity : AppCompatActivity() {
         auth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    Toast.makeText(this, "Google Login Successful", Toast.LENGTH_SHORT).show()
-                    val intent = Intent(this, MainActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                    finish()
+                    handleAuthenticatedUser(
+                        user = auth.currentUser,
+                        successMessage = "Google Login Successful"
+                    )
                 } else {
                     Toast.makeText(this, "Firebase auth with Google failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
                 }
             }
+    }
+
+    private fun handleAuthenticatedUser(user: FirebaseUser?, successMessage: String) {
+        if (user == null) {
+            Toast.makeText(this, "Unable to load your account", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val profileSeed = mutableMapOf<String, Any>(
+            "uid" to user.uid,
+            "email" to (user.email ?: "")
+        )
+        user.displayName?.takeIf { it.isNotBlank() }?.let { profileSeed["fullName"] = it }
+
+        CampaignAssignmentManager.syncForAuthenticatedUser(
+            context = this,
+            user = user,
+            profileSeed = profileSeed,
+            onComplete = {
+                Toast.makeText(this, successMessage, Toast.LENGTH_SHORT).show()
+                val intent = Intent(this, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
+            },
+            onError = { error ->
+                Toast.makeText(
+                    this,
+                    "Logged in, but campaign sync failed: ${error.message}",
+                    Toast.LENGTH_LONG
+                ).show()
+                val intent = Intent(this, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
+            }
+        )
     }
 }

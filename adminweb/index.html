@@ -1018,7 +1018,7 @@ async function saveCampaign(){
         createdAt: campaign.createdAt || Date.now(),
         updatedAt: Date.now(),
         raised: campaign.raised || 0,
-        status: campaign.status || 'Draft'
+        status: campaign.status || 'Active'
       });
       showToast('Campaign updated successfully!');
     } else {
@@ -1030,7 +1030,7 @@ async function saveCampaign(){
         createdAt: Date.now(),
         updatedAt: Date.now(),
         raised: 0,
-        status: 'Draft',
+        status: 'Active',
         hidden: false,
         published: true
       });
@@ -1084,7 +1084,7 @@ async function toggleCampaignVisibility(key){
       createdAt: campaign.createdAt || Date.now(),
       updatedAt: Date.now(),
       raised: campaign.raised || 0,
-      status: campaign.status || 'Draft'
+      status: campaign.status || 'Active'
     });
     showToast(campaign.hidden ? 'Campaign is now visible' : 'Campaign hidden');
   } catch(err){

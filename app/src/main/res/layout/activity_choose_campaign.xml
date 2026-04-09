@@ -122,6 +122,7 @@
             app:tint="#6C757D" />
 
         <TextView
+            android:id="@+id/tvEmptyStateTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
@@ -131,6 +132,7 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/tvEmptyStateSubtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"

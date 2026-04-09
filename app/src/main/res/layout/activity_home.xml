@@ -259,6 +259,7 @@
                     app:tint="#6C757D" />
 
                 <TextView
+                    android:id="@+id/tvEmptyCampaignsMessage"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"

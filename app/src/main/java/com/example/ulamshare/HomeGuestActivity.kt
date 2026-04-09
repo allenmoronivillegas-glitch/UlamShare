@@ -8,7 +8,7 @@ import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -28,14 +28,14 @@ class HomeGuestActivity : BaseActivity() {
     private val campaignList = mutableListOf<Campaign>()
     private lateinit var rvTrending: RecyclerView
     private lateinit var emptyCampaignsCard: ConstraintLayout
+    private lateinit var activeCampaignCard: CardView
+    private lateinit var tvEmptyCampaignsMessage: TextView
 
     private lateinit var tvActiveCampaignTitle: TextView
     private lateinit var tvActiveCampaignDescription: TextView
     private lateinit var progressBar: ProgressBar
     private lateinit var tvCampaignRaised: TextView
     private lateinit var tvCampaignProgressPercent: TextView
-
-    private val campaignsRef = FirebaseDatabase.getInstance().getReference("campaigns")
     private var campaignsListener: ValueEventListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,6 +51,8 @@ class HomeGuestActivity : BaseActivity() {
         bottomNavigation = findViewById(R.id.bottomNavigation)
         rvTrending = findViewById(R.id.rvTrendingCampaigns)
         emptyCampaignsCard = findViewById(R.id.emptyCampaignsCard)
+        activeCampaignCard = findViewById(R.id.activeCampaignCard)
+        tvEmptyCampaignsMessage = findViewById(R.id.tvEmptyCampaignsMessage)
 
         rvTrending.layoutManager = LinearLayoutManager(this)
         adapter = CampaignAdapter(campaignList)
@@ -94,83 +96,57 @@ class HomeGuestActivity : BaseActivity() {
             }
         }
 
-        fetchTrendingCampaignsRealtime()
-        listenToCampaigns()
+        listenToCampaignsRealtime()
     }
 
-    private fun fetchTrendingCampaignsRealtime() {
-        dbRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                campaignList.clear()
-                for (campaignSnapshot in snapshot.children) {
-                    try {
-                        val campaign = campaignSnapshot.getValue(Campaign::class.java)
-                        if (campaign != null) {
-                            campaignList.add(campaign)
-                        }
-                    } catch (e: Exception) {
-                        Log.e("HomeGuestActivity", "Error parsing campaign", e)
-                    }
-                }
-                campaignList.sortByDescending { it.createdAt }
-                if (campaignList.isEmpty()) {
-                    rvTrending.visibility = View.GONE
-                } else {
-                    rvTrending.visibility = View.VISIBLE
-                    adapter.notifyDataSetChanged()
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                rvTrending.visibility = View.GONE
-            }
-        })
-    }
-
-    private fun listenToCampaigns() {
+    private fun listenToCampaignsRealtime() {
         campaignsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val campaign = snapshot.children
-                    .mapNotNull { child ->
-                        val isPublished = child.child("isPublished").getValue(Boolean::class.java) ?: false
-                        if (!isPublished) return@mapNotNull null
-
-                        CampaignPreview(
-                            title = child.child("title").getValue(String::class.java) ?: "",
-                            description = child.child("description").getValue(String::class.java).orEmpty(),
-                            goalAmount = child.child("goalAmount").getValue(Double::class.java) ?: 0.0,
-                            raisedAmount = child.child("raisedAmount").getValue(Double::class.java) ?: 0.0,
-                            isFeatured = child.child("isFeatured").getValue(Boolean::class.java) ?: false
-                        )
-                    }
-                    .sortedWith(compareByDescending<CampaignPreview> { it.isFeatured }
-                        .thenByDescending { it.raisedAmount })
-                    .firstOrNull()
-
-                if (campaign == null) renderEmptyState() else renderCampaign(campaign)
+                Log.d("HomeGuestActivity", "Realtime campaign update received")
+                val result = CampaignVisibility.filterVisibleCampaigns(snapshot, "HomeGuestActivity")
+                campaignList.clear()
+                campaignList.addAll(result.visibleCampaigns)
+                if (campaignList.isEmpty()) {
+                    rvTrending.visibility = View.GONE
+                    renderEmptyState(result.totalCampaigns > 0 && result.filteredCount > 0)
+                } else {
+                    rvTrending.visibility = View.VISIBLE
+                    emptyCampaignsCard.visibility = View.GONE
+                    adapter.notifyDataSetChanged()
+                    renderCampaign(campaignList.first())
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                renderEmptyState()
+                Log.e("HomeGuestActivity", "Campaign listener cancelled", error.toException())
+                rvTrending.visibility = View.GONE
+                renderEmptyState(false, "Unable to load campaigns right now.")
             }
         }
-        campaignsRef.addValueEventListener(campaignsListener!!)
+        dbRef.addValueEventListener(campaignsListener!!)
     }
 
-    private fun renderCampaign(campaign: CampaignPreview) {
+    private fun renderCampaign(campaign: Campaign) {
+        activeCampaignCard.visibility = View.VISIBLE
         emptyCampaignsCard.visibility = View.GONE
         tvActiveCampaignTitle.text = campaign.title
         tvActiveCampaignDescription.text = campaign.description.ifBlank { "No campaign description yet." }
-        val progressPercent = if (campaign.goalAmount > 0) {
-            ((campaign.raisedAmount / campaign.goalAmount) * 100).coerceIn(0.0, 100.0)
+        val progressPercent = if (campaign.goal > 0) {
+            ((campaign.raised.toDouble() / campaign.goal.toDouble()) * 100).coerceIn(0.0, 100.0)
         } else 0.0
         progressBar.progress = progressPercent.roundToInt()
         tvCampaignRaised.text = "₱${campaign.raisedAmount.roundToInt()} raised"
         tvCampaignProgressPercent.text = "${progressPercent.roundToInt()}%"
     }
 
-    private fun renderEmptyState() {
+    private fun renderEmptyState(hasFilteredCampaigns: Boolean, message: String? = null) {
+        activeCampaignCard.visibility = View.GONE
         emptyCampaignsCard.visibility = View.VISIBLE
+        tvEmptyCampaignsMessage.text = message ?: if (hasFilteredCampaigns) {
+            "Campaigns exist, but none are Active and visible right now."
+        } else {
+            "No active campaigns available yet."
+        }
     }
 
     override fun onResume() {
@@ -179,15 +155,7 @@ class HomeGuestActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        campaignsListener?.let { campaignsRef.removeEventListener(it) }
+        campaignsListener?.let { dbRef.removeEventListener(it) }
         super.onDestroy()
     }
 }
-
-data class CampaignPreview(
-    val title: String,
-    val description: String,
-    val goalAmount: Double,
-    val raisedAmount: Double,
-    val isFeatured: Boolean
-)
