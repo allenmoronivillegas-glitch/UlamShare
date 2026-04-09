@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_light_gray"
+    android:background="#F8F9FA"
     android:padding="24dp">
 
     <ImageButton
@@ -49,21 +50,20 @@
             android:layout_height="match_parent"
             android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:background="@color/accent_green"
-            />
+            android:background="#2172E5" />
 
         <View
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:background="@color/brand_blue" />
+            android:background="#FFFFFF" />
 
         <View
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="#E9ECEF" />
+            android:background="#FFFFFF" />
     </LinearLayout>
 
     <TextView
@@ -76,15 +76,15 @@
         android:textSize="26sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/stepProgressContainer" />
+        app:layout_constraintTop_toBottomOf="@id/btnBack" />
 
     <TextView
         android:id="@+id/subtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="1dp"
+        android:layout_marginTop="4dp"
         android:text="Choose how much to donate"
-        android:textColor="#1A1C1E"
+        android:textColor="#6C757D"
         android:textSize="15sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvTitle" />
@@ -93,124 +93,168 @@
         android:id="@+id/amountContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="24dp"
         android:orientation="vertical"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle">
+        app:layout_constraintTop_toBottomOf="@id/subtitle">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="10dp">
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOneTime"
                 style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
-                android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                android:background="@drawable/pill_selector_active"
+                android:layout_weight="1"
+                android:checkable="true"
+                android:backgroundTint="@color/button_background_selector"
                 android:text="One-time"
                 android:textAllCaps="false"
-                android:textColor="#2172E5"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:textColor="@color/button_text_selector"
+                android:textSize="14sp"
+                app:strokeColor="#E9ECEF"
+                app:strokeWidth="1dp"
+                app:cornerRadius="24dp" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMonthly"
                 style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
-                android:drawablePadding="8dp"
+                android:checkable="true"
+                android:backgroundTint="@color/button_background_selector"
                 android:text="Monthly"
                 android:textAllCaps="false"
-                android:textColor="#A0A5AA"
-                android:textSize="16sp"
-                android:background="@drawable/pill_selector_inactive"
-                app:drawableEndCompat="@drawable/refresh" />
-
+                android:textColor="@color/button_text_selector"
+                android:textSize="14sp"
+                app:icon="@drawable/refresh"
+                app:iconSize="16dp"
+                app:iconGravity="end"
+                app:iconTint="@color/button_text_selector"
+                app:strokeColor="#E9ECEF"
+                app:strokeWidth="1dp"
+                app:cornerRadius="24dp" />
         </LinearLayout>
 
-        <LinearLayout
+        <GridLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:columnCount="2"
+            android:rowCount="3">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn50"
                 style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
-                android:layout_weight="1"
-                android:layout_margin="6dp"
-                android:backgroundTint="#EBF2FC"
+                android:layout_columnWeight="1"
+                android:layout_margin="4dp"
+                android:checkable="true"
+                android:backgroundTint="@color/button_background_selector"
                 android:text="₱50"
                 android:textAllCaps="false"
-                android:textColor="#2172E5"
+                android:textColor="@color/button_text_selector"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                app:cornerRadius="16dp"
-                android:background="@drawable/pill_selector_inactive"/>
+                app:strokeColor="#E9ECEF"
+                app:strokeWidth="1dp"
+                app:cornerRadius="12dp" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn100"
                 style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
-                android:layout_weight="1"
-                android:layout_margin="6dp"
-                android:backgroundTint="#EBF2FC"
+                android:layout_columnWeight="1"
+                android:layout_margin="4dp"
+                android:checkable="true"
+                android:backgroundTint="@color/button_background_selector"
                 android:text="₱100"
                 android:textAllCaps="false"
-                android:textColor="#2172E5"
+                android:textColor="@color/button_text_selector"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                app:cornerRadius="16dp"
-                android:background="@drawable/pill_selector_inactive"/>
+                app:strokeColor="#E9ECEF"
+                app:strokeWidth="1dp"
+                app:cornerRadius="12dp" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn200"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="4dp"
+                android:checkable="true"
+                android:backgroundTint="@color/button_background_selector"
+                android:text="₱200"
+                android:textAllCaps="false"
+                android:textColor="@color/button_text_selector"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:strokeColor="#E9ECEF"
+                app:strokeWidth="1dp"
+                app:cornerRadius="12dp" />
 
-        </LinearLayout>
-
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn500"
                 style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
-                android:layout_weight="1"
-                android:layout_margin="6dp"
-                android:backgroundTint="#EBF2FC"
+                android:layout_columnWeight="1"
+                android:layout_margin="4dp"
+                android:checkable="true"
+                android:backgroundTint="@color/button_background_selector"
                 android:text="₱500"
                 android:textAllCaps="false"
-                android:textColor="#2172E5"
+                android:textColor="@color/button_text_selector"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                app:cornerRadius="16dp"
-                android:background="@drawable/pill_selector_inactive"/>
+                app:strokeColor="#E9ECEF"
+                app:strokeWidth="1dp"
+                app:cornerRadius="12dp" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn1000"
                 style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
-                android:layout_weight="1"
-                android:layout_margin="6dp"
-                android:backgroundTint="#EBF2FC"
+                android:layout_columnWeight="1"
+                android:layout_margin="4dp"
+                android:checkable="true"
+                android:backgroundTint="@color/button_background_selector"
                 android:text="₱1,000"
                 android:textAllCaps="false"
-                android:textColor="#2172E5"
+                android:textColor="@color/button_text_selector"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                app:cornerRadius="16dp"
-                android:background="@drawable/pill_selector_inactive"/>
-        </LinearLayout>
+                app:strokeColor="#E9ECEF"
+                app:strokeWidth="1dp"
+                app:cornerRadius="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn2000"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="4dp"
+                android:checkable="true"
+                android:backgroundTint="@color/button_background_selector"
+                android:text="₱2,000"
+                android:textAllCaps="false"
+                android:textColor="@color/button_text_selector"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:strokeColor="#E9ECEF"
+                app:strokeWidth="1dp"
+                app:cornerRadius="12dp" />
+        </GridLayout>
 
     </LinearLayout>
 
@@ -225,11 +269,6 @@
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/amountContainer" />
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    app:layout_constraintTop_toBottomOf="@id/tvCustomLabel"
-    android:orientation="vertical">
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilCustomAmount"
@@ -242,7 +281,8 @@
         app:boxCornerRadiusTopEnd="16dp"
         app:boxCornerRadiusTopStart="16dp"
         app:boxStrokeColor="#E9ECEF"
-        app:hintEnabled="false">
+        app:hintEnabled="false"
+        app:layout_constraintTop_toBottomOf="@id/tvCustomLabel">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etAmount"
@@ -252,7 +292,6 @@
             android:inputType="numberDecimal"
             android:padding="16dp"
             android:textColorHint="#A0A5AA" />
-
     </com.google.android.material.textfield.TextInputLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -269,9 +308,9 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/idea"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/tvImpactText"
@@ -281,16 +320,11 @@
             android:text="₱300 provides 3 family emergency food packs"
             android:textColor="#0D4D3B"
             android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/ivTipIcon"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
+            app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-</LinearLayout>
-
 
     <Button
         android:id="@+id/btnNext"
@@ -303,8 +337,7 @@
         android:textColor="#FFFFFF"
         android:textSize="16sp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:background="@drawable/rounded_input_border"/>
-
+        app:cornerRadius="12dp"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

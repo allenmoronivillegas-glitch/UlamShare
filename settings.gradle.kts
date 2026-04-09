@@ -22,6 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "UlamShare"
+rootProject.name = "HopeGive"
 include(":app")
- 

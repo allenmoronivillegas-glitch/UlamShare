@@ -155,8 +155,7 @@
         app:cornerRadius="12dp"
         app:layout_constraintBottom_toTopOf="@id/tvLoginLink"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        android:background="@drawable/rounded_input_border"/>
+        app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
         android:id="@+id/tvLoginLink"
@@ -165,6 +164,15 @@
         android:layout_marginBottom="16dp"
         android:text="Already have an account? Log In"
         android:textColor="#6C757D"
+        app:layout_constraintBottom_toTopOf="@id/btnGoogleSignUp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <com.google.android.gms.common.SignInButton
+        android:id="@+id/btnGoogleSignUp"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_marginBottom="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

@@ -1,7 +1,4 @@
 <resources>
-    <string name="app_name">UlamShare</string>
-    <string name="back">Back</string>
-    <string name="continue_as_guest">Continue as &lt;font color=\'#2172E5\'&gt;Guest&lt;/font&gt; →</string>
-    <!-- TODO: Replace with your real Web Client ID from Firebase Console -->
-    <string name="default_web_client_id">521750995424-generated-placeholder.apps.googleusercontent.com</string>
+    <string name="app_name">HopeGive</string>
+    <string name="continue_as_guest">Continue as Guest</string>
 </resources>

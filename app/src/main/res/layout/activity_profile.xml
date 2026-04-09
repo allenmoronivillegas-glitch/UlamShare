@@ -20,13 +20,12 @@
             android:layout_height="80dp"
             android:background="@drawable/circle_blue_profile"
             android:gravity="center"
-            android:text="JD"
+            android:text="G"
             android:textColor="#FFFFFF"
             android:textSize="40sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:strokeWidth="2dp"/>
+            app:layout_constraintTop_toTopOf="parent" />
 
 
         <TextView
@@ -34,7 +33,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="20dp"
-            android:text="Juan dela Cruz"
+            android:text="Guest User"
             android:textColor="#FFFFFF"
             android:textSize="26sp"
             android:textStyle="bold"
@@ -46,7 +45,7 @@
             android:id="@+id/tvUserEmail"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="juan@example.com"
+            android:text="Not logged in"
             android:textColor="#E0E0E0"
             android:textSize="14sp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -79,9 +78,10 @@
                     android:padding="16dp">
 
                     <TextView
+                        android:id="@+id/tvTotalDonated"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="₱2,450"
+                        android:text="₱0"
                         android:textColor="#FFFFFF"
                         android:textSize="18sp"
                         android:textStyle="bold" />
@@ -113,9 +113,10 @@
                     android:padding="16dp">
 
                     <TextView
+                        android:id="@+id/tvDonationCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="8"
+                        android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="18sp"
                         android:textStyle="bold" />
@@ -146,9 +147,10 @@
                     android:padding="16dp">
 
                     <TextView
+                        android:id="@+id/tvCampaignCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="3"
+                        android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="18sp"
                         android:textStyle="bold" />
@@ -215,7 +217,7 @@
                     android:id="@+id/tvSubDon"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="8 donations this year"
+                    android:text="0 donations this year"
                     android:textColor="#6C757D"
                     android:textSize="12sp"
                     app:layout_constraintBottom_toBottomOf="@id/ivIconDon"
@@ -275,7 +277,7 @@
                     android:id="@+id/tvSubImp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="See you total impact"
+                    android:text="See your total impact"
                     android:textColor="#6C757D"
                     android:textSize="12sp"
                     app:layout_constraintBottom_toBottomOf="@id/ivIconImp"
@@ -335,7 +337,7 @@
                     android:id="@+id/tvSubPay"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="GCash linked"
+                    android:text="No methods linked"
                     android:textColor="#6C757D"
                     android:textSize="12sp"
                     app:layout_constraintBottom_toBottomOf="@id/ivIconPay"

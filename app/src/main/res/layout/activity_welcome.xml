@@ -38,7 +38,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:gravity="start"
-            android:text="Welcome to\nUlamShare"
+            android:text="Welcome to\nHopeGive"
             android:textColor="#FFFFFF"
             android:textSize="32sp"
             android:textStyle="bold"

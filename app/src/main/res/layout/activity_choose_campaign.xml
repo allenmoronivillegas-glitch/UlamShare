@@ -91,190 +91,55 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvMainTitle" />
 
-    <ScrollView
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvCampaigns"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="24dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/emptyStateContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvSubTitle" />
+
+    <LinearLayout
+        android:id="@+id/emptyStateContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="24dp"
+        android:gravity="center"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvSubTitle">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:alpha="0.4"
+            android:src="@drawable/plant"
+            app:tint="#6C757D" />
+
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_marginTop="20dp"
+            android:text="No campaigns available"
+            android:textColor="#1A1C1E"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/cardCampaign1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/bg_card_selected"
-                android:padding="16dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:paddingHorizontal="40dp"
+            android:text="New campaigns are coming soon. Please check back later."
+            android:textColor="#6C757D"
+            android:textSize="14sp" />
 
-                <ImageView
-                    android:id="@+id/ivCampaignIcon1"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:background="#FFF0F3"
-                    android:padding="12dp"
-                    android:src="@drawable/wave"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.192" />
-
-                <TextView
-                android:id="@+id/tvBadge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:text="SELECTED ✓"
-                android:textColor="#2172E5"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toEndOf="@id/ivCampaignIcon1"
-                app:layout_constraintTop_toTopOf="parent" />
-
-                <TextView
-                    android:id="@+id/tvCardTitle1"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Typhoon Carina Relief Fund"
-                    android:textColor="#1A1C1E"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="@id/tvBadge"
-                    app:layout_constraintTop_toBottomOf="@id/tvBadge" />
-
-                <TextView
-                    android:id="@+id/tvCardSubTitle1"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Emergency aid for affected families"
-                    android:textColor="#6C757D"
-                    android:textSize="14sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="@id/tvBadge"
-                    app:layout_constraintTop_toBottomOf="@id/tvCardTitle1" />
-
-                <ProgressBar
-                    android:id="@+id/pbMiniProgress1"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="6dp"
-                    android:layout_marginTop="16dp"
-                    android:progress="78"
-                    android:progressTint="#2172E5"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="@id/tvBadge"
-                    app:layout_constraintTop_toBottomOf="@id/tvCardSubTitle1" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="₱3.9M raised"
-                    android:textColor="#A0A5AA"
-                    android:textSize="12sp"
-                    app:layout_constraintStart_toStartOf="@id/tvBadge"
-                    app:layout_constraintTop_toBottomOf="@id/pbMiniProgress1" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="78% • Urgent"
-                    android:textColor="#A0A5AA"
-                    android:textSize="12sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/pbMiniProgress1" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/cardCampaign2"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:backgroundTint="@color/white"
-                android:background="@drawable/rounded_input_border"
-                android:padding="16dp">
-
-                <ImageView
-                    android:id="@+id/ivCampaignIcon2"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:background="#E8F7F2"
-                    android:padding="12dp"
-                    android:src="@drawable/plant"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.138" />
-
-                <TextView
-                android:id="@+id/tvCardTitle2"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:text="Scholars for Tomorrow"
-                android:textColor="#1A1C1E"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/ivCampaignIcon2"
-                app:layout_constraintTop_toTopOf="parent" />
-
-                <TextView
-                    android:id="@+id/tvCardSubTitle2"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Help 500 scholars finish college"
-                    android:textColor="#6C757D"
-                    android:textSize="14sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="@id/tvCardTitle2"
-                    app:layout_constraintTop_toBottomOf="@id/tvCardTitle2" />
-
-                <ProgressBar
-                    android:id="@+id/pbMiniProgress2"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="6dp"
-                    android:layout_marginTop="16dp"
-                    android:progress="62"
-                    android:progressTint="#2172E5"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="@id/tvCardTitle2"
-                    app:layout_constraintTop_toBottomOf="@id/tvCardSubTitle2" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="₱310K raised"
-                    android:textColor="#A0A5AA"
-                    android:textSize="12sp"
-                    app:layout_constraintStart_toStartOf="@id/tvCardTitle2"
-                    app:layout_constraintTop_toBottomOf="@id/pbMiniProgress2" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="62%"
-                    android:textColor="#A0A5AA"
-                    android:textSize="12sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/pbMiniProgress2" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-        </LinearLayout>
-    </ScrollView>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -57,11 +57,14 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.firestore)
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("androidx.recyclerview:recyclerview:1.3.1")
     
     // Google Identity & Credentials
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
+    implementation(libs.play.services.auth)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

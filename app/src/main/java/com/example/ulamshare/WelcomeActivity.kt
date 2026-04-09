@@ -15,9 +15,8 @@ class WelcomeActivity : BaseActivity() {
         val btnCreateAccount = findViewById<Button>(R.id.btnCreateAccount)
         val btnContinueGuest = findViewById<TextView>(R.id.btnContinueGuest)
 
-        // Highlight "Guest" in the text
-        val guestText = getString(R.string.continue_as_guest)
-        btnContinueGuest.text = Html.fromHtml(guestText, Html.FROM_HTML_MODE_LEGACY)
+        // Using simple text instead of HTML mode to avoid potential crashes or formatting issues
+        btnContinueGuest.text = "Continue as Guest"
 
         btnLogin.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
@@ -28,8 +27,9 @@ class WelcomeActivity : BaseActivity() {
         }
 
         btnContinueGuest.setOnClickListener {
-            // Navigate to DashboardActivity
-            startActivity(Intent(this, DashboardActivity::class.java))
+            // Updated to go to HomeGuestActivity since it handles the Guest UI better
+            val intent = Intent(this, HomeGuestActivity::class.java)
+            startActivity(intent)
             finish()
         }
     }
