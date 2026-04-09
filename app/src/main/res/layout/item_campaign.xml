@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardActiveCampaign"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:background="@drawable/rounded_input_border"
+    android:padding="16dp">
+
+    <ImageView
+        android:id="@+id/ivCampaignIcon"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="@drawable/rounded_soft_blue_rect"
+        android:backgroundTint="#EEF2F8"
+        android:padding="12dp"
+        android:src="@drawable/plant"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvActiveCampTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="Scholars for Tomorrow"
+        android:textColor="#1A1C1E"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/ivCampaignIcon"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvActiveCampSub"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="2dp"
+        android:text="Help 500 scholars finish college"
+        android:textColor="#6C757D"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/ivCampaignIcon"
+        app:layout_constraintTop_toBottomOf="@id/tvActiveCampTitle" />
+
+    <ProgressBar
+        android:id="@+id/pbMiniProgress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="6dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:progress="62"
+        android:progressTint="@color/brand_blue"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/ivCampaignIcon"
+        app:layout_constraintTop_toBottomOf="@id/tvActiveCampSub" />
+
+    <TextView
+        android:id="@+id/tvRaisedAmount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="₱310K raised"
+        android:textColor="#A0A5AA"
+        android:textSize="12sp"
+        app:layout_constraintStart_toEndOf="@id/ivCampaignIcon"
+        app:layout_constraintTop_toBottomOf="@id/pbMiniProgress" />
+
+    <TextView
+        android:id="@+id/tvProgressPercent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="62%"
+        android:textColor="#A0A5AA"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/pbMiniProgress" />
+</androidx.constraintlayout.widget.ConstraintLayout>

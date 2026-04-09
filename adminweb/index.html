@@ -532,7 +532,6 @@ td.muted{color:var(--muted);font-size:12px}
           <div class="page-sub" id="campaigns-sub">No campaigns yet</div>
         </div>
         <div class="page-actions">
-          <button class="btn btn-sm btn-ghost" id="btn-all-users" onclick="goToUsers()">All users</button>
           <button class="btn btn-primary" id="btn-new-campaign-campaigns" onclick="openCampaignModal()">+ New Campaign</button>
         </div>
       </div>
@@ -1103,14 +1102,6 @@ function viewCampaign(key){
   showToast('Viewing campaign: ' + campaign.title);
 }
 
-function goToUsers(){
-  if(!canViewTeam()){
-    showToast('Only admins can view team members.');
-    return;
-  }
-  nav('users', document.getElementById('nav-users'));
-}
-
 async function deleteCampaign(key){
   if(!canDeleteCampaigns()){
     showToast('Only admins can delete campaigns.');
@@ -1335,7 +1326,6 @@ function applyRoleRestrictions(role){
   const canManage = ['Admin','Moderator'].includes(role);
   const navUsers = document.getElementById('nav-users');
   const navSettings = document.getElementById('nav-settings');
-  const btnAllUsers = document.getElementById('btn-all-users');
   const btnTopbar = document.getElementById('btn-new-campaign-topbar');
   const btnCampaigns = document.getElementById('btn-new-campaign-campaigns');
   const btnWelcome = document.getElementById('btn-welcome-create');
@@ -1345,7 +1335,6 @@ function applyRoleRestrictions(role){
 
   if(navUsers) navUsers.style.display = isAdmin ? '' : 'none';
   if(navSettings) navSettings.style.display = isAdmin ? '' : 'none';
-  if(btnAllUsers) btnAllUsers.style.display = isAdmin ? '' : 'none';
   if(btnTopbar) btnTopbar.style.display = canManage ? '' : 'none';
   if(btnCampaigns) btnCampaigns.style.display = canManage ? '' : 'none';
   if(btnWelcome) btnWelcome.style.display = canManage ? '' : 'none';

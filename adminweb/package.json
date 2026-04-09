@@ -1,0 +1,12 @@
+{
+  "name": "adminweb",
+  "version": "1.0.0",
+  "description": "Admin web application",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve . --port 3000"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

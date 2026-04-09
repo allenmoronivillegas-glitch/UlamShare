@@ -1,4 +1,20 @@
 <resources>
-    <string name="app_name">HopeGive</string>
     <string name="continue_as_guest">Continue as Guest</string>
-</resources>
+        <string name="app_name">HopeGive</string>
+        <string name="welcome_to_ulamshare">Welcome to UlamShare,</string>
+        <string name="guest_user">Guest User 👋</string>
+        <string name="register">Register</string>
+        <string name="sign_in">Sign In</string>
+        <string name="track_your_impact">Track your impact 📈</string>
+        <string name="sign_in_to_save_your_donation_history">Sign in to save your donation history and see how your contributions help others.</string>
+        <string name="create_account">Create Account</string>
+        <string name="active_campaign_title">Active Campaign Title</string>
+        <string name="active_campaign_description">Active Campaign Description</string>
+        <string name="amount_raised">₱0 raised</string>
+        <string name="progress_percentage">0%</string>
+        <string name="refresh_campaigns">Refresh campaigns</string>
+        <string name="trending_campaigns">Trending Campaigns</string>
+        <string name="new_campaigns_coming_soon">New campaigns coming soon.</string>
+        <string name="empty_campaigns_icon">Icon for empty campaigns state</string>
+        <!-- Add other strings as needed -->
+    </resources>

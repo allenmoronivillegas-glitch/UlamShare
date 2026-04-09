@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HopeGive — Admin Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- Firebase CDN -->
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAlFuluvqONN0GfRfkv1CF85rGdm75dOoU",
+    authDomain: "ulamshare-4f2b9.firebaseapp.com",
+    databaseURL: "https://ulamshare-4f2b9-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ulamshare-4f2b9",
+    storageBucket: "ulamshare-4f2b9.firebasestorage.app",
+    messagingSenderId: "521750995424",
+    appId: "1:521750995424:web:3f26ee1e971685409ecb85",
+    measurementId: "G-67NLB4FRVF"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const auth = getAuth(app);
+
+  // Make Firebase available globally
+  window.firebaseApp = app;
+  window.firebaseAnalytics = analytics;
+  window.firebaseAuth = auth;
+
+  // Handle login form
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.querySelector('form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if (!email || !password) {
+        alert('Please enter email and password');
+        return;
+      }
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = 'index.html';
+      } catch (error) {
+        console.error('Login error:', error);
+        alert('Login failed: ' + error.message);
+      }
+    });
+
+    // Toggle password visibility
+    const toggleBtn = document.getElementById('toggle-password');
+    const passwordInput = document.getElementById('password');
+    toggleBtn.addEventListener('click', () => {
+      const type = passwordInput.type === 'password' ? 'text' : 'password';
+      passwordInput.type = type;
+      toggleBtn.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+  });
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0A0F1E;--navy2:#111827;--navy3:#1a2236;--navy4:#1f2a40;
+  --border:#ffffff12;--border2:#ffffff20;
+  --text:#E8EDF5;--muted:#7C8FA6;--hint:#4A5568;
+  --accent:#2F80ED;--accent2:#1a5fb5;
+  --green:#27AE60;--amber:#F2994A;--red:#E53E3E;--purple:#7C5CBF;
+  --card:#111827;--font-serif:'Instrument Serif',serif;
+  --font-mono:'DM Mono',monospace;--font-sans:'Geist',sans-serif;
+}
+html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(--font-sans)}
+.login-container{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;width:100%;max-width:400px}
+.login-title{font-family:var(--font-serif);font-size:24px;text-align:center;margin-bottom:30px;color:var(--text)}
+.form-group{margin-bottom:20px}
+.form-label{display:block;font-size:14px;color:var(--muted);margin-bottom:8px}
+.form-input{width:100%;padding:12px;background:var(--navy2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px}
+.form-input:focus{outline:none;border-color:var(--accent)}
+.login-btn{width:100%;padding:12px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s}
+.login-btn:hover{background:var(--accent2)}
+.register-link{text-align:center;margin-top:20px;font-size:14px;color:var(--muted)}
+.register-link a{color:var(--accent);text-decoration:none}
+.register-link a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="login-container">
+  <div class="login-card">
+    <h1 class="login-title">Admin Login</h1>
+    <form action="#" method="post">
+      <div class="form-group">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" id="email" name="email" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <div style="position: relative;">
+          <input type="password" id="password" name="password" class="form-input" required>
+          <button type="button" id="toggle-password" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px;">👁️</button>
+        </div>
+      </div>
+      <button type="submit" class="login-btn">Login</button>
+    </form>
+    <div class="register-link">
+      Don't have an account? <a href="register.html">Register here</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>
