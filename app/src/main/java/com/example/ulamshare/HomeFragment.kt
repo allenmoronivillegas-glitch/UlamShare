@@ -44,9 +44,7 @@ class HomeFragment : Fragment() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
         
-        // Using the correct region-specific URL from google-services.json
-        val databaseUrl = "https://ulamshare-4f2b9-default-rtdb.asia-southeast1.firebasedatabase.app"
-        dbRef = FirebaseDatabase.getInstance(databaseUrl).getReference("campaigns")
+        dbRef = FirebaseDatabase.getInstance().getReference("campaigns")
 
         tvUserName = view.findViewById(R.id.tvUserName)
         tvProfileInitials = view.findViewById(R.id.tvProfileInitials)

@@ -1,11 +1,18 @@
 package com.example.ulamshare
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.messaging.FirebaseMessaging
 
 class SplashActivity : BaseActivity() {
 
@@ -18,6 +25,8 @@ class SplashActivity : BaseActivity() {
         auth = FirebaseAuth.getInstance()
         
         enableFullScreen()
+        subscribeToCampaignNotifications()
+        requestNotificationPermissionIfNeeded()
 
         // Delay for 3 seconds
         Handler(Looper.getMainLooper()).postDelayed({
@@ -52,5 +61,32 @@ class SplashActivity : BaseActivity() {
         )
         displayName?.takeIf { it.isNotBlank() }?.let { seed["fullName"] = it }
         return seed
+    }
+
+    private fun subscribeToCampaignNotifications() {
+        FirebaseMessaging.getInstance().subscribeToTopic("campaigns")
+            .addOnSuccessListener {
+                Log.d("SplashActivity", "Subscribed to campaigns topic")
+            }
+            .addOnFailureListener { error ->
+                Log.e("SplashActivity", "Failed to subscribe to campaigns topic", error)
+            }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+        val permissionGranted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!permissionGranted) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                1001
+            )
+        }
     }
 }

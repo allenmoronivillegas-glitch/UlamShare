@@ -42,8 +42,7 @@ class HomeGuestActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home_guest)
 
-        val databaseUrl = "https://ulamshare-4f2b9-default-rtdb.asia-southeast1.firebasedatabase.app"
-        dbRef = FirebaseDatabase.getInstance(databaseUrl).getReference("campaigns")
+        dbRef = FirebaseDatabase.getInstance().getReference("campaigns")
 
         val btnSignInTop = findViewById<Button>(R.id.btnSignInTop)
         val btnCreateAccount = findViewById<Button>(R.id.btnCreateAccount)
