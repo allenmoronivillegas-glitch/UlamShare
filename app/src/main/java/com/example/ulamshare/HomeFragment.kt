@@ -8,6 +8,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -21,6 +28,7 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 
 class HomeFragment : Fragment() {
+    private var lastCampaignCount = 0
 
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
@@ -56,6 +64,7 @@ class HomeFragment : Fragment() {
         rvRecentlyAdded.layoutManager = LinearLayoutManager(requireContext())
         adapter = CampaignAdapter(campaignList)
         rvRecentlyAdded.adapter = adapter
+        Log.d("HomeFragment", "RecyclerView initialized. firebasePath=campaigns")
 
         btnRegisterHeader.setOnClickListener {
             startActivity(Intent(requireContext(), RegisterActivity::class.java))
@@ -92,27 +101,85 @@ class HomeFragment : Fragment() {
         campaignsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 Log.d("HomeFragment", "Realtime update received for campaigns")
-                val result = CampaignVisibility.filterVisibleCampaigns(snapshot, "HomeFragment")
+                Log.d("HomeFragment", "snapshot.value=${snapshot.value}")
+
                 campaignList.clear()
-                campaignList.addAll(result.visibleCampaigns)
+
+                val count = snapshot.childrenCount.toInt()
+                var latestCampaignTitle = "New Campaign"
+
+                for (campaignSnapshot in snapshot.children) {
+                    val campaign = campaignSnapshot.getValue(Campaign::class.java)
+                    if (campaign != null) {
+                        if (campaign.campaignId.isNullOrBlank()) {
+                            campaign.campaignId = campaignSnapshot.key
+                        }
+
+                        campaignList.add(campaign)
+
+                        // Get latest campaign title
+                        latestCampaignTitle = campaign.title ?: "New Campaign"
+
+                        Log.d(
+                            "HomeFragment",
+                            "campaign title=${campaign.title}, status=${campaign.status}, hidden=${campaign.hidden}"
+                        )
+                    }
+                }
+
+                // ✅ ONLY trigger when NEW campaign is added
+                if (lastCampaignCount != 0 && count > lastCampaignCount) {
+
+                    // 🔔 TOAST
+                    Toast.makeText(requireContext(), "New campaign added!", Toast.LENGTH_SHORT).show()
+
+                    val manager = requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    val channelId = "campaign_channel"
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val channel = NotificationChannel(
+                            channelId,
+                            "Campaign Notifications",
+                            NotificationManager.IMPORTANCE_DEFAULT
+                        )
+                        manager.createNotificationChannel(channel)
+                    }
+
+                    // 🔗 OPEN APP WHEN CLICKED
+                    val intent = Intent(requireContext(), MainActivity::class.java)
+                    val pendingIntent = PendingIntent.getActivity(
+                        requireContext(),
+                        0,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+
+                    // 🔔 NOTIFICATION
+                    val notification = NotificationCompat.Builder(requireContext(), channelId)
+                        .setContentTitle("New Campaign")
+                        .setContentText(latestCampaignTitle)
+                        .setSmallIcon(android.R.drawable.ic_dialog_info)
+                        .setContentIntent(pendingIntent)
+                        .setAutoCancel(true)
+                        .build()
+
+                    manager.notify(1, notification)
+                }
+
+                lastCampaignCount = count
+
+                // ✅ NORMAL DISPLAY (UNCHANGED)
+                campaignList.sortByDescending { it.createdAt ?: 0L }
                 val recentList = if (campaignList.size > 3) campaignList.take(3) else campaignList
 
-                campaignList.clear()
-                campaignList.addAll(recentList)
-
-                if (campaignList.isEmpty()) {
+                if (recentList.isEmpty()) {
                     rvRecentlyAdded.visibility = View.GONE
                     emptyCampaignsCard.visibility = View.VISIBLE
-                    tvEmptyCampaignsMessage.text =
-                        if (result.totalCampaigns > 0 && result.filteredCount > 0) {
-                            "Campaigns exist, but none are Active and visible right now."
-                        } else {
-                            "No active campaigns yet."
-                        }
+                    tvEmptyCampaignsMessage.text = "No campaigns available yet."
                 } else {
                     rvRecentlyAdded.visibility = View.VISIBLE
                     emptyCampaignsCard.visibility = View.GONE
-                    adapter.notifyDataSetChanged()
+                    adapter.submitList(recentList.toList())
                 }
             }
 

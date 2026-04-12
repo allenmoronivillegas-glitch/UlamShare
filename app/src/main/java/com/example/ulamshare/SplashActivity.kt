@@ -37,11 +37,16 @@ class SplashActivity : BaseActivity() {
     private fun checkUserStatus() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            CampaignAssignmentManager.ensureCampaignForAuthenticatedUser(
+            CampaignAssignmentManager.syncForAuthenticatedUser(
                 context = this,
                 user = currentUser,
                 profileSeed = currentUser.toProfileSeed(),
                 onComplete = {
+                    val intent = Intent(this, MainActivity::class.java)
+                    startActivity(intent)
+                    finish()
+                },
+                onError = {
                     val intent = Intent(this, MainActivity::class.java)
                     startActivity(intent)
                     finish()

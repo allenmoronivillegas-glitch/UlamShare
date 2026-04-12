@@ -17,11 +17,13 @@ class CampaignAdapter(private var items: List<Campaign>) : RecyclerView.Adapter<
         private val percentView: TextView = itemView.findViewById(R.id.tvProgressPercent)
 
         fun bind(campaign: Campaign) {
-            titleView.text = campaign.title
-            subView.text = campaign.description
+            titleView.text = campaign.title ?: "Untitled Campaign"
+            subView.text = campaign.description ?: "No description yet."
             raisedView.text = "₱${campaign.raised} raised"
             
-            val progress = if (campaign.goal > 0) (campaign.raised * 100 / campaign.goal) else 0
+            val goal = campaign.goal ?: 0
+            val raised = campaign.raised ?: 0
+            val progress = if (goal > 0) (raised * 100 / goal) else 0
             progressBar.progress = progress
             percentView.text = "$progress%"
         }

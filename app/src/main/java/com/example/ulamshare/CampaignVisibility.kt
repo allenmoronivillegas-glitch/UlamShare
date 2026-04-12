@@ -32,11 +32,11 @@ object CampaignVisibility {
             }
 
             val campaign = rawCampaign.copy(
-                campaignId = rawCampaign.campaignId.ifBlank { child.key.orEmpty() }
+                campaignId = rawCampaign.campaignId?.ifBlank { child.key.orEmpty() } ?: child.key.orEmpty()
             )
 
             val isActive = campaign.status.equals(ACTIVE_STATUS, ignoreCase = true)
-            val isVisible = isActive && !campaign.hidden
+            val isVisible = isActive && campaign.hidden != true
 
             if (isVisible) {
                 visibleCampaigns.add(campaign)
@@ -45,7 +45,7 @@ object CampaignVisibility {
                     "VISIBLE campaignId=${campaign.campaignId} title=${campaign.title} status=${campaign.status} hidden=${campaign.hidden}"
                 )
             } else {
-                if (campaign.hidden) hiddenCount++
+                if (campaign.hidden == true) hiddenCount++
                 if (!isActive) inactiveCount++
                 Log.d(
                     logTag,
@@ -54,7 +54,7 @@ object CampaignVisibility {
             }
         }
 
-        visibleCampaigns.sortByDescending { it.createdAt }
+        visibleCampaigns.sortByDescending { it.createdAt ?: 0L }
         Log.d(
             logTag,
             "Campaign filter summary: total=${snapshot.childrenCount}, visible=${visibleCampaigns.size}, hidden=$hiddenCount, inactive=$inactiveCount, invalid=$invalidCount"

@@ -128,10 +128,12 @@ class HomeGuestActivity : BaseActivity() {
     private fun renderCampaign(campaign: Campaign) {
         activeCampaignCard.visibility = View.VISIBLE
         emptyCampaignsCard.visibility = View.GONE
-        tvActiveCampaignTitle.text = campaign.title
-        tvActiveCampaignDescription.text = campaign.description.ifBlank { "No campaign description yet." }
-        val progressPercent = if (campaign.goal > 0) {
-            ((campaign.raised.toDouble() / campaign.goal.toDouble()) * 100).coerceIn(0.0, 100.0)
+        tvActiveCampaignTitle.text = campaign.title ?: "Untitled Campaign"
+        tvActiveCampaignDescription.text = campaign.description?.ifBlank { "No campaign description yet." } ?: "No campaign description yet."
+        val goal = campaign.goal ?: 0
+        val raised = campaign.raised ?: 0
+        val progressPercent = if (goal > 0) {
+            ((raised.toDouble() / goal.toDouble()) * 100).coerceIn(0.0, 100.0)
         } else 0.0
         progressBar.progress = progressPercent.roundToInt()
         tvCampaignRaised.text = "₱${campaign.raisedAmount.roundToInt()} raised"

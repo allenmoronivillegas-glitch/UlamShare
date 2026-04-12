@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
@@ -44,6 +45,8 @@ class ProfileFragment : Fragment() {
         val optionLogout = view.findViewById<ConstraintLayout>(R.id.optionlogout)
 
         loadUserData()
+        // Notification UI temporarily disabled - requires layout updates
+        // displayNotifications(view)
 
         optionLogout.setOnClickListener {
             if (auth.currentUser != null) {
@@ -100,5 +103,15 @@ class ProfileFragment : Fragment() {
             tvCampaignCount.text = "0"
             tvSubDon.text = "0 donations this year"
         }
+    }
+
+    /**
+     * Display in-app notifications from local storage
+     * TEMPORARILY DISABLED: Requires layout file updates to define notificationsContainer
+     */
+    private fun displayNotifications(view: View) {
+        // Notification UI rendering temporarily disabled
+        // To enable: Add LinearLayout with id="notificationsContainer" to activity_profile.xml
+        Log.d("ProfileFragment", "Notification UI display skipped - layout updates needed")
     }
 }

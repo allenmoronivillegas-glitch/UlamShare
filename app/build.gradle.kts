@@ -61,6 +61,9 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging-ktx")
     implementation("androidx.recyclerview:recyclerview:1.3.1")
     
+    // JSON & Serialization
+    implementation("com.google.code.gson:gson:2.10.1")
+    
     // Google Identity & Credentials
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)

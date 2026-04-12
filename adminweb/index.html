@@ -31,6 +31,10 @@
   const db = getDatabase(app);
   const auth = getAuth(app);
   const campaignsRef = ref(db, 'campaigns');
+  
+  console.log('🔥 Firebase initialized - setting up window refs...');
+  console.log('  Database:', db.app.options.projectId);
+  console.log('  Campaigns ref path: campaigns');
 
   // Make Firebase available globally
   window.firebaseApp = app;
@@ -46,10 +50,13 @@
   window.firebaseOnValue = onValue;
   window.firebaseRemove = remove;
   window.firebaseRef = ref;
+  console.log('✓ All Firebase window refs configured');
+  
   window.firebaseAuthReady = new Promise((resolve, reject) => {
     onAuthStateChanged(auth, user => {
       if (user) {
         // User is signed in
+        console.log('✓ User authenticated:', user.uid);
         resolve(user);
       } else {
         // User is signed out, redirect to login
@@ -826,6 +833,72 @@ td.muted{color:var(--muted);font-size:12px}
  
 <script>
 const titles={dashboard:'Dashboard',campaigns:'Campaigns',donations:'Donations',donors:'Donors',payments:'Payments',users:'Team',settings:'Settings'};
+
+// 🔧 Firebase Diagnostics
+function diagnoseCampaigns(){
+  console.group('🔧 Firebase Campaign Diagnostics');
+  console.log('\n👤 USER AUTHENTICATION:');
+  console.log('• window.firebaseAuth.currentUser:', window.firebaseAuth?.currentUser?.uid || 'null');
+  console.log('• window.currentUserProfile:', window.currentUserProfile);
+  console.log('• currentRole():', currentRole());
+  console.log('• canManageCampaigns():', canManageCampaigns());
+  
+  console.log('\n📚 CAMPAIGNS DATA:');
+  console.log('• campaigns array:', campaigns);
+  console.log('• campaigns.length:', campaigns.length);
+  console.log('• donationStats:', donationStats);
+  
+  console.log('\n🔥 FIREBASE FUNCTIONS:');
+  console.log('• window.firebaseDb:', !!window.firebaseDb);
+  console.log('• window.firebaseCampaignsRef:', !!window.firebaseCampaignsRef);
+  console.log('• window.firebaseOnValue:', !!window.firebaseOnValue);
+  console.log('• window.firebaseSet:', !!window.firebaseSet);
+  console.log('• window.firebasePush:', !!window.firebasePush);
+  console.log('• window.firebaseRef:', !!window.firebaseRef);
+  
+  console.log('\n🎨 DOM CONTAINERS:');
+  console.log('• #campaigns-empty:', !!document.getElementById('campaigns-empty'));
+  console.log('• #campaigns-list:', !!document.getElementById('campaigns-list'));
+  console.log('• #campaigns-table-body:', !!document.getElementById('campaigns-table-body'));
+  console.log('• #modal-campaign:', !!document.getElementById('modal-campaign'));
+  console.log('• #campaign-save-btn:', !!document.getElementById('campaign-save-btn'));
+  
+  // Try to manually fetch campaigns data for debugging
+  if(window.firebaseCampaignsRef && window.firebaseOnValue){
+    console.log('\n📡 Attempting Firebase REST API fetch...');
+    const dbUrl = 'https://ulamshare-4f2b9-default-rtdb.asia-southeast1.firebasedatabase.app/campaigns.json';
+    fetch(dbUrl).then(r => {
+      console.log('REST API response status:', r.status);
+      return r.json();
+    }).then(data => {
+      console.log('✓ Firebase REST API campaigns data:', data);
+    }).catch(e => console.error('❌ REST API fetch failed:', e));
+  }
+  
+  console.log('\n📊 SUMMARY:');
+  if(!window.currentUserProfile){
+    console.warn('⚠️ User profile not loaded yet. Campaigns may not display.');
+  }
+  if(campaigns.length === 0){
+    console.warn('⚠️ No campaigns found. Check Firebase Realtime Database > campaigns node.');
+  }
+  if(!canManageCampaigns()){
+    console.log('ℹ️ Current user is ' + currentRole() + ' - cannot create campaigns. Only Admin/Moderator can manage.');
+  }
+  console.groupEnd();
+}
+
+// 🔄 Manual refresh - call from console if needed
+function refreshCampaigns(){
+  console.log('🔄 Manually refreshing campaigns...');
+  watchCampaigns();
+}
+
+// 🎨 Manual render - call from console if needed
+function refreshRender(){
+  console.log('🎨 Manually re-rendering campaigns...');
+  renderCampaigns();
+}
 let checks=[true,false,false,false,false];
 let campaigns=[];
 let teamMembers=[];
@@ -977,83 +1050,113 @@ function openCampaignModal(key){
 }
 
 async function saveCampaign(){
+  console.log('💾 saveCampaign() called');
+  
+  // Check permissions
   if(!canManageCampaigns()){
-    showToast('Only admins can save campaign changes.');
+    console.warn('❌ User lacks permissions to manage campaigns');
+    showToast('Only admins and moderators can create or edit campaigns.');
     return;
   }
+  
+  // Get form values
   const title=document.getElementById('c-title').value.trim();
   const desc=document.getElementById('c-desc').value.trim();
   const goal=document.getElementById('c-goal').value;
   const date=document.getElementById('c-date').value;
   const cat=document.getElementById('c-cat').value;
-  if(!title){document.getElementById('c-title').focus();return;}
-  if(!window.firebaseCampaignsRef || !window.firebaseAuthReady || !window.firebaseRef || !window.firebaseSet){
-    console.error('Firebase not initialized:', {
-      campaignsRef: window.firebaseCampaignsRef,
-      firebaseAuthReady: window.firebaseAuthReady,
-      firebaseRef: window.firebaseRef,
-      firebaseSet: window.firebaseSet
-    });
-    showToast('Firebase is not ready yet. Refresh the page and try again.');
+  
+  console.log('📝 Campaign data:', {title, desc, goal, date, cat});
+  
+  // Validate title
+  if(!title){
+    console.warn('⚠️ Campaign title is empty');
+    document.getElementById('c-title').focus();
+    showToast('Campaign title is required');
     return;
   }
+  
+  // Check Firebase readiness
+  if(!window.firebaseCampaignsRef || !window.firebaseAuthReady || !window.firebaseRef || !window.firebaseSet || !window.firebasePush){
+    console.error('❌ Firebase not ready:', {
+      campaignsRef: !!window.firebaseCampaignsRef,
+      authReady: !!window.firebaseAuthReady,
+      ref: !!window.firebaseRef,
+      set: !!window.firebaseSet,
+      push: !!window.firebasePush
+    });
+    showToast('Firebase is loading. Please wait a moment and try again.');
+    return;
+  }
+  
+  console.log('✓ Firebase functions available');
+  
   const campaignData={
     title,
     description: desc || '',
     goal: Number(goal) || 0,
     date: date || 'No end date',
-    cat: cat || 'General'
+    cat: cat || 'General',
+    createdAt: Date.now(),
+    status: 'Active',
+    hidden: false,
+    published: true,
+    raised: 0
   };
+  
   try {
+    console.log('⏳ Waiting for Firebase auth...');
     await window.firebaseAuthReady;
+    console.log('✓ Auth ready, proceeding with save');
+    
     if(editingCampaignKey){
+      console.log('📝 Updating campaign:', editingCampaignKey);
       const campaign = campaigns.find(c => c.key === editingCampaignKey) || {};
       const campaignRef = window.firebaseRef(window.firebaseDb, 'campaigns/' + editingCampaignKey);
       await window.firebaseSet(campaignRef, {
-        campaignId: campaign.campaignId || editingCampaignKey || campaign.key,
         ...campaign,
         ...campaignData,
-        hidden: campaign.hidden || false,
-        published: !campaign.hidden,
-        createdAt: campaign.createdAt || Date.now(),
         updatedAt: Date.now(),
-        raised: campaign.raised || 0,
-        status: campaign.status || 'Active'
+        campaignId: campaign.campaignId || editingCampaignKey || campaign.key,
+        createdAt: campaign.createdAt || Date.now() // Preserve original creation time
       });
-      showToast('Campaign updated successfully!');
+      console.log('✅ Campaign updated successfully');
+      showToast('Campaign "'+title+'" updated!');
+      editingCampaignKey = null;
     } else {
+      console.log('➕ Creating new campaign');
       const campaignsRef = window.firebaseCampaignsRef;
       const newCampaignRef = window.firebasePush(campaignsRef);
+      const newKey = newCampaignRef.key;
+      console.log('  New campaign key:', newKey);
+      
       await window.firebaseSet(newCampaignRef, {
-        campaignId: newCampaignRef.key,
         ...campaignData,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        raised: 0,
-        status: 'Active',
-        hidden: false,
-        published: true
+        campaignId: newKey
       });
+      
+      console.log('✅ Campaign created successfully:', newKey);
       setCheckState(1, 'done');
-      document.getElementById('dot-campaign').classList.add('active');
+      const dotEl = document.getElementById('dot-campaign');
+      if(dotEl) dotEl.classList.add('active');
       showToast('Campaign "'+title+'" created!');
     }
   } catch(err){
-    console.error('Firebase save error', err);
-    const message = err && err.message ? err.message : 'Failed to save campaign';
+    console.error('❌ Firebase save error:', err);
+    const message = err && err.message ? err.message : 'Failed to save campaign. Check console for details.';
     showToast(message);
     if(!editingCampaignKey) setCheckState(1, 'failed');
     return;
   }
+  
+  // Clear form and close modal
   closeModal('modal-campaign');
-  if(!editingCampaignKey){
-    editingCampaignKey = null;
-  }
   document.getElementById('c-title').value='';
   document.getElementById('c-desc').value='';
   document.getElementById('c-goal').value='';
   document.getElementById('c-date').value='';
   document.getElementById('c-cat').value='';
+  console.log('✓ saveCampaign() completed');
 }
 
 function editCampaign(key){
@@ -1146,19 +1249,37 @@ async function confirmDelete(){
 }
  
 function renderCampaigns(){
+  console.log('🎨 renderCampaigns() called with', campaigns.length, 'total campaigns');
+  
   const empty=document.getElementById('campaigns-empty');
   const list=document.getElementById('campaigns-list');
   const sub=document.getElementById('campaigns-sub');
   const body=document.getElementById('campaigns-table-body');
+  
+  // Safe DOM check
+  if(!empty || !list || !sub || !body){
+    console.error('❌ Missing required DOM elements:', {empty: !!empty, list: !!list, sub: !!sub, body: !!body});
+    return;
+  }
+  console.log('✓ All required DOM containers found');
+  
   const role = window.currentUserProfile?.role || 'Viewer';
+  console.log(`  Role: ${role}`);
+  
   const visibleCampaigns = ['Admin','Moderator'].includes(role) ? campaigns : campaigns.filter(c => !c.hidden);
+  console.log(`  Visible campaigns: ${visibleCampaigns.length} (after role filtering)`);
+  
   if(visibleCampaigns.length===0){
+    console.log('  → Showing empty state');
     empty.style.display='';
     list.style.display='none';
     sub.textContent = campaigns.length === 0 ? 'No campaigns yet' : 'No visible campaigns';
     return;
   }
-  empty.style.display='none';list.style.display='';
+  
+  console.log('  → Rendering campaign list');
+  empty.style.display='none';
+  list.style.display='';
   sub.textContent=visibleCampaigns.length+' campaign'+(visibleCampaigns.length>1?'s':'');
   body.innerHTML='<div class="card-header"><div class="card-title">All campaigns</div></div>'+
     visibleCampaigns.map((c,i)=>{
@@ -1196,21 +1317,59 @@ function renderCampaigns(){
  
   // update stat
   document.querySelectorAll('.stat-value.zero')[1].textContent=visibleCampaigns.length;
+  console.log(`✓ Rendered ${visibleCampaigns.length} campaigns to UI`);
 }
  
 function watchCampaigns(){
+  console.log('🔄 watchCampaigns() starting...');
+  
+  // Retry logic if ref not ready
   const campaignsRef = window.firebaseCampaignsRef;
   if(!campaignsRef){
-    console.warn('Firebase campaigns ref not initialized');
+    console.error('❌ Firebase campaigns ref NOT initialized. Window refs:', {
+      firebaseCampaignsRef: window.firebaseCampaignsRef,
+      firebaseOnValue: !!window.firebaseOnValue,
+      firebaseDb: !!window.firebaseDb
+    });
+    // Retry after a brief delay
+    console.log('⏳ Retrying watchCampaigns in 1 second...');
+    setTimeout(() => watchCampaigns(), 1000);
     return;
   }
-  window.firebaseOnValue(campaignsRef, snapshot => {
-    const data = snapshot.val();
-    campaigns = data ? Object.entries(data).map(([key, value]) => ({ key, ...value })).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0)) : [];
-    renderCampaigns();
-  }, error => {
-    console.error('Firebase campaigns load error', error);
-  });
+  
+  console.log('✓ campaignsRef ready');
+  
+  try {
+    window.firebaseOnValue(campaignsRef, snapshot => {
+      try {
+        const rawData = snapshot.val();
+        console.log('📦 Raw Firebase data from campaigns node:', rawData);
+        
+        if(rawData === null){
+          console.warn('⚠️ Firebase campaigns node is empty (null)');
+          campaigns = [];
+        } else if(typeof rawData === 'object'){
+          campaigns = Object.entries(rawData).map(([key, value]) => {
+            console.log(`  • Campaign ID: ${key}`, value);
+            return { key, ...value };
+          }).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+          console.log(`✓ Parsed ${campaigns.length} total campaign(s)`);
+        } else {
+          console.warn('⚠️ Unexpected data type from Firebase:', typeof rawData);
+          campaigns = [];
+        }
+        
+        console.log('📐 Calling renderCampaigns()...');
+        renderCampaigns();
+      } catch(err){
+        console.error('❌ Error processing campaign snapshot:', err);
+      }
+    }, error => {
+      console.error('❌ Firebase campaigns listener error:', error);
+    });
+  } catch(err){
+    console.error('❌ Error setting Firebase listener:', err);
+  }
 }
 
 function watchDonations(){
@@ -1359,24 +1518,57 @@ function normalizeRole(value){
 }
 
 function watchCurrentUserProfile(){
-  const authUser = window.firebaseAuth.currentUser;
-  if(!authUser) return;
+  console.log('👤 watchCurrentUserProfile() starting...');
+  const authUser = window.firebaseAuth?.currentUser;
+  console.log('  Current auth user:', authUser?.uid || 'null');
+  
+  if(!authUser){
+    console.warn('⚠️ No authenticated user yet, retrying in 1 second...');
+    setTimeout(() => watchCurrentUserProfile(), 1000);
+    return;
+  }
+  
+  console.log('✓ Auth user found:', authUser.uid);
   const profileRef = window.firebaseRef(window.firebaseDb, 'users/' + authUser.uid);
+  console.log('📍 Profile ref path: users/' + authUser.uid);
+  
   window.firebaseOnValue(profileRef, snapshot => {
-    const data = snapshot.val() || {};
-    const profile = {
-      uid: authUser.uid,
-      email: data.email || authUser.email || '',
-      username: data.username || authUser.displayName || (authUser.email ? authUser.email.split('@')[0] : 'User'),
-      role: normalizeRole(data.role),
-      status: data.status || 'Active',
-      createdAt: data.createdAt || Date.now()
-    };
-    window.currentUserProfile = profile;
-    setCurrentUserProfile(profile);
-    applyRoleRestrictions(profile.role);
+    try {
+      const rawData = snapshot.val();
+      console.log('📦 Raw user profile data:', rawData);
+      
+      const data = rawData || {};
+      const profile = {
+        uid: authUser.uid,
+        email: data.email || authUser.email || '',
+        username: data.username || authUser.displayName || (authUser.email ? authUser.email.split('@')[0] : 'User'),
+        role: normalizeRole(data.role),
+        status: data.status || 'Active',
+        createdAt: data.createdAt || Date.now()
+      };
+      
+      console.log('✓ User profile loaded:', profile);
+      window.currentUserProfile = profile;
+      setCurrentUserProfile(profile);
+      applyRoleRestrictions(profile.role);
+    } catch(err){
+      console.error('❌ Error processing user profile:', err);
+    }
   }, error => {
-    console.error('Firebase user profile load error', error);
+    console.error('❌ Firebase user profile listener error:', error);
+    // If user exists in Auth but not in DB, create default profile
+    console.log('⚠️ Profile not found in database, creating default profile...');
+    const defaultProfile = {
+      uid: authUser.uid,
+      email: authUser.email || '',
+      username: authUser.displayName || (authUser.email ? authUser.email.split('@')[0] : 'User'),
+      role: 'Viewer',
+      status: 'Active',
+      createdAt: Date.now()
+    };
+    window.currentUserProfile = defaultProfile;
+    setCurrentUserProfile(defaultProfile);
+    applyRoleRestrictions('Viewer');
   });
 }
 
@@ -1503,13 +1695,36 @@ document.querySelectorAll('.toggle').forEach(t=>{
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    console.log('🚀 DOMContentLoaded: Initializing Firebase watchers...');
+    console.log('⏳ Waiting for Firebase auth to be ready...');
     await window.firebaseAuthReady;
+    console.log('✓ Firebase auth ready!');
+    
+    console.log('👤 Watching current user profile...');
     watchCurrentUserProfile();
+    
+    // Wait a moment for user profile to load
+    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log('\u2713 User profile loading initiated');
+    
+    console.log('📽️ Watching campaigns...');
     watchCampaigns();
+    
+    console.log('👥 Watching users...');
     watchUsers();
+    
+    console.log('💰 Watching donations...');
     watchDonations();
+    
+    console.log('✅ All Firebase watchers initialized successfully!');
+    
+    // Diagnostic check after a brief delay to allow data to load
+    setTimeout(() => {
+      console.log('\n📊 Checking Firebase data status after 3 seconds...');
+      diagnoseCampaigns();
+    }, 3000);
   } catch(err) {
-    console.error('Firebase auth initialization failed', err);
+    console.error('❌ Firebase initialization failed:', err);
     showToast('Firebase auth failed. Please check console');
   }
 });

@@ -1,22 +1,5 @@
-import { db } from "./firebase.js";
-import { ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+// 📦 Firebase is initialized in index.html
+// This module waits for window.firebaseAuthReady before accessing campaigns
+// app.js is a placeholder - campaigns are loaded via watchCampaigns() in index.html
 
-// 🔁 reference to database
-const messageRef = ref(db, "test/message");
-
-// ✅ AUTO LISTEN (REALTIME)
-onValue(messageRef, (snapshot) => {
-  const data = snapshot.val();
-  console.log("Updated data:", data);
-  const outputElement = document.getElementById("output");
-
-  if (outputElement && data && data.text) {
-    outputElement.innerText = data.text;
-  }
-});
-
-// ✅ AUTO SEND (optional test)
-set(messageRef, {
-  text: "Hello automatic!",
-  time: Date.now()
-});
+console.log('✓ app.js loaded - campaigns handled by index.html inline Firebase');

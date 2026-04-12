@@ -87,7 +87,9 @@ class DashboardActivity : BaseActivity() {
                     val featured = campaigns[0]
                     tvCampTitle.text = featured.title
                     tvRaised.text = "₱${featured.raised} raised"
-                    val progress = if (featured.goal > 0) (featured.raised * 100 / featured.goal) else 0
+                    val featuredGoal = featured.goal ?: 0
+                    val featuredRaised = featured.raised ?: 0
+                    val progress = if (featuredGoal > 0) (featuredRaised * 100 / featuredGoal) else 0
                     pbCampProgress.progress = progress
                 }
 
@@ -95,7 +97,9 @@ class DashboardActivity : BaseActivity() {
                     val active = campaigns[1]
                     tvActiveCampTitle.text = active.title
                     tvActiveCampSub.text = active.description
-                    val progress = if (active.goal > 0) (active.raised * 100 / active.goal) else 0
+                    val activeGoal = active.goal ?: 0
+                    val activeRaised = active.raised ?: 0
+                    val progress = if (activeGoal > 0) (activeRaised * 100 / activeGoal) else 0
                     pbMiniProgress.progress = progress
                     tvProgressPercent?.text = "$progress%"
                     tvRaisedAmountSmall?.text = "₱${active.raised} raised"

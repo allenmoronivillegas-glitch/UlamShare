@@ -54,12 +54,9 @@
             android:exported="false" />
 
         <activity
-            android:name=".OtpActivity"
-            android:exported="false" />
-
-        <activity
             android:name=".MainActivity"
             android:exported="false" />
+        <activity android:name=".ActivitySelectAmount" />
 
         <service
             android:name=".CampaignMessagingService"
