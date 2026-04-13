@@ -24,6 +24,9 @@ class SplashActivity : BaseActivity() {
         
         auth = FirebaseAuth.getInstance()
         
+        // Initialize Notification Repository
+        NotificationRepository.init(this)
+        
         enableFullScreen()
         subscribeToCampaignNotifications()
         requestNotificationPermissionIfNeeded()

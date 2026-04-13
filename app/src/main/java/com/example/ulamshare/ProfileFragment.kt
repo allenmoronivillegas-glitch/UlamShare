@@ -48,6 +48,7 @@ class ProfileFragment : Fragment() {
         val optionPay = view.findViewById<ConstraintLayout>(R.id.optionPay)
         val myDonations = view.findViewById<ConstraintLayout>(R.id.mydonations)
         val optionMessenger = view.findViewById<ConstraintLayout>(R.id.optionMessenger)
+        val optionNotifications = view.findViewById<ConstraintLayout>(R.id.optionDonations)
 
         loadUserData()
 
@@ -67,7 +68,7 @@ class ProfileFragment : Fragment() {
         }
 
         myDonations.setOnClickListener {
-            val intent = Intent(requireContext(), HistoryActivity::class.java)
+            val intent = Intent(requireContext(), ActivityHistory::class.java)
             startActivity(intent)
         }
 
@@ -80,6 +81,11 @@ class ProfileFragment : Fragment() {
                 val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.messenger.com"))
                 startActivity(browserIntent)
             }
+        }
+
+        optionNotifications.setOnClickListener {
+            val intent = Intent(requireContext(), NotificationActivity::class.java)
+            startActivity(intent)
         }
 
         return view

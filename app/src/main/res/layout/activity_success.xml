@@ -59,6 +59,7 @@
                     android:text="Reference ID"
                     android:textColor="#6C757D" />
                 <TextView
+                    android:id="@+id/tvRefId"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
@@ -78,6 +79,7 @@
                     android:text="Amount Paid"
                     android:textColor="#6C757D" />
                 <TextView
+                    android:id="@+id/tvSuccessAmount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
@@ -108,7 +110,6 @@
         android:textColor="@color/white"
         android:textAllCaps="false"
         app:cornerRadius="12dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:background="@drawable/rounded_input_border"/>
+        app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -83,10 +83,6 @@ class HomeGuestActivity : BaseActivity() {
                     startActivity(Intent(this, CampaignsGuestActivity::class.java))
                     false
                 }
-                R.id.nav_history -> {
-                    Toast.makeText(this, "Sign in to view your donation history", Toast.LENGTH_SHORT).show()
-                    false
-                }
                 R.id.nav_profile -> {
                     Toast.makeText(this, "Sign in to access your profile", Toast.LENGTH_SHORT).show()
                     false

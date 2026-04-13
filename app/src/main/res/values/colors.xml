@@ -6,6 +6,8 @@
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
+    <color name="promo_success">#3B6D11</color>
+    <color name="promo_error">#A32D2D</color>
 
 
     <color name="primary_blue">#2172E5</color>
@@ -22,5 +24,13 @@
     <color name="bg_light_grey">#F8F9FA</color>
     <color name="orange_alert_bg">#FFF4E6</color>
     <color name="orange_alert_stroke">#FF9933</color>
+
+    <color name="payment_blue_dark">#0C447C</color>
+    <color name="payment_blue_medium">#185FA5</color>
+    <color name="payment_blue_light">#378ADD</color>
+    <color name="payment_hint">#90378ADD</color>
+    <color name="payment_bg">#DCEEFF</color>
+    <color name="payment_input_bg">#F4F9FF</color>
+    <color name="payment_stroke">#B5D4F4</color>
 
 </resources>

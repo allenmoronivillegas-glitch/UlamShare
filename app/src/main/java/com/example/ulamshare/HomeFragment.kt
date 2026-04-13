@@ -26,6 +26,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
+import java.util.UUID
 
 class HomeFragment : Fragment() {
     private var lastCampaignCount = 0
@@ -57,6 +58,7 @@ class HomeFragment : Fragment() {
         tvUserName = view.findViewById(R.id.tvUserName)
         tvProfileInitials = view.findViewById(R.id.tvProfileInitials)
         btnRegisterHeader = view.findViewById(R.id.btnRegisterHeader)
+        val btnViewMyDonations = view.findViewById<Button>(R.id.btnViewMyDonations)
         rvRecentlyAdded = view.findViewById(R.id.rvRecentlyAdded)
         emptyCampaignsCard = view.findViewById(R.id.emptyCampaignsCard)
         tvEmptyCampaignsMessage = view.findViewById(R.id.tvEmptyCampaignsMessage)
@@ -68,6 +70,10 @@ class HomeFragment : Fragment() {
 
         btnRegisterHeader.setOnClickListener {
             startActivity(Intent(requireContext(), RegisterActivity::class.java))
+        }
+
+        btnViewMyDonations?.setOnClickListener {
+            startActivity(Intent(requireContext(), ActivityHistory::class.java))
         }
 
         loadUserData()
@@ -106,7 +112,7 @@ class HomeFragment : Fragment() {
                 campaignList.clear()
 
                 val count = snapshot.childrenCount.toInt()
-                var latestCampaignTitle = "New Campaign"
+                var lastCampaign: Campaign? = null
 
                 for (campaignSnapshot in snapshot.children) {
                     val campaign = campaignSnapshot.getValue(Campaign::class.java)
@@ -116,9 +122,7 @@ class HomeFragment : Fragment() {
                         }
 
                         campaignList.add(campaign)
-
-                        // Get latest campaign title
-                        latestCampaignTitle = campaign.title ?: "New Campaign"
+                        lastCampaign = campaign
 
                         Log.d(
                             "HomeFragment",
@@ -128,7 +132,17 @@ class HomeFragment : Fragment() {
                 }
 
                 // ✅ ONLY trigger when NEW campaign is added
-                if (lastCampaignCount != 0 && count > lastCampaignCount) {
+                if (lastCampaignCount != 0 && count > lastCampaignCount && lastCampaign != null) {
+
+                    // 🔔 SAVE TO HISTORY
+                    val newNotif = AppNotification(
+                        id = UUID.randomUUID().toString(),
+                        title = "New Campaign: ${lastCampaign.title}",
+                        message = "A new campaign has been launched. Tap to view and support!",
+                        timestamp = System.currentTimeMillis(),
+                        type = "campaign"
+                    )
+                    NotificationRepository.saveNotification(newNotif)
 
                     // 🔔 TOAST
                     Toast.makeText(requireContext(), "New campaign added!", Toast.LENGTH_SHORT).show()
@@ -145,8 +159,14 @@ class HomeFragment : Fragment() {
                         manager.createNotificationChannel(channel)
                     }
 
-                    // 🔗 OPEN APP WHEN CLICKED
-                    val intent = Intent(requireContext(), MainActivity::class.java)
+                    // 🔗 PART 1 — MAKE NOTIFICATION CLICKABLE & PASS DATA
+                    val intent = Intent(requireContext(), ActivitySelectAmount::class.java).apply {
+                        putExtra("campaignId", lastCampaign.campaignId)
+                        putExtra("title", lastCampaign.title)
+                        putExtra("goal", lastCampaign.goal ?: 0)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
+
                     val pendingIntent = PendingIntent.getActivity(
                         requireContext(),
                         0,
@@ -154,16 +174,19 @@ class HomeFragment : Fragment() {
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
 
-                    // 🔔 NOTIFICATION
+                    // 🔔 PART 3 — IMPROVE NOTIFICATION DESIGN
                     val notification = NotificationCompat.Builder(requireContext(), channelId)
-                        .setContentTitle("New Campaign")
-                        .setContentText(latestCampaignTitle)
                         .setSmallIcon(android.R.drawable.ic_dialog_info)
+                        .setContentTitle(lastCampaign.title)
+                        .setContentText("Tap to donate now")
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setStyle(NotificationCompat.BigTextStyle().bigText(lastCampaign.title))
                         .setContentIntent(pendingIntent)
                         .setAutoCancel(true)
                         .build()
 
                     manager.notify(1, notification)
+                    
                 }
 
                 lastCampaignCount = count

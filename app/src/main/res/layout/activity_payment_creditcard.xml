@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#DCEEFF"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="24dp">
+
+        <!-- Card Container -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="8dp"
+            app:cardBackgroundColor="#FFFFFF"
+            xmlns:app="http://schemas.android.com/apk/res-auto">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <!-- Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="24dp">
+
+                    <ImageView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/circle_blue_bg"
+                        android:src="@drawable/ic_credit_card"
+                        android:padding="8dp"
+                        android:contentDescription="Card icon" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginStart="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Pay with card"
+                            android:textSize="17sp"
+                            android:textStyle="bold"
+                            android:textColor="#0C447C" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Secure checkout"
+                            android:textSize="12sp"
+                            android:textColor="#378ADD" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Email -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="EMAIL"
+                    android:textSize="12sp"
+                    android:textColor="#185FA5"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="6dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/emailLayout"
+                    style="@style/PaymentInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:startIconDrawable="@drawable/ic_email"
+                    app:startIconTint="#185FA5"
+                    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="your@email.com"
+                        android:inputType="textEmailAddress"
+                        android:textColor="#0C447C"
+                        android:textColorHint="#90378ADD" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Card Number -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CARD NUMBER"
+                    android:textSize="12sp"
+                    android:textColor="#185FA5"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="6dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/cardNumberLayout"
+                    style="@style/PaymentInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:startIconDrawable="@drawable/ic_credit_card"
+                    app:startIconTint="#185FA5"
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@drawable/ic_visa"
+                    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etCardNumber"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="1234 5678 9012 3456"
+                        android:inputType="number"
+                        android:maxLength="19"
+                        android:textColor="#0C447C"
+                        android:textColorHint="#90378ADD"
+                        android:fontFamily="monospace" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Expiry and CVC row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="EXPIRY"
+                            android:textSize="12sp"
+                            android:textColor="#185FA5"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1"
+                            android:layout_marginBottom="6dp" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/expiryLayout"
+                            style="@style/PaymentInputLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            xmlns:app="http://schemas.android.com/apk/res-auto">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etExpiry"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="MM / YY"
+                                android:inputType="number"
+                                android:maxLength="7"
+                                android:textColor="#0C447C"
+                                android:textColorHint="#90378ADD"
+                                android:fontFamily="monospace" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CVC"
+                            android:textSize="12sp"
+                            android:textColor="#185FA5"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1"
+                            android:layout_marginBottom="6dp" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/cvcLayout"
+                            style="@style/PaymentInputLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:endIconMode="custom"
+                            app:endIconDrawable="@drawable/ic_cvc"
+                            app:endIconTint="#185FA5"
+                            xmlns:app="http://schemas.android.com/apk/res-auto">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etCvc"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="123"
+                                android:inputType="numberPassword"
+                                android:maxLength="4"
+                                android:textColor="#0C447C"
+                                android:textColorHint="#90378ADD"
+                                android:fontFamily="monospace" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Cardholder Name -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CARDHOLDER NAME"
+                    android:textSize="12sp"
+                    android:textColor="#185FA5"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="6dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/nameLayout"
+                    style="@style/PaymentInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:startIconDrawable="@drawable/ic_person"
+                    app:startIconTint="#185FA5"
+                    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Full name on card"
+                        android:inputType="textPersonName"
+                        android:textColor="#0C447C"
+                        android:textColorHint="#90378ADD" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Promo Code -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PROMO CODE"
+                    android:textSize="12sp"
+                    android:textColor="#185FA5"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="6dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp"
+                    android:gravity="center_vertical">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/promoLayout"
+                        style="@style/PaymentInputLayout"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        app:startIconDrawable="@drawable/ic_tag"
+                        app:startIconTint="#185FA5"
+                        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etPromo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Enter code"
+                            android:inputType="textCapCharacters"
+                            android:textColor="#0C447C"
+                            android:textColorHint="#90378ADD"
+                            android:fontFamily="monospace" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <Button
+                        android:id="@+id/btnApplyCode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:text="Apply"
+                        android:textColor="#FFFFFF"
+                        android:backgroundTint="#185FA5"
+                        android:textSize="13sp"
+                        android:paddingHorizontal="16dp"
+                        style="@style/Widget.MaterialComponents.Button" />
+                </LinearLayout>
+
+                <!-- Promo status message -->
+                <TextView
+                    android:id="@+id/tvPromoStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"
+                    android:layout_marginBottom="12dp"
+                    android:textSize="13sp"
+                    android:paddingStart="4dp" />
+
+                <!-- Country -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="COUNTRY"
+                    android:textSize="12sp"
+                    android:textColor="#185FA5"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="6dp" />
+
+                <Spinner
+                    android:id="@+id/spinnerCountry"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/spinner_bg"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:layout_marginBottom="20dp"
+                    android:textColor="#0C447C" />
+
+                <!-- Security Badge -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/security_badge_bg"
+                    android:padding="12dp"
+                    android:layout_marginBottom="20dp">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_lock"
+                        android:contentDescription="Lock icon" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Your payment is secured with 256-bit SSL encryption"
+                        android:textSize="12sp"
+                        android:textColor="#185FA5"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+
+                <!-- Pay Button -->
+                <Button
+                    android:id="@+id/btnPay"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:text="Pay now"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:backgroundTint="#185FA5"
+                    style="@style/Widget.MaterialComponents.Button" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Footer -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Powered by Stripe  ·  100% secure"
+            android:textSize="12sp"
+            android:textColor="#378ADD"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="24dp"
+            android:alpha="0.7" />
+
+    </LinearLayout>
+</ScrollView>

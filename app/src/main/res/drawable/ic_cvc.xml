@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Card outline -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#185FA5"
+        android:strokeWidth="1.5"
+        android:pathData="M2,7 C2,5.895 2.895,5 4,5 L20,5 C21.105,5 22,5.895 22,7 L22,17 C22,18.105 21.105,19 20,19 L4,19 C2.895,19 2,18.105 2,17 Z" />
+
+    <!-- Top stripe -->
+    <path
+        android:fillColor="#185FA5"
+        android:pathData="M2,9 L22,9 L22,11 L2,11 Z" />
+
+    <!-- CVC box on right -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#185FA5"
+        android:strokeWidth="1"
+        android:pathData="M14,13 L20,13 L20,16 L14,16 Z" />
+
+    <!-- CVC lines inside box -->
+    <path
+        android:fillColor="#185FA5"
+        android:pathData="M15,14.5 L16,14.5 L16,15 L15,15 Z" />
+    <path
+        android:fillColor="#185FA5"
+        android:pathData="M17,14.5 L18,14.5 L18,15 L17,15 Z" />
+    <path
+        android:fillColor="#185FA5"
+        android:pathData="M19,14.5 L19.5,14.5 L19.5,15 L19,15 Z" />
+
+</vector>

@@ -1,5 +1,6 @@
 package com.example.ulamshare
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -26,6 +27,16 @@ class CampaignAdapter(private var items: List<Campaign>) : RecyclerView.Adapter<
             val progress = if (goal > 0) (raised * 100 / goal) else 0
             progressBar.progress = progress
             percentView.text = "$progress%"
+
+            // Make clickable and navigate to Select Amount
+            itemView.setOnClickListener {
+                val intent = Intent(itemView.context, ActivitySelectAmount::class.java).apply {
+                    putExtra("campaignId", campaign.campaignId)
+                    putExtra("title", campaign.title)
+                    putExtra("goal", campaign.goal ?: 0)
+                }
+                itemView.context.startActivity(intent)
+            }
         }
     }
 

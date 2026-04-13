@@ -54,6 +54,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".OtpActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="false" />
 
@@ -66,7 +70,27 @@
             android:exported="false" />
 
         <activity
-            android:name=".HistoryActivity"
+            android:name=".PaymentActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".PaymentProcessingActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SuccessActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ActivityHistory"
+            android:exported="false" />
+
+        <activity
+            android:name=".ReviewDonationActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".NotificationActivity"
             android:exported="false" />
 
         <service

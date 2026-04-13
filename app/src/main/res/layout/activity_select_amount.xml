@@ -21,52 +21,6 @@
         app:tint="@color/black" />
 
     <TextView
-        android:id="@+id/tvStep"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Step 1 of 3"
-        android:textColor="#6C757D"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="@id/btnBack"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/btnBack" />
-
-    <LinearLayout
-        android:id="@+id/stepProgressContainer"
-        android:layout_width="0dp"
-        android:layout_height="6dp"
-        android:layout_marginStart="10dp"
-        android:layout_marginEnd="10dp"
-        android:orientation="horizontal"
-        android:weightSum="3"
-        app:layout_constraintBottom_toBottomOf="@id/btnBack"
-        app:layout_constraintEnd_toStartOf="@id/tvStep"
-        app:layout_constraintStart_toEndOf="@id/btnBack"
-        app:layout_constraintTop_toTopOf="@id/btnBack">
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="#2172E5" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="#FFFFFF" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="#FFFFFF" />
-    </LinearLayout>
-
-    <TextView
         android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -97,51 +51,51 @@
         android:orientation="vertical"
         app:layout_constraintTop_toBottomOf="@id/subtitle">
 
-        <LinearLayout
+        <!-- Frequency Toggle Group -->
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/toggleGroupFrequency"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:orientation="horizontal">
+            app:singleSelection="true"
+            app:selectionRequired="true"
+            app:checkedButton="@id/btnOneTime">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOneTime"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
-                android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:checkable="true"
-                android:backgroundTint="@color/button_background_selector"
                 android:text="One-time"
                 android:textAllCaps="false"
                 android:textColor="@color/button_text_selector"
                 android:textSize="14sp"
+                app:backgroundTint="@color/button_background_selector"
                 app:strokeColor="#E9ECEF"
-                app:strokeWidth="1dp"
                 app:cornerRadius="24dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMonthly"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
-                android:checkable="true"
-                android:backgroundTint="@color/button_background_selector"
                 android:text="Monthly"
                 android:textAllCaps="false"
                 android:textColor="@color/button_text_selector"
                 android:textSize="14sp"
+                app:backgroundTint="@color/button_background_selector"
                 app:icon="@drawable/refresh"
-                app:iconSize="16dp"
                 app:iconGravity="end"
+                app:iconSize="16dp"
                 app:iconTint="@color/button_text_selector"
                 app:strokeColor="#E9ECEF"
-                app:strokeWidth="1dp"
                 app:cornerRadius="24dp" />
-        </LinearLayout>
+        </com.google.android.material.button.MaterialButtonToggleGroup>
 
         <GridLayout
+            android:id="@+id/gridLayoutAmounts"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:columnCount="2"
@@ -149,110 +103,104 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn50"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:checkable="true"
-                android:backgroundTint="@color/button_background_selector"
                 android:text="₱50"
                 android:textAllCaps="false"
                 android:textColor="@color/button_text_selector"
                 android:textSize="18sp"
                 android:textStyle="bold"
+                app:backgroundTint="@color/button_background_selector"
                 app:strokeColor="#E9ECEF"
-                app:strokeWidth="1dp"
                 app:cornerRadius="12dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn100"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:checkable="true"
-                android:backgroundTint="@color/button_background_selector"
                 android:text="₱100"
                 android:textAllCaps="false"
                 android:textColor="@color/button_text_selector"
                 android:textSize="18sp"
                 android:textStyle="bold"
+                app:backgroundTint="@color/button_background_selector"
                 app:strokeColor="#E9ECEF"
-                app:strokeWidth="1dp"
                 app:cornerRadius="12dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn200"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:checkable="true"
-                android:backgroundTint="@color/button_background_selector"
                 android:text="₱200"
                 android:textAllCaps="false"
                 android:textColor="@color/button_text_selector"
                 android:textSize="18sp"
                 android:textStyle="bold"
+                app:backgroundTint="@color/button_background_selector"
                 app:strokeColor="#E9ECEF"
-                app:strokeWidth="1dp"
                 app:cornerRadius="12dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn500"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:checkable="true"
-                android:backgroundTint="@color/button_background_selector"
                 android:text="₱500"
                 android:textAllCaps="false"
                 android:textColor="@color/button_text_selector"
                 android:textSize="18sp"
                 android:textStyle="bold"
+                app:backgroundTint="@color/button_background_selector"
                 app:strokeColor="#E9ECEF"
-                app:strokeWidth="1dp"
                 app:cornerRadius="12dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn1000"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:checkable="true"
-                android:backgroundTint="@color/button_background_selector"
                 android:text="₱1,000"
                 android:textAllCaps="false"
                 android:textColor="@color/button_text_selector"
                 android:textSize="18sp"
                 android:textStyle="bold"
+                app:backgroundTint="@color/button_background_selector"
                 app:strokeColor="#E9ECEF"
-                app:strokeWidth="1dp"
                 app:cornerRadius="12dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn2000"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
                 android:layout_columnWeight="1"
                 android:layout_margin="4dp"
                 android:checkable="true"
-                android:backgroundTint="@color/button_background_selector"
                 android:text="₱2,000"
                 android:textAllCaps="false"
                 android:textColor="@color/button_text_selector"
                 android:textSize="18sp"
                 android:textStyle="bold"
+                app:backgroundTint="@color/button_background_selector"
                 app:strokeColor="#E9ECEF"
-                app:strokeWidth="1dp"
                 app:cornerRadius="12dp" />
         </GridLayout>
 

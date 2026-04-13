@@ -601,9 +601,9 @@ td.muted{color:var(--muted);font-size:12px}
         <div class="card-header"><div class="card-title">Recent Donations</div></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Donor Name</th><th>Email</th><th>Campaign</th><th>Amount</th><th>Payment Method</th><th>Date</th></tr></thead>
+            <thead><tr><th>Donor Name</th><th>Email</th><th>Campaign</th><th>Amount</th><th>Payment Method</th><th>Date</th><th style="width:50px"></th></tr></thead>
             <tbody id="donations-table-body">
-              <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No donations yet</td></tr>
+              <tr><td colspan="7" style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No donations yet</td></tr>
             </tbody>
           </table>
         </div>
@@ -1247,6 +1247,22 @@ async function confirmDelete(){
     showToast(message);
   }
 }
+
+async function deleteDonation(donationId){
+  if(!confirm('Are you sure you want to delete this donation? This action cannot be undone.')){
+    return;
+  }
+  try {
+    await window.firebaseAuthReady;
+    const donationRef = window.firebaseRef(window.firebaseDb, 'donations/' + donationId);
+    await window.firebaseRemove(donationRef);
+    showToast('Donation deleted successfully!');
+  } catch(err){
+    console.error('Firebase delete donation error', err);
+    const message = err && err.message ? err.message : 'Failed to delete donation';
+    showToast(message);
+  }
+}
  
 function renderCampaigns(){
   console.log('🎨 renderCampaigns() called with', campaigns.length, 'total campaigns');
@@ -1420,7 +1436,7 @@ function renderDonationStats(){
   const tbody = document.getElementById('donations-table-body');
   if(tbody){
     if(donations.length === 0){
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No donations yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No donations yet</td></tr>';
     } else {
       tbody.innerHTML = donations.map(d => {
         const campaign = campaigns.find(c => c.key === d.campaignId);
@@ -1434,6 +1450,7 @@ function renderDonationStats(){
           <td><strong style="color:var(--green)">₱${Number(d.amount || 0).toLocaleString()}</strong></td>
           <td><span class="badge info">${d.paymentMethod || 'Unknown'}</span></td>
           <td class="muted">${date}</td>
+          <td style="text-align:center"><button onclick="deleteDonation('${d.id}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:4px 8px;color:var(--red);hover:opacity:0.8" title="Delete donation">🗑</button></td>
         </tr>`;
       }).join('');
     }

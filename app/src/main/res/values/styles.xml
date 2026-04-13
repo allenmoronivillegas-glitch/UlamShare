@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>|
+    <style name="PaymentInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">#B5D4F4</item>
+        <item name="boxStrokeWidth">1.5dp</item>
+        <item name="boxCornerRadiusTopStart">10dp</item>
+        <item name="boxCornerRadiusTopEnd">10dp</item>
+        <item name="boxCornerRadiusBottomStart">10dp</item>
+        <item name="boxCornerRadiusBottomEnd">10dp</item>
+        <item name="hintTextColor">#90378ADD</item>
+        <item name="android:textColorHint">#90378ADD</item>
+        <item name="boxBackgroundColor">#F4F9FF</item>
+        <item name="errorTextColor">#E24B4A</item>
+    </style>
+</resources>
