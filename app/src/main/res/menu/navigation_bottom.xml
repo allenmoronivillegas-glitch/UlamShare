@@ -12,11 +12,6 @@
         android:title="Campaigns" />
 
     <item
-        android:id="@+id/nav_history"
-        android:icon="@drawable/file"
-        android:title="History" />
-
-    <item
         android:id="@+id/nav_profile"
         android:icon="@drawable/user"
         android:title="Profile" />

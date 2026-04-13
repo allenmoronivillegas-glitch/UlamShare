@@ -1,6 +1,7 @@
 package com.example.ulamshare
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -8,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import com.google.firebase.auth.FirebaseAuth
@@ -43,10 +45,11 @@ class ProfileFragment : Fragment() {
         tvSubDon = view.findViewById(R.id.tvSubDon)
         
         val optionLogout = view.findViewById<ConstraintLayout>(R.id.optionlogout)
+        val optionPay = view.findViewById<ConstraintLayout>(R.id.optionPay)
+        val myDonations = view.findViewById<ConstraintLayout>(R.id.mydonations)
+        val optionMessenger = view.findViewById<ConstraintLayout>(R.id.optionMessenger)
 
         loadUserData()
-        // Notification UI temporarily disabled - requires layout updates
-        // displayNotifications(view)
 
         optionLogout.setOnClickListener {
             if (auth.currentUser != null) {
@@ -58,16 +61,34 @@ class ProfileFragment : Fragment() {
             startActivity(intent)
         }
 
+        optionPay.setOnClickListener {
+            val intent = Intent(requireContext(), PaymentMethodActivity::class.java)
+            startActivity(intent)
+        }
+
+        myDonations.setOnClickListener {
+            val intent = Intent(requireContext(), HistoryActivity::class.java)
+            startActivity(intent)
+        }
+
+        optionMessenger.setOnClickListener {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("fb-messenger://user/"))
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Messenger app not found", Toast.LENGTH_SHORT).show()
+                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.messenger.com"))
+                startActivity(browserIntent)
+            }
+        }
+
         return view
     }
 
     private fun loadUserData() {
         val user = auth.currentUser
         if (user != null) {
-            // Display email from Auth immediately
             tvUserEmail.text = user.email
-
-            // Fetch extra details from Firestore
             db.collection("users").document(user.uid)
                 .get()
                 .addOnSuccessListener { document ->
@@ -75,7 +96,6 @@ class ProfileFragment : Fragment() {
                         val fullName = document.getString("fullName") ?: "User"
                         tvUserName.text = fullName
                         
-                        // Set Avatar initials
                         val initials = fullName.split(" ")
                             .mapNotNull { it.firstOrNull()?.toString() }
                             .take(2)
@@ -83,7 +103,6 @@ class ProfileFragment : Fragment() {
                             .uppercase()
                         ivAvatar.text = initials
 
-                        // Initialize with zero balance/stats as requested for fresh start
                         tvTotalDonated.text = "₱0"
                         tvDonationCount.text = "0"
                         tvCampaignCount.text = "0"
@@ -94,7 +113,6 @@ class ProfileFragment : Fragment() {
                     Log.e("ProfileFragment", "Error fetching user data", e)
                 }
         } else {
-            // Guest mode
             tvUserName.text = "Guest User"
             tvUserEmail.text = "Not logged in"
             ivAvatar.text = "G"
@@ -103,15 +121,5 @@ class ProfileFragment : Fragment() {
             tvCampaignCount.text = "0"
             tvSubDon.text = "0 donations this year"
         }
-    }
-
-    /**
-     * Display in-app notifications from local storage
-     * TEMPORARILY DISABLED: Requires layout file updates to define notificationsContainer
-     */
-    private fun displayNotifications(view: View) {
-        // Notification UI rendering temporarily disabled
-        // To enable: Add LinearLayout with id="notificationsContainer" to activity_profile.xml
-        Log.d("ProfileFragment", "Notification UI display skipped - layout updates needed")
     }
 }

@@ -241,6 +241,66 @@
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:padding="10dp"
+                android:id="@+id/optionMessenger"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/ivIconMessenger"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/rounded_tip_bg"
+                    android:padding="8dp"
+                    android:src="@drawable/messenger"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/tvTitleMessenger"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:text="Messenger"
+                    android:textColor="#1A1C1E"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toTopOf="@id/tvSubMessenger"
+                    app:layout_constraintStart_toEndOf="@id/ivIconMessenger"
+                    app:layout_constraintTop_toTopOf="@id/ivIconMessenger"
+                    app:layout_constraintVertical_chainStyle="packed" />
+
+                <TextView
+                    android:id="@+id/tvSubMessenger"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Contact support"
+                    android:textColor="#6C757D"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="@id/ivIconMessenger"
+                    app:layout_constraintStart_toStartOf="@id/tvTitleMessenger"
+                    app:layout_constraintTop_toBottomOf="@id/tvTitleMessenger" />
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/next"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:ignore="SpeakableTextPresentCheck" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#CAC9C9" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:padding="10dp"
                 android:id="@+id/optionImpact"
                 android:layout_width="match_parent"
                 android:layout_height="72dp"

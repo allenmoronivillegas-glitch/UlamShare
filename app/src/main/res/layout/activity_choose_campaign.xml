@@ -21,54 +21,6 @@
         app:tint="@color/black" />
 
     <TextView
-        android:id="@+id/tvStep"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Step 1 of 3"
-        android:textColor="#6C757D"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="@id/btnBack"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/btnBack" />
-
-    <LinearLayout
-        android:id="@+id/stepProgressContainer"
-        android:layout_width="0dp"
-        android:layout_height="6dp"
-        android:layout_marginStart="10dp"
-        android:layout_marginEnd="10dp"
-        android:orientation="horizontal"
-        android:weightSum="3"
-        app:layout_constraintBottom_toBottomOf="@id/btnBack"
-        app:layout_constraintEnd_toStartOf="@id/tvStep"
-        app:layout_constraintStart_toEndOf="@id/btnBack"
-        app:layout_constraintTop_toTopOf="@id/btnBack">
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="@color/brand_blue"
-            />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginEnd="4dp"
-            android:layout_weight="1"
-            android:background="@color/white" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="@color/white" />
-    </LinearLayout>
-
-
-    <TextView
         android:id="@+id/tvMainTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -78,7 +30,7 @@
         android:textSize="26sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/stepProgressContainer" />
+        app:layout_constraintTop_toBottomOf="@id/btnBack" />
 
     <TextView
         android:id="@+id/tvSubTitle"

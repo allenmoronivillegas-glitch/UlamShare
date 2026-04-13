@@ -263,7 +263,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
-                    android:text="No new campaigns yet."
+                    android:text="No campaigns available yet."
                     android:textColor="#6C757D"
                     android:textSize="14sp"
                     app:layout_constraintBottom_toBottomOf="parent"

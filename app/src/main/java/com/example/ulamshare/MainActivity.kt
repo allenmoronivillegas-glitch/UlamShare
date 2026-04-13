@@ -10,7 +10,6 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize campaign notifications (shows toast + notification when new campaign is added)
         val bottomNavigation = findViewById<BottomNavigationView>(R.id.bottomNavigation)
 
         // Set default fragment
@@ -22,7 +21,6 @@ class MainActivity : BaseActivity() {
             when (item.itemId) {
                 R.id.nav_home -> replaceFragment(HomeFragment())
                 R.id.nav_campaigns -> replaceFragment(CampaignsFragment())
-                R.id.nav_history -> replaceFragment(HistoryFragment())
                 R.id.nav_profile -> replaceFragment(ProfileFragment())
                 else -> false
             }

@@ -56,7 +56,18 @@
         <activity
             android:name=".MainActivity"
             android:exported="false" />
-        <activity android:name=".ActivitySelectAmount" />
+
+        <activity
+            android:name=".ActivitySelectAmount"
+            android:exported="false" />
+
+        <activity
+            android:name=".PaymentMethodActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".HistoryActivity"
+            android:exported="false" />
 
         <service
             android:name=".CampaignMessagingService"
