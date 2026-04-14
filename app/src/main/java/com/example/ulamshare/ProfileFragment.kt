@@ -7,18 +7,27 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
+import java.util.Calendar
+import java.util.Locale
 
 class ProfileFragment : Fragment() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
+    private lateinit var realtimeDb: DatabaseReference
     private lateinit var tvUserName: TextView
     private lateinit var tvUserEmail: TextView
     private lateinit var ivAvatar: TextView
@@ -35,6 +44,7 @@ class ProfileFragment : Fragment() {
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
+        realtimeDb = FirebaseDatabase.getInstance("https://ulamshare-4f2b9-default-rtdb.asia-southeast1.firebasedatabase.app").reference.child("donations")
 
         tvUserName = view.findViewById(R.id.tvUserName)
         tvUserEmail = view.findViewById(R.id.tvUserEmail)
@@ -49,8 +59,18 @@ class ProfileFragment : Fragment() {
         val myDonations = view.findViewById<ConstraintLayout>(R.id.mydonations)
         val optionMessenger = view.findViewById<ConstraintLayout>(R.id.optionMessenger)
         val optionNotifications = view.findViewById<ConstraintLayout>(R.id.optionDonations)
+        val btnEditProfile = view.findViewById<ImageView>(R.id.btnEditProfile)
 
         loadUserData()
+
+        btnEditProfile.setOnClickListener {
+            if (auth.currentUser != null) {
+                val intent = Intent(requireContext(), EditProfileActivity::class.java)
+                startActivity(intent)
+            } else {
+                Toast.makeText(requireContext(), "Please log in to edit profile", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         optionLogout.setOnClickListener {
             if (auth.currentUser != null) {
@@ -91,29 +111,33 @@ class ProfileFragment : Fragment() {
         return view
     }
 
+    override fun onResume() {
+        super.onResume()
+        loadUserData()
+    }
+
     private fun loadUserData() {
         val user = auth.currentUser
         if (user != null) {
             tvUserEmail.text = user.email
+            loadUserDonationStats(user.uid)
             db.collection("users").document(user.uid)
                 .get()
                 .addOnSuccessListener { document ->
-                    if (document != null && document.exists()) {
-                        val fullName = document.getString("fullName") ?: "User"
-                        tvUserName.text = fullName
-                        
-                        val initials = fullName.split(" ")
-                            .mapNotNull { it.firstOrNull()?.toString() }
-                            .take(2)
-                            .joinToString("")
-                            .uppercase()
-                        ivAvatar.text = initials
-
-                        tvTotalDonated.text = "₱0"
-                        tvDonationCount.text = "0"
-                        tvCampaignCount.text = "0"
-                        tvSubDon.text = "0 donations this year"
+                    val fullName = if (document != null && document.exists()) {
+                        document.getString("fullName") ?: "User"
+                    } else {
+                        "User"
                     }
+                    tvUserName.text = fullName
+                    
+                    val initials = fullName.split(" ")
+                        .filter { it.isNotEmpty() }
+                        .mapNotNull { it.firstOrNull()?.toString() }
+                        .take(2)
+                        .joinToString("")
+                        .uppercase()
+                    ivAvatar.text = if (initials.isNotEmpty()) initials else "?"
                 }
                 .addOnFailureListener { e ->
                     Log.e("ProfileFragment", "Error fetching user data", e)
@@ -127,5 +151,48 @@ class ProfileFragment : Fragment() {
             tvCampaignCount.text = "0"
             tvSubDon.text = "0 donations this year"
         }
+    }
+
+    private fun loadUserDonationStats(userId: String) {
+        realtimeDb.orderByChild("userId").equalTo(userId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    var totalDonated = 0
+                    var donationCount = 0
+                    val donatedCampaignIds = mutableSetOf<String>()
+                    var donationsThisYear = 0
+                    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+
+                    for (donationSnapshot in snapshot.children) {
+                        val amount = donationSnapshot.child("amount").getValue(Int::class.java)
+                            ?: donationSnapshot.child("amount").getValue(Long::class.java)?.toInt()
+                            ?: 0
+                        val campaignId = donationSnapshot.child("campaignId").getValue(String::class.java) ?: ""
+                        val timestamp = donationSnapshot.child("timestamp").getValue(Long::class.java) ?: 0L
+
+                        totalDonated += amount
+                        donationCount += 1
+                        if (campaignId.isNotBlank()) donatedCampaignIds.add(campaignId)
+
+                        if (timestamp > 0) {
+                            val donationYear = Calendar.getInstance().apply {
+                                timeInMillis = timestamp
+                            }.get(Calendar.YEAR)
+                            if (donationYear == currentYear) {
+                                donationsThisYear += 1
+                            }
+                        }
+                    }
+
+                    tvTotalDonated.text = String.format(Locale.US, "₱%,d", totalDonated)
+                    tvDonationCount.text = donationCount.toString()
+                    tvCampaignCount.text = donatedCampaignIds.size.toString()
+                    tvSubDon.text = "$donationsThisYear donations this year"
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("ProfileFragment", "Donation stats load cancelled", error.toException())
+                }
+            })
     }
 }

@@ -17,4 +17,6 @@
     <string name="new_campaigns_coming_soon">New campaigns coming soon.</string>
     <string name="empty_campaigns_icon">Icon for empty campaigns state</string>
     <string name="default_web_client_id">521750995424-980s1e9jjfilklpidmm322n3f312o16h.apps.googleusercontent.com</string>
+    <string name="tag_featured">FEATURED</string>
+    <string name="tag_trending">TRENDING</string>
 </resources>

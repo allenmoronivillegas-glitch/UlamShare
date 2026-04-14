@@ -93,6 +93,10 @@
             android:name=".NotificationActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".EditProfileActivity"
+            android:exported="false" />
+
         <service
             android:name=".CampaignMessagingService"
             android:exported="false">

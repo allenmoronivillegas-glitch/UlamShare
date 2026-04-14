@@ -990,6 +990,103 @@ function getCategoryIcon(category) {
   return icons[category] || '🌊'; // Default to wave icon if category not found
 }
 
+function getCampaignDaysLeft(campaign) {
+  if(!campaign || !campaign.date) return null;
+  const target = new Date(campaign.date);
+  if(Number.isNaN(target.getTime())) return null;
+  const today = new Date();
+  const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const deadlineDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  const diff = deadlineDay.getTime() - currentDay.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+function getCampaignProgress(campaign) {
+  const goal = Number(campaign?.goal || 0);
+  const raised = Number(donationStats[campaign?.key]?.total || 0);
+  if(goal <= 0) return 0;
+  return Math.min(Math.max(Math.round((raised / goal) * 100), 0), 100);
+}
+
+function selectEmergencyOrFeaturedCampaign() {
+  const visibleCampaigns = campaigns.filter(c => c && !c.hidden);
+  const enriched = visibleCampaigns.map(c => ({
+    ...c,
+    deadlineDays: getCampaignDaysLeft(c),
+    progress: getCampaignProgress(c),
+    raised: Number(donationStats[c?.key]?.total || 0)
+  }));
+
+  const urgent = enriched
+    .filter(c => c.deadlineDays !== null && c.deadlineDays <= 3)
+    .sort((a, b) => {
+      if(a.deadlineDays !== b.deadlineDays) return a.deadlineDays - b.deadlineDays;
+      return b.progress - a.progress;
+    });
+
+  if(urgent.length) {
+    return { campaign: urgent[0], mode: 'EMERGENCY' };
+  }
+
+  if(enriched.length === 0) {
+    return { campaign: null, mode: 'FEATURED' };
+  }
+
+  const featured = enriched.sort((a, b) => {
+    if(b.progress !== a.progress) return b.progress - a.progress;
+    const aDeadline = a.deadlineDays === null ? 9999 : a.deadlineDays;
+    const bDeadline = b.deadlineDays === null ? 9999 : b.deadlineDays;
+    return aDeadline - bDeadline;
+  })[0];
+
+  return { campaign: featured, mode: 'FEATURED' };
+}
+
+function renderEmergencyCard() {
+  const card = document.getElementById('emergency-card');
+  if(!card) return;
+  const { campaign, mode } = selectEmergencyOrFeaturedCampaign();
+  if(!campaign) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const title = campaign.title || 'Untitled campaign';
+  const raised = Number(donationStats[campaign.key]?.total || 0);
+  const goal = Number(campaign.goal || 0);
+  const percentage = goal > 0 ? Math.min(Math.max(Math.round((raised / goal) * 100), 0), 100) : 0;
+  const daysLeft = getCampaignDaysLeft(campaign);
+  const deadlineText = daysLeft === null ? 'No deadline' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`;
+  const category = campaign.cat || 'General';
+
+  card.style.display = '';
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">${mode === 'EMERGENCY' ? 'EMERGENCY' : 'FEATURED'}</div>
+    </div>
+    <div class="card-body" style="padding:22px 20px 20px">
+      <div style="font-size:15px;color:var(--muted);font-weight:600;margin-bottom:6px">${mode === 'EMERGENCY' ? '🚨 Urgent deadline' : '⭐ Campaign spotlight'}</div>
+      <div style="font-size:20px;font-weight:700;line-height:1.2;margin-bottom:16px;min-height:56px">${title}</div>
+      <div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+        <div style="font-size:13px;color:var(--muted)">Raised ${amountToString(raised)}</div>
+        <div style="font-size:13px;color:var(--muted)">${deadlineText}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:24px;font-weight:700">${percentage}%</div>
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">${category}</div>
+      </div>
+      <div style="height:10px;background:var(--border2);border-radius:999px;overflow:hidden;margin-bottom:12px">
+        <div style="width:${percentage}%;height:100%;background:linear-gradient(90deg,var(--accent),#4ea7ff);border-radius:999px"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Goal: ${amountToString(goal)}</div>
+    </div>
+  `;
+}
+
+function amountToString(value) {
+  return '₱' + Number(value || 0).toLocaleString();
+}
+
 function currentRole(){
   return window.currentUserProfile?.role || 'Viewer';
 }
@@ -1091,17 +1188,20 @@ async function saveCampaign(){
   
   console.log('✓ Firebase functions available');
   
+  const isEditing = !!editingCampaignKey;
+  const existingCampaign = isEditing ? campaigns.find(c => c.key === editingCampaignKey) || {} : {};
+  
   const campaignData={
     title,
     description: desc || '',
     goal: Number(goal) || 0,
     date: date || 'No end date',
     cat: cat || 'General',
-    createdAt: Date.now(),
+    createdAt: isEditing ? existingCampaign.createdAt || Date.now() : Date.now(),
     status: 'Active',
     hidden: false,
     published: true,
-    raised: 0
+    raised: isEditing ? existingCampaign.raised || 0 : 0
   };
   
   try {
@@ -1111,14 +1211,13 @@ async function saveCampaign(){
     
     if(editingCampaignKey){
       console.log('📝 Updating campaign:', editingCampaignKey);
-      const campaign = campaigns.find(c => c.key === editingCampaignKey) || {};
       const campaignRef = window.firebaseRef(window.firebaseDb, 'campaigns/' + editingCampaignKey);
       await window.firebaseSet(campaignRef, {
-        ...campaign,
+        ...existingCampaign,
         ...campaignData,
         updatedAt: Date.now(),
-        campaignId: campaign.campaignId || editingCampaignKey || campaign.key,
-        createdAt: campaign.createdAt || Date.now() // Preserve original creation time
+        campaignId: existingCampaign.campaignId || editingCampaignKey || existingCampaign.key,
+        createdAt: existingCampaign.createdAt || Date.now() // Preserve original creation time
       });
       console.log('✅ Campaign updated successfully');
       showToast('Campaign "'+title+'" updated!');
@@ -1333,6 +1432,7 @@ function renderCampaigns(){
  
   // update stat
   document.querySelectorAll('.stat-value.zero')[1].textContent=visibleCampaigns.length;
+  renderEmergencyCard();
   console.log(`✓ Rendered ${visibleCampaigns.length} campaigns to UI`);
 }
  
@@ -1455,6 +1555,7 @@ function renderDonationStats(){
       }).join('');
     }
   }
+  renderEmergencyCard();
 }
 
 function watchUsers(){

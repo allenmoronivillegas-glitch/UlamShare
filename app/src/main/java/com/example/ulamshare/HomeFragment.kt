@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -26,6 +27,11 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
 
 class HomeFragment : Fragment() {
@@ -37,9 +43,15 @@ class HomeFragment : Fragment() {
     private lateinit var tvUserName: TextView
     private lateinit var tvProfileInitials: TextView
     private lateinit var btnRegisterHeader: Button
+    private lateinit var tvTrendingTag: TextView
+    private lateinit var tvCampTitle: TextView
+    private lateinit var tvRaised: TextView
+    private lateinit var tvTrendingDetails: TextView
+    private lateinit var pbCampProgress: ProgressBar
     private lateinit var rvRecentlyAdded: RecyclerView
     private lateinit var emptyCampaignsCard: ConstraintLayout
     private lateinit var tvEmptyCampaignsMessage: TextView
+    private lateinit var trendingContainer: ConstraintLayout
     private lateinit var adapter: CampaignAdapter
     private val campaignList = mutableListOf<Campaign>()
     private var campaignsListener: ValueEventListener? = null
@@ -58,6 +70,12 @@ class HomeFragment : Fragment() {
         tvUserName = view.findViewById(R.id.tvUserName)
         tvProfileInitials = view.findViewById(R.id.tvProfileInitials)
         btnRegisterHeader = view.findViewById(R.id.btnRegisterHeader)
+        tvTrendingTag = view.findViewById(R.id.tvTrendingTag)
+        tvCampTitle = view.findViewById(R.id.tvCampTitle)
+        tvRaised = view.findViewById(R.id.tvRaised)
+        tvTrendingDetails = view.findViewById(R.id.tvTrendingDetails)
+        pbCampProgress = view.findViewById(R.id.pbCampProgress)
+        trendingContainer = view.findViewById(R.id.trendingContainer)
         val btnViewMyDonations = view.findViewById<Button>(R.id.btnViewMyDonations)
         rvRecentlyAdded = view.findViewById(R.id.rvRecentlyAdded)
         emptyCampaignsCard = view.findViewById(R.id.emptyCampaignsCard)
@@ -204,6 +222,8 @@ class HomeFragment : Fragment() {
                     emptyCampaignsCard.visibility = View.GONE
                     adapter.submitList(recentList.toList())
                 }
+
+                updateTrendingCampaign(campaignList)
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -219,5 +239,88 @@ class HomeFragment : Fragment() {
     override fun onDestroyView() {
         campaignsListener?.let { dbRef.removeEventListener(it) }
         super.onDestroyView()
+    }
+
+    private fun parseCampaignDate(dateString: String?): Date? {
+        if (dateString.isNullOrBlank()) return null
+        return try {
+            SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(dateString)
+        } catch (e: ParseException) {
+            null
+        }
+    }
+
+    private fun calculateDaysLeft(campaign: Campaign): Int? {
+        val deadline = parseCampaignDate(campaign.date) ?: return null
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+        val diffMillis = deadline.time - today.time
+        return Math.ceil(diffMillis.toDouble() / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
+    }
+
+    private fun calculateProgress(campaign: Campaign): Int {
+        val goal = campaign.goal ?: 0
+        val raised = campaign.raised ?: 0
+        return if (goal > 0) {
+            ((raised.toDouble() / goal.toDouble()) * 100).toInt().coerceIn(0, 100)
+        } else {
+            0
+        }
+    }
+
+    private fun formatAmount(amount: Int?): String {
+        return String.format(Locale.US, "₱%,d", amount ?: 0)
+    }
+
+    private fun selectTrendingCampaign(campaigns: List<Campaign>): Campaign? {
+        val visibleCampaigns = campaigns.filter { it.hidden != true }
+        val urgentCampaigns = visibleCampaigns.filter {
+            val daysLeft = calculateDaysLeft(it)
+            daysLeft != null && daysLeft <= 3
+        }.sortedWith(compareBy({ calculateDaysLeft(it) ?: Int.MAX_VALUE }, { -calculateProgress(it) }))
+
+        if (urgentCampaigns.isNotEmpty()) return urgentCampaigns.first()
+
+        return visibleCampaigns.maxWithOrNull(compareBy({ calculateProgress(it) }, { it.createdAt ?: 0L }))
+    }
+
+    private fun updateTrendingCampaign(campaigns: List<Campaign>) {
+        val trending = selectTrendingCampaign(campaigns)
+        if (trending == null) {
+            tvTrendingTag.text = "🔥 TRENDING"
+            tvCampTitle.text = "No highlighted campaign"
+            pbCampProgress.progress = 0
+            tvTrendingDetails.text = "No urgent or featured campaigns available"
+            tvRaised.text = ""
+            return
+        }
+
+        val progress = calculateProgress(trending)
+        val daysLeft = calculateDaysLeft(trending)
+        val tag = if (daysLeft != null && daysLeft <= 3) "🚨 EMERGENCY" else "� EMERGENCY"
+        val details = if (daysLeft != null) {
+            "$progress% • $daysLeft day${if (daysLeft == 1) "" else "s"} left"
+        } else {
+            "$progress% • No deadline"
+        }
+
+        tvTrendingTag.text = tag
+        tvCampTitle.text = trending.title ?: "Untitled campaign"
+        tvRaised.text = "${formatAmount(trending.raised)} raised"
+        pbCampProgress.progress = progress
+        tvTrendingDetails.text = details
+
+        trendingContainer.setOnClickListener {
+            val intent = Intent(requireContext(), ActivitySelectAmount::class.java).apply {
+                putExtra("campaignId", trending.campaignId)
+                putExtra("title", trending.title)
+                putExtra("goal", trending.goal ?: 0)
+            }
+            startActivity(intent)
+        }
     }
 }

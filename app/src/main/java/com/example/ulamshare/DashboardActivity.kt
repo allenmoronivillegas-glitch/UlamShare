@@ -8,20 +8,29 @@ import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.firebase.database.*
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class DashboardActivity : BaseActivity() {
 
     private lateinit var dbRef: DatabaseReference
+    private lateinit var tvTrendingTag: TextView
     private lateinit var tvCampTitle: TextView
     private lateinit var tvRaised: TextView
+    private lateinit var tvTrendingDetails: TextView
     private lateinit var pbCampProgress: ProgressBar
     private lateinit var tvActiveCampTitle: TextView
     private lateinit var tvActiveCampSub: TextView
     private lateinit var pbMiniProgress: ProgressBar
     private lateinit var tvProgressPercent: TextView
     private lateinit var tvRaisedAmountSmall: TextView
+    private lateinit var cardTrendingCampaign: ConstraintLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,9 +49,12 @@ class DashboardActivity : BaseActivity() {
         val btnDonate500 = findViewById<Button>(R.id.btnDonate500)
 
         // Campaign Views
+        tvTrendingTag = findViewById(R.id.tvTrendingTag)
         tvCampTitle = findViewById(R.id.tvCampTitle)
         tvRaised = findViewById(R.id.tvRaised)
+        tvTrendingDetails = findViewById(R.id.tvTrendingDetails)
         pbCampProgress = findViewById(R.id.pbCampProgress)
+        cardTrendingCampaign = findViewById(R.id.cardTrendingCampaign)
         tvActiveCampTitle = findViewById(R.id.tvActiveCampTitle)
         tvActiveCampSub = findViewById(R.id.tvActiveCampSub)
         pbMiniProgress = findViewById(R.id.pbMiniProgress)
@@ -83,26 +95,48 @@ class DashboardActivity : BaseActivity() {
                 
                 campaigns.sortByDescending { it.createdAt }
 
-                if (campaigns.isNotEmpty()) {
-                    val featured = campaigns[0]
-                    tvCampTitle.text = featured.title
-                    tvRaised.text = "₱${featured.raised} raised"
-                    val featuredGoal = featured.goal ?: 0
-                    val featuredRaised = featured.raised ?: 0
-                    val progress = if (featuredGoal > 0) (featuredRaised * 100 / featuredGoal) else 0
-                    pbCampProgress.progress = progress
-                }
+                val trendingCampaign = selectTrendingCampaign(campaigns)
+                if (trendingCampaign != null) {
+                    val progress = calculateProgress(trendingCampaign)
+                    val daysLeft = calculateDaysLeft(trendingCampaign)
+                    val tag = if (daysLeft != null && daysLeft <= 3) "🚨 EMERGENCY" else " EMERGENCY"
+                    val details = if (daysLeft != null) {
+                        "$progress% • $daysLeft day${if (daysLeft == 1) "" else "s"} left"
+                    } else {
+                        "$progress% • No deadline"
+                    }
 
-                if (campaigns.size > 1) {
-                    val active = campaigns[1]
-                    tvActiveCampTitle.text = active.title
-                    tvActiveCampSub.text = active.description
-                    val activeGoal = active.goal ?: 0
-                    val activeRaised = active.raised ?: 0
+                    tvTrendingTag.text = tag
+                    tvCampTitle.text = trendingCampaign.title ?: "Untitled campaign"
+                    tvRaised.text = "₱${trendingCampaign.raised ?: 0} raised"
+                    pbCampProgress.progress = progress
+                    tvTrendingDetails.text = details
+
+                    cardTrendingCampaign.setOnClickListener {
+                        showGuestBottomSheet()
+                    }
+                } else if (campaigns.isNotEmpty()) {
+                    val featured = campaigns[0]
+                    val progress = calculateProgress(featured)
+                    tvTrendingTag.text = " EMERGENCY"
+                    tvCampTitle.text = featured.title
+                    tvRaised.text = "₱${featured.raised ?: 0} raised"
+                    pbCampProgress.progress = progress
+                    tvTrendingDetails.text = "$progress% • No deadline"
+                    cardTrendingCampaign.setOnClickListener {
+                        showGuestBottomSheet()
+                    }                }
+
+                val activeCampaign = campaigns.filter { it.campaignId != trendingCampaign?.campaignId }.maxByOrNull { it.createdAt ?: 0L }
+                if (activeCampaign != null) {
+                    val activeGoal = activeCampaign.goal ?: 0
+                    val activeRaised = activeCampaign.raised ?: 0
                     val progress = if (activeGoal > 0) (activeRaised * 100 / activeGoal) else 0
+                    tvActiveCampTitle.text = activeCampaign.title
+                    tvActiveCampSub.text = activeCampaign.description
                     pbMiniProgress.progress = progress
                     tvProgressPercent?.text = "$progress%"
-                    tvRaisedAmountSmall?.text = "₱${active.raised} raised"
+                    tvRaisedAmountSmall?.text = "₱$activeRaised raised"
                 }
             }
 
@@ -136,5 +170,44 @@ class DashboardActivity : BaseActivity() {
         }
 
         bottomSheetDialog.show()
+    }
+
+    private fun parseCampaignDate(dateString: String?): Date? {
+        if (dateString.isNullOrBlank()) return null
+        return try {
+            SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(dateString)
+        } catch (e: ParseException) {
+            null
+        }
+    }
+
+    private fun calculateDaysLeft(campaign: Campaign): Int? {
+        val deadline = parseCampaignDate(campaign.date) ?: return null
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+        val diffMillis = deadline.time - today.time
+        return Math.ceil(diffMillis.toDouble() / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
+    }
+
+    private fun calculateProgress(campaign: Campaign): Int {
+        val goal = campaign.goal ?: 0
+        val raised = campaign.raised ?: 0
+        return if (goal > 0) {
+            ((raised.toDouble() / goal.toDouble()) * 100).toInt().coerceIn(0, 100)
+        } else {
+            0
+        }
+    }
+
+    private fun selectTrendingCampaign(campaigns: List<Campaign>): Campaign? {
+        val visibleCampaigns = campaigns.filter { it.hidden != true }
+        return visibleCampaigns
+            .filter { calculateDaysLeft(it)?.let { days -> days <= 3 } ?: false }
+            .sortedWith(compareBy({ calculateDaysLeft(it) ?: Int.MAX_VALUE }, { -calculateProgress(it) }))
+            .firstOrNull() ?: visibleCampaigns.maxWithOrNull(compareBy({ calculateProgress(it) }, { it.createdAt ?: 0L }))
     }
 }

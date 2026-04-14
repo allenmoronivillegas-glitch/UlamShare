@@ -192,6 +192,8 @@
                 android:layout_height="180dp"
                 android:layout_marginTop="20dp"
                 android:background="@drawable/bg_blue_green_gradient"
+                android:clickable="true"
+                android:focusable="true"
                 android:padding="20dp">
 
                 <TextView
@@ -201,7 +203,7 @@
                     android:background="#40FFFFFF"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="4dp"
-                    android:text="FEATURED"
+                    android:text="EMERGENCY"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp"
                     android:textStyle="bold"
@@ -220,14 +222,39 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/tvTrendingTag" />
 
+                <ProgressBar
+                    android:id="@+id/pbCampProgress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="0dp"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="18dp"
+                    android:progress="0"
+                    android:progressDrawable="@drawable/custom_progress_white"
+                    app:layout_constraintTop_toBottomOf="@id/tvCampTitle"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <TextView
+                    android:id="@+id/tvTrendingDetails"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="0% • No deadline"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    app:layout_constraintTop_toBottomOf="@id/pbCampProgress"
+                    app:layout_constraintStart_toStartOf="parent" />
+
                 <TextView
                     android:id="@+id/tvRaised"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
                     android:text="Browse causes and make an impact."
                     android:textColor="#FFFFFF"
                     android:textSize="14sp"
-                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/tvTrendingDetails"
                     app:layout_constraintStart_toStartOf="parent" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
