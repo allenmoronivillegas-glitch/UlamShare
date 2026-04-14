@@ -54,10 +54,6 @@
             android:exported="false" />
 
         <activity
-            android:name=".OtpActivity"
-            android:exported="false" />
-
-        <activity
             android:name=".MainActivity"
             android:exported="false" />
 
@@ -97,9 +93,14 @@
             android:name=".EditProfileActivity"
             android:exported="false" />
 
+        <activity android:name=".ContactSupportActivity"
+             android:exported="false" />
+
         <service
             android:name=".CampaignMessagingService"
             android:exported="false">
+
+
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>

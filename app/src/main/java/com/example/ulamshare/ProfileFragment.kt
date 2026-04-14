@@ -93,14 +93,8 @@ class ProfileFragment : Fragment() {
         }
 
         optionMessenger.setOnClickListener {
-            try {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("fb-messenger://user/"))
-                startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Messenger app not found", Toast.LENGTH_SHORT).show()
-                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.messenger.com"))
-                startActivity(browserIntent)
-            }
+            val intent = Intent(requireContext(), ContactSupportActivity::class.java)
+            startActivity(intent)
         }
 
         optionNotifications.setOnClickListener {
