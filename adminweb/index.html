@@ -328,10 +328,11 @@ td.muted{color:var(--muted);font-size:12px}
       <div class="field-row"><div class="field-label">Role *</div>
         <select class="field-input" id="invite-role">
           <option value="">Select role…</option>
-          <option>Admin</option><option>Moderator</option><option>Viewer</option>
+          <option>Super Admin</option><option>Admin</option><option>Moderator</option><option>Viewer</option>
         </select>
       </div>
       <div style="background:var(--navy3);border-radius:8px;padding:12px;font-size:12px;color:var(--muted);line-height:1.5;margin-top:4px">
+        <strong style="color:#c084fc">Super Admin</strong> — full access to everything<br>
         <strong style="color:var(--text)">Admin</strong> — full access except billing<br>
         <strong style="color:var(--text)">Moderator</strong> — manage campaigns and donors<br>
         <strong style="color:var(--text)">Viewer</strong> — read-only access
@@ -883,7 +884,7 @@ function diagnoseCampaigns(){
     console.warn('⚠️ No campaigns found. Check Firebase Realtime Database > campaigns node.');
   }
   if(!canManageCampaigns()){
-    console.log('ℹ️ Current user is ' + currentRole() + ' - cannot create campaigns. Only Admin/Moderator can manage.');
+    console.log('ℹ️ Current user is ' + currentRole() + ' - cannot create campaigns. Only Super Admin/Admin/Moderator can manage.');
   }
   console.groupEnd();
 }
@@ -1092,23 +1093,23 @@ function currentRole(){
 }
 
 function canDeleteCampaigns(){
-  return currentRole() === 'Admin';
+  return ['Super Admin','Admin'].includes(currentRole());
 }
 
 function canManageCampaigns(){
-  return ['Admin','Moderator'].includes(currentRole());
+  return ['Super Admin','Admin','Moderator'].includes(currentRole());
 }
 
 function canToggleCampaignVisibility(){
-  return ['Admin','Moderator'].includes(currentRole());
+  return ['Super Admin','Admin','Moderator'].includes(currentRole());
 }
 
 function canInviteUsers(){
-  return currentRole() === 'Admin';
+  return ['Super Admin','Admin'].includes(currentRole());
 }
 
 function canViewTeam(){
-  return currentRole() === 'Admin';
+  return ['Super Admin','Admin'].includes(currentRole());
 }
 
 function openCampaignModal(key){
@@ -1381,7 +1382,7 @@ function renderCampaigns(){
   const role = window.currentUserProfile?.role || 'Viewer';
   console.log(`  Role: ${role}`);
   
-  const visibleCampaigns = ['Admin','Moderator'].includes(role) ? campaigns : campaigns.filter(c => !c.hidden);
+  const visibleCampaigns = ['Super Admin','Admin','Moderator'].includes(role) ? campaigns : campaigns.filter(c => !c.hidden);
   console.log(`  Visible campaigns: ${visibleCampaigns.length} (after role filtering)`);
   
   if(visibleCampaigns.length===0){
@@ -1399,10 +1400,10 @@ function renderCampaigns(){
   body.innerHTML='<div class="card-header"><div class="card-title">All campaigns</div></div>'+
     visibleCampaigns.map((c,i)=>{
       let actionHtml = '<div style="display:flex;gap:6px">';
-      if(['Admin','Moderator'].includes(role)){
+      if(['Super Admin','Admin','Moderator'].includes(role)){
         actionHtml += `<div class="icon-btn" onclick="editCampaign('${c.key}')">✏️</div>`;
         actionHtml += `<div class="icon-btn" onclick="toggleCampaignVisibility('${c.key}')">${c.hidden? '🙈' : '👁'}</div>`;
-        if(role === 'Admin'){
+        if(['Super Admin','Admin'].includes(role)){
           actionHtml += `<div class="icon-btn" onclick="deleteCampaign('${c.key}')">🗑️</div>`;
         }
       } else {
@@ -1590,8 +1591,19 @@ function setCurrentUserProfile(profile){
   const roleEl = document.getElementById('profile-role');
   const avaEl = document.getElementById('profile-ava');
   if(nameEl) nameEl.textContent = profile.username || profile.email || 'User';
-  if(roleEl) roleEl.textContent = profile.role || 'Viewer';
-  if(avaEl) avaEl.textContent = (profile.username || profile.email || 'US').substring(0,2).toUpperCase();
+  if(roleEl) {
+    roleEl.textContent = profile.role || 'Viewer';
+    if(profile.role === 'Super Admin'){
+      roleEl.style.color = '#c084fc';
+      roleEl.style.fontWeight = '600';
+    }
+  }
+  if(avaEl) {
+    avaEl.textContent = (profile.username || profile.email || 'US').substring(0,2).toUpperCase();
+    if(profile.role === 'Super Admin'){
+      avaEl.style.background = 'linear-gradient(135deg, #7C5CBF, #c084fc)';
+    }
+  }
   const titleBar = document.getElementById('topbar-title');
   if(titleBar && titleBar.textContent === 'Dashboard'){
     titleBar.textContent = titles['dashboard'];
@@ -1599,8 +1611,9 @@ function setCurrentUserProfile(profile){
 }
 
 function applyRoleRestrictions(role){
-  const isAdmin = role === 'Admin';
-  const canManage = ['Admin','Moderator'].includes(role);
+  const isSuperAdmin = role === 'Super Admin';
+  const isAdmin = role === 'Admin' || isSuperAdmin;
+  const canManage = ['Super Admin','Admin','Moderator'].includes(role);
   const navUsers = document.getElementById('nav-users');
   const navSettings = document.getElementById('nav-settings');
   const btnTopbar = document.getElementById('btn-new-campaign-topbar');
@@ -1630,6 +1643,7 @@ function applyRoleRestrictions(role){
 
 function normalizeRole(value){
   const raw = String(value || 'Viewer').trim().toLowerCase();
+  if(raw === 'super admin') return 'Super Admin';
   if(raw === 'admin') return 'Admin';
   if(raw === 'moderator') return 'Moderator';
   return 'Viewer';
@@ -1737,7 +1751,7 @@ function renderTeam(){
     <tr>
       <td><div class="row-cell"><div class="row-ava" style="background:var(--purple)">${m.initials}</div>${m.username}</div></td>
       <td class="muted">${m.email}</td>
-      <td><span class="role-pill ${m.role.toLowerCase() === 'admin' ? 'super' : ''}">${m.role}</span></td>
+      <td><span class="role-pill ${['Super Admin','Admin'].includes(m.role) ? 'super' : ''}">${m.role}</span></td>
       <td><span class="badge ${m.status === 'Active' ? 'info' : 'neutral'}">${m.status}</span></td>
       <td><span class="icon-btn" style="font-size:11px;color:var(--red)" onclick="removeTeamMember('${m.uid}')">✕</span></td>
     </tr>`).join('');
