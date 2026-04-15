@@ -39,6 +39,12 @@ android {
     buildFeatures {
         compose = true
     }
+    android {
+        buildFeatures {
+            viewBinding = true
+        }
+    }
+
 }
 
 dependencies {
@@ -52,6 +58,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("androidx.viewbinding:viewbinding:8.2.2")
     
     // Firebase
     implementation(platform(libs.firebase.bom))
