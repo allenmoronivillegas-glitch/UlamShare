@@ -1,63 +1,44 @@
-// Listen to all users (chat list)
-db.collection("support_chats")
-  .onSnapshot(snapshot => {
-    console.clear();
+// Load users (left side)
+function loadUsers() {
+  const userList = document.getElementById("userList");
 
-    snapshot.forEach(doc => {
-      const userId = doc.id;
-      const user = doc.data();
+  window.firebaseOnValue(
+  window.firebaseRef(window.firebaseDb, "supportChats"),
+  (snapshot) => {
 
-      console.log("👤 User:", user.email);
+      userList.innerHTML = "";
 
-      // Load messages ONCE per user (no nested spam)
-      loadMessages(userId);
-    });
-  });
+      snapshot.forEach(userSnap => {
+        const userId = userSnap.key;
+        const userData = userSnap.val();
 
-// Separate function (VERY IMPORTANT)
-function loadMessages(userId) {
-  db.collection("support_chats")
-    .doc(userId)
-    .collection("messages")
-    .orderBy("timestamp")
-    .onSnapshot(msgSnap => {
+        const div = document.createElement("div");
+        div.innerText = userData.email || userId;
+        div.style.padding = "10px";
+        div.style.cursor = "pointer";
 
-      console.log("💬 Messages for:", userId);
+        div.onclick = () => openChat(userId);
 
-      msgSnap.docChanges().forEach(change => {
-        if (change.type === "added") {
-          const data = change.doc.data();
-          console.log(data.sender + ":", data.text);
-        }
+        userList.appendChild(div);
       });
 
     });
 }
+let selectedUserId = null;
 
-// Admin reply
-function sendReply(userId, messageText) {
-  db.collection("support_chats")
-    .doc(userId)
-    .collection("messages")
-    .add({
-      text: messageText,
-      sender: "admin",
-      timestamp: Date.now()
-    });
-}
 function openChat(userId) {
+  selectedUserId = userId;
 
-  db.collection("support_chats")
-    .doc(userId)
-    .collection("messages")
-    .orderBy("timestamp")
-    .onSnapshot(snapshot => {
+  const chatBox = document.getElementById("chatMessages");
 
-      const chatBox = document.getElementById("chatBox");
+ window.firebaseOnValue(
+  window.firebaseRef(window.firebaseDb, "supportChats/" + userId + "/messages"),
+  (snapshot) => {
+
       chatBox.innerHTML = "";
 
-      snapshot.forEach(doc => {
-        const msg = doc.data();
+      snapshot.forEach(msgSnap => {
+        const msg = msgSnap.val();
 
         const div = document.createElement("div");
         div.innerText = msg.text;
@@ -68,8 +49,28 @@ function openChat(userId) {
           div.style.textAlign = "left";
         }
 
-        chatBox.appendChild(div);
+        chatBox.appendChild(div);``
       });
 
     });
 }
+function sendAdminMessage() {
+  const input = document.getElementById("adminMessage");
+  const text = input.value.trim();
+
+  if (!text || !selectedUserId) return;
+
+  const ref = window.firebaseRef(
+    window.firebaseDb,
+    "supportChats/" + selectedUserId + "/messages"
+  );
+
+  window.firebasePush(ref, {
+    text: text,
+    sender: "admin",
+    time: Date.now()
+  });
+
+  input.value = "";
+}
+loadUsers();

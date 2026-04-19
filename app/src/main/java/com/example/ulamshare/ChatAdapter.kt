@@ -5,6 +5,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import java.text.SimpleDateFormat
+import java.util.*
 
 class ChatAdapter(private val messages: MutableList<ChatMessage>) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -12,29 +14,35 @@ class ChatAdapter(private val messages: MutableList<ChatMessage>) :
     private val TYPE_USER = 1
     private val TYPE_ADMIN = 2
 
+    private val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+
     override fun getItemViewType(position: Int): Int {
         return if (messages[position].sender == "user") TYPE_USER else TYPE_ADMIN
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
         return if (viewType == TYPE_USER) {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_chat_user, parent, false)
-            UserViewHolder(view)
+            UserViewHolder(inflater.inflate(R.layout.item_chat_user, parent, false))
         } else {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_chat_admin, parent, false)
-            AdminViewHolder(view)
+            AdminViewHolder(inflater.inflate(R.layout.item_chat_admin, parent, false))
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = messages[position]
+        val formattedTime = if (message.time != 0L)
+            timeFormat.format(Date(message.time)) else ""
 
-        if (holder is UserViewHolder) {
-            holder.text.text = message.text
-        } else if (holder is AdminViewHolder) {
-            holder.text.text = message.text
+        when (holder) {
+            is UserViewHolder -> {
+                holder.tvMessage.text = message.text
+                holder.tvTime.text = formattedTime
+            }
+            is AdminViewHolder -> {
+                holder.tvMessage.text = message.text
+                holder.tvTime.text = formattedTime
+            }
         }
     }
 
@@ -46,10 +54,12 @@ class ChatAdapter(private val messages: MutableList<ChatMessage>) :
     }
 
     class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val text: TextView = view.findViewById(R.id.tvMessage)
+        val tvMessage: TextView = view.findViewById(R.id.tvMessage)
+        val tvTime: TextView = view.findViewById(R.id.tvTime)
     }
 
     class AdminViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val text: TextView = view.findViewById(R.id.tvMessage)
+        val tvMessage: TextView = view.findViewById(R.id.tvMessage)
+        val tvTime: TextView = view.findViewById(R.id.tvTime)
     }
 }

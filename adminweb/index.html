@@ -122,6 +122,23 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
 .btn-danger:hover{background:#c53030}
 .btn-danger:disabled{background:var(--hint);color:#fff;cursor:not-allowed}
 .btn-sm{padding:6px 14px;font-size:13px}
+.btn {
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: scale(0.95) translateY(1px);
+}
+.btn:active {
+  transform: scale(0.9) !important;
+}
  
 /* cards */
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px}
@@ -856,7 +873,7 @@ td.muted{color:var(--muted);font-size:12px}
 
       <div style="display:flex;padding:10px;border-top:1px solid #333">
         <input id="adminMessage" placeholder="Type reply..." style="flex:1;padding:8px"/>
-        <button onclick="sendAdminMessage()">Send</button>
+        <button class="btn btn-primary" onclick="handleSend(this)">Send</button>
       </div>
 
     </div>
@@ -872,15 +889,17 @@ let selectedUserId = null;
 
 // LOAD USERS
 function loadUsers() {
-  const chatsRef = ref(db, 'supportChats');
+const chatsRef = window.firebaseRef(window.firebaseDb, 'supportChats');
 
-  onValue(chatsRef, (snapshot) => {
+window.firebaseOnValue(chatsRef, (snapshot) => {
     const data = snapshot.val();
     const userList = document.getElementById('userList');
 
     userList.innerHTML = '';
-
-    if (!data) return;
+    if (!data) {
+      userList.innerHTML = "<p style='padding:10px;color:gray'>No users yet</p>";
+      return;
+    }
 
     Object.keys(data).forEach(userId => {
       const user = data[userId];
@@ -903,9 +922,9 @@ function openChat(userId, email) {
 
   document.getElementById('chatHeader').innerText = email;
 
-  const chatRef = ref(db, `supportChats/${userId}/messages`);
+const chatRef = window.firebaseRef(window.firebaseDb, `supportChats/${userId}/messages`);
 
-  onValue(chatRef, (snapshot) => {
+window.firebaseOnValue(chatRef, (snapshot) => {
     const data = snapshot.val();
     const chatBox = document.getElementById('chatMessages');
 
@@ -941,10 +960,10 @@ function sendAdminMessage() {
 
   if (!text || !selectedUserId) return;
 
-  const msgRef = ref(db, `supportChats/${selectedUserId}/messages`);
-  const newMsg = push(msgRef);
+const msgRef = window.firebaseRef(window.firebaseDb, `supportChats/${selectedUserId}/messages`);
+const newMsg = window.firebasePush(msgRef);
 
-  set(newMsg, {
+window.firebaseSet(newMsg, {
     text: text,
     sender: 'admin',
     time: Date.now()
@@ -1974,12 +1993,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.log('\n📊 Checking Firebase data status after 3 seconds...');
       diagnoseCampaigns();
     }, 3000);
+    loadUsers();
+
+    
   } catch(err) {
     console.error('❌ Firebase initialization failed:', err);
     showToast('Firebase auth failed. Please check console');
   }
 });
-loadUsers();
+
 </script>
 </body>
 </html>

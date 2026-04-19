@@ -1,5 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -7,15 +9,53 @@
     android:fitsSystemWindows="true">
 
     <!-- TOP BAR -->
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Support"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:padding="16dp"
         android:background="#1877F2"
-        android:textColor="#FFFFFF"/>
+        android:gravity="center_vertical"
+        android:padding="12dp">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_support_avatar"
+            android:background="@drawable/bg_avatar"
+            android:padding="6dp"
+            android:contentDescription="Support agent" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Support"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Online"
+                android:textSize="12sp"
+                android:textColor="#B3DAFF" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnMore"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_more_vert"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="#FFFFFF"
+            android:contentDescription="More options" />
+    </LinearLayout>
 
     <!-- CHAT LIST -->
     <androidx.recyclerview.widget.RecyclerView
@@ -24,7 +64,10 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingBottom="8dp"/>
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp" />
 
     <!-- INPUT AREA -->
     <LinearLayout
@@ -32,22 +75,34 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="8dp"
+        android:gravity="center_vertical"
         android:background="#FFFFFF"
         android:elevation="8dp">
 
-        <EditText
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etMessage"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="Type a message..."
-            android:padding="10dp"/>
+            android:padding="10dp"
+            android:maxLines="4"
+            android:inputType="textMultiLine|textCapSentences"
+            android:background="@drawable/bg_input_field"
+            android:textSize="14sp"
+            android:textColor="#1A1A1A"
+            android:textColorHint="#AAAAAA" />
 
-        <Button
+        <ImageButton
             android:id="@+id/btnSend"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Send"/>
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_send"
+            android:background="@drawable/bg_send_button"
+            app:tint="#FFFFFF"
+            android:contentDescription="Send message"
+            android:padding="10dp" />
     </LinearLayout>
 
 </LinearLayout>
