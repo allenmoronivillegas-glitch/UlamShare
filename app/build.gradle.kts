@@ -38,7 +38,6 @@ android {
     }
     buildFeatures {
         compose = true
-        viewBinding = true
     }
 }
 
@@ -53,7 +52,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
     
     // Firebase
     implementation(platform(libs.firebase.bom))
@@ -62,6 +60,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("androidx.recyclerview:recyclerview:1.3.1")
     
     // JSON & Serialization
     implementation("com.google.code.gson:gson:2.10.1")
@@ -71,8 +70,8 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.play.services.auth)
+    implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.cardview:cardview:1.0.0")
-
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
