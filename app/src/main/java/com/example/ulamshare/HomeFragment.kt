@@ -1,6 +1,11 @@
 package com.example.ulamshare
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,14 +14,9 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Context
-import android.os.Build
-import androidx.core.app.NotificationCompat
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.app.NotificationCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -76,7 +76,6 @@ class HomeFragment : Fragment() {
         tvTrendingDetails = view.findViewById(R.id.tvTrendingDetails)
         pbCampProgress = view.findViewById(R.id.pbCampProgress)
         trendingContainer = view.findViewById(R.id.trendingContainer)
-        val btnViewMyDonations = view.findViewById<Button>(R.id.btnViewMyDonations)
         rvRecentlyAdded = view.findViewById(R.id.rvRecentlyAdded)
         emptyCampaignsCard = view.findViewById(R.id.emptyCampaignsCard)
         tvEmptyCampaignsMessage = view.findViewById(R.id.tvEmptyCampaignsMessage)
@@ -88,10 +87,6 @@ class HomeFragment : Fragment() {
 
         btnRegisterHeader.setOnClickListener {
             startActivity(Intent(requireContext(), RegisterActivity::class.java))
-        }
-
-        btnViewMyDonations?.setOnClickListener {
-            startActivity(Intent(requireContext(), ActivityHistory::class.java))
         }
 
         loadUserData()
@@ -153,6 +148,7 @@ class HomeFragment : Fragment() {
                 if (lastCampaignCount != 0 && count > lastCampaignCount && lastCampaign != null) {
 
                     // 🔔 SAVE TO HISTORY
+                    NotificationRepository.init(requireContext())
                     val newNotif = AppNotification(
                         id = UUID.randomUUID().toString(),
                         title = "New Campaign: ${lastCampaign.title}",
@@ -301,7 +297,7 @@ class HomeFragment : Fragment() {
 
         val progress = calculateProgress(trending)
         val daysLeft = calculateDaysLeft(trending)
-        val tag = if (daysLeft != null && daysLeft <= 3) "🚨 EMERGENCY" else "� EMERGENCY"
+        val tag = if (daysLeft != null && daysLeft <= 3) "🚨 EMERGENCY" else "🔥 TRENDING"
         val details = if (daysLeft != null) {
             "$progress% • $daysLeft day${if (daysLeft == 1) "" else "s"} left"
         } else {

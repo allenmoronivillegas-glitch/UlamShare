@@ -65,7 +65,6 @@
     });
   });
 </script>
-<script type="module" src="app.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -886,6 +885,8 @@ td.muted{color:var(--muted);font-size:12px}
 <script>
 const titles={dashboard:'Dashboard',campaigns:'Campaigns',donations:'Donations',donors:'Donors',payments:'Payments',users:'Team',settings:'Settings',support:'Support'};
 let selectedUserId = null;
+let selectedUserEmail = '';
+let detachChatListener = null;
 
 // LOAD USERS
 function loadUsers() {
@@ -902,16 +903,21 @@ window.firebaseOnValue(chatsRef, (snapshot) => {
     }
 
     Object.keys(data).forEach(userId => {
-      const user = data[userId];
+      const user = data[userId] || {};
+      const email = user.email || userId;
 
       const div = document.createElement('div');
       div.style.padding = '10px';
       div.style.cursor = 'pointer';
       div.style.borderBottom = '1px solid #333';
+      div.dataset.userId = userId;
+      if (selectedUserId === userId) {
+        div.style.background = 'rgba(47, 128, 237, 0.2)';
+      }
 
-      div.innerText = user.email || userId;
+      div.innerText = email;
 
-      div.onclick = () => openChat(userId, user.email);
+      div.onclick = () => openChat(userId, email);
 
       userList.appendChild(div);
     });
@@ -919,12 +925,21 @@ window.firebaseOnValue(chatsRef, (snapshot) => {
 }
 function openChat(userId, email) {
   selectedUserId = userId;
+  selectedUserEmail = email || userId;
 
-  document.getElementById('chatHeader').innerText = email;
+  document.getElementById('chatHeader').innerText = selectedUserEmail;
+  document.querySelectorAll('#userList > div').forEach((row) => {
+    row.style.background = row.dataset.userId === userId ? 'rgba(47, 128, 237, 0.2)' : '';
+  });
+
+  if (typeof detachChatListener === 'function') {
+    detachChatListener();
+    detachChatListener = null;
+  }
 
 const chatRef = window.firebaseRef(window.firebaseDb, `supportChats/${userId}/messages`);
 
-window.firebaseOnValue(chatRef, (snapshot) => {
+detachChatListener = window.firebaseOnValue(chatRef, (snapshot) => {
     const data = snapshot.val();
     const chatBox = document.getElementById('chatMessages');
 
@@ -932,7 +947,9 @@ window.firebaseOnValue(chatRef, (snapshot) => {
 
     if (!data) return;
 
-    Object.values(data).forEach(msg => {
+    Object.values(data)
+      .sort((a, b) => (a?.time || 0) - (b?.time || 0))
+      .forEach(msg => {
       const div = document.createElement('div');
 
       div.style.margin = '5px';
@@ -958,7 +975,11 @@ function sendAdminMessage() {
   const input = document.getElementById('adminMessage');
   const text = input.value.trim();
 
-  if (!text || !selectedUserId) return;
+  if (!selectedUserId) {
+    showToast('Please select a user first.');
+    return;
+  }
+  if (!text) return;
 
 const msgRef = window.firebaseRef(window.firebaseDb, `supportChats/${selectedUserId}/messages`);
 const newMsg = window.firebasePush(msgRef);
@@ -967,9 +988,29 @@ window.firebaseSet(newMsg, {
     text: text,
     sender: 'admin',
     time: Date.now()
+  })
+  .then(() => {
+    input.value = '';
+    input.focus();
+  })
+  .catch((error) => {
+    console.error('Support send failed:', error);
+    showToast('Failed to send message. Please try again.');
   });
+}
 
-  input.value = '';
+function handleSend() {
+  sendAdminMessage();
+}
+
+const adminMessageInput = document.getElementById('adminMessage');
+if (adminMessageInput) {
+  adminMessageInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      sendAdminMessage();
+    }
+  });
 }
 
 
@@ -1540,7 +1581,7 @@ function renderCampaigns(){
       let actionHtml = '<div style="display:flex;gap:6px">';
       if(['Super Admin','Admin','Moderator'].includes(role)){
         actionHtml += `<div class="icon-btn" onclick="editCampaign('${c.key}')">✏️</div>`;
-        actionHtml += `<div class="icon-btn" onclick="toggleCampaignVisibility('${c.key}')">${c.hidden? '🙈' : '👁'}</div>`;
+        actionHtml += `<div class="icon-btn" onclick="toggleCampaignVisibility('${c.key}')">${c.hidden? '🚫' : '👁'}</div>`;
         if(['Super Admin','Admin'].includes(role)){
           actionHtml += `<div class="icon-btn" onclick="deleteCampaign('${c.key}')">🗑️</div>`;
         }

@@ -1,8 +1,8 @@
 package com.example.ulamshare
 
 import android.os.Bundle
-import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -15,7 +15,7 @@ class ContactSupportActivity : AppCompatActivity() {
 
     private lateinit var recycler: RecyclerView
     private lateinit var etMessage: EditText
-    private lateinit var btnSend: Button
+    private lateinit var btnSend: ImageButton
 
     private lateinit var adapter: ChatAdapter
     private val messages = mutableListOf<ChatMessage>()
@@ -44,23 +44,29 @@ class ContactSupportActivity : AppCompatActivity() {
             return
         }
 
-        dbRef = FirebaseDatabase.getInstance()
+        // Use the same database instance as ProfileFragment to ensure connectivity
+        dbRef = FirebaseDatabase.getInstance("https://ulamshare-4f2b9-default-rtdb.asia-southeast1.firebasedatabase.app")
             .getReference("supportChats")
             .child(user.uid)
 
         // Save user info once
-        dbRef.updateChildren(
-            mapOf(
-                "email" to user.email,
-                "userId" to user.uid
-            )
-        )
+        val userInfo = mutableMapOf<String, Any?>()
+        userInfo["email"] = user.email
+        userInfo["userId"] = user.uid
+        
+        dbRef.updateChildren(userInfo)
 
         btnSend.setOnClickListener {
             sendMessage()
         }
 
         listenForMessages()
+        
+        // Handle back button if needed (e.g. if you added one to your layout)
+        findViewById<ImageButton>(R.id.btnMore)?.setOnClickListener {
+            // Optional: Show a popup menu or just finish
+            finish()
+        }
     }
 
     private fun sendMessage() {
