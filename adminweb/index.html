@@ -66,6 +66,142 @@
   });
 </script>
 <style>
+  /* Always show actions on touch/mobile */
+    @media (hover: none) {
+      .s-msg-actions { display: flex !important; position: static; transform: none; margin-top: 4px; border: none; background: transparent; box-shadow: none; padding: 0; }
+    }
+
+/* ═══ SUPPORT CHAT MESSENGER EXTRAS ═══ */
+.s-msg-row{position:relative}
+.s-msg-actions{
+  display:flex;align-items:center;gap:2px;
+  margin-top:4px;
+  opacity:0;pointer-events:none;
+  transition:opacity .15s;
+}
+.s-msg-row:hover .s-msg-actions{opacity:1;pointer-events:all;}
+.s-msg-row.s-in .s-msg-actions{justify-content:flex-start;}
+.s-msg-row.s-out .s-msg-actions{justify-content:flex-end;}
+.s-msg-act-btn{
+  width:24px;height:24px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--navy3);color:var(--muted);cursor:pointer;
+  font-size:12px;display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;
+}
+.s-msg-act-btn:hover{background:var(--navy4);color:var(--text);}
+.s-msg-act-btn.danger:hover{background:rgba(229,62,62,.15);color:var(--red);}
+.s-msg-act-btn{
+  width:26px;height:26px;border-radius:50%;border:none;
+  background:transparent;color:var(--muted);cursor:pointer;
+  font-size:13px;display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;
+}
+.s-msg-act-btn:hover{background:var(--navy4);color:var(--text)}
+.s-msg-act-btn.danger:hover{background:rgba(229,62,62,.15);color:var(--red)}
+.s-reaction-bar{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
+.s-reaction{
+  display:inline-flex;align-items:center;gap:3px;
+  background:var(--navy3);border:1px solid var(--border2);
+  border-radius:10px;padding:2px 7px;font-size:12px;cursor:pointer;
+  transition:background .15s,border-color .15s;
+}
+.s-reaction:hover{background:var(--navy4);border-color:var(--accent)}
+.s-reaction.s-reacted{background:rgba(47,128,237,.12);border-color:rgba(47,128,237,.35);color:var(--accent)}
+.s-reaction-count{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
+.s-reply-preview{
+  background:var(--navy3);border-left:2px solid var(--accent);
+  border-radius:6px;padding:7px 10px;margin-bottom:6px;
+  font-size:12px;color:var(--muted);max-width:100%;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.s-reply-preview-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.s-reply-preview-close{background:none;border:none;color:var(--hint);cursor:pointer;font-size:14px;flex-shrink:0;padding:0 2px}
+.s-reply-preview-close:hover{color:var(--red)}
+.s-reply-quote{
+  background:rgba(255,255,255,.05);border-left:2px solid var(--accent);
+  border-radius:4px;padding:5px 8px;margin-bottom:5px;
+  font-size:11px;color:var(--muted);
+}
+.s-deleted-msg{
+  font-style:italic;color:var(--hint);font-size:12px;
+  opacity:.7;
+}
+.s-emoji-picker{
+  position:absolute;z-index:20;
+  background:var(--navy2);border:1px solid var(--border2);
+  border-radius:12px;padding:8px;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+  display:flex;gap:4px;flex-wrap:wrap;width:180px;
+}
+.s-emoji-picker button{
+  width:30px;height:30px;border:none;background:none;
+  font-size:16px;cursor:pointer;border-radius:6px;
+  transition:background .15s;
+}
+.s-emoji-picker button:hover{background:var(--navy4)}
+  /* ═══ SUPPORT CHAT ═══ */
+.chat-shell{width:100%;height:560px;border:1px solid var(--border2);border-radius:14px;display:flex;overflow:hidden;background:var(--card);box-shadow:0 0 0 1px rgba(255,255,255,.03),0 20px 60px rgba(0,0,0,.5)}
+.s-user-list{width:268px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--navy2)}
+.s-ul-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.s-ul-title{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.s-ul-count{font-family:var(--font-mono);font-size:10px;background:rgba(47,128,237,.12);color:var(--accent);padding:2px 8px;border-radius:99px;border:1px solid rgba(47,128,237,.2)}
+.s-search-wrap{padding:10px 12px;border-bottom:1px solid var(--border)}
+.s-search-wrap input{width:100%;background:var(--navy4);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--font-sans);font-size:12px;color:var(--text);outline:none;transition:border-color .2s}
+.s-search-wrap input::placeholder{color:var(--hint)}
+.s-search-wrap input:focus{border-color:var(--accent)}
+.s-user-scroll{overflow-y:auto;flex:1}
+.s-user-scroll::-webkit-scrollbar{width:3px}
+.s-user-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.s-user-item{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;position:relative}
+.s-user-item:hover{background:rgba(255,255,255,.03)}
+.s-user-item.s-active{background:rgba(47,128,237,.1);border-left:2px solid var(--accent)}
+.s-user-item.s-unread::after{content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.s-ava{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;position:relative}
+.s-ava-dot{position:absolute;bottom:0;right:0;width:9px;height:9px;border-radius:50%;border:2px solid var(--navy2)}
+.s-user-meta{flex:1;min-width:0}
+.s-user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.s-user-preview{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.s-user-time{font-family:var(--font-mono);font-size:10px;color:var(--hint);align-self:flex-start;margin-top:2px;flex-shrink:0}
+.s-chat-panel{flex:1;display:flex;flex-direction:column;min-width:0}
+.s-chat-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--card)}
+.s-chat-header-left{display:flex;align-items:center;gap:10px}
+.s-chat-header-name{font-size:14px;font-weight:600;color:var(--text)}
+.s-chat-header-status{font-size:11px;color:var(--muted);margin-top:1px}
+.s-messages{flex:1;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:12px}
+.s-messages::-webkit-scrollbar{width:3px}
+.s-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.s-empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--hint)}
+.s-empty-icon{font-size:32px;opacity:.25}
+.s-empty-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.5px}
+.s-msg-row{display:flex;gap:8px;animation:msgSlideIn .18s ease}
+@keyframes msgSlideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.s-msg-row.s-out{flex-direction:row-reverse}
+.s-msg-ava{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;align-self:flex-end;flex-shrink:0}
+.s-bubble-wrap{max-width:65%;display:flex;flex-direction:column;gap:3px}
+.s-msg-row.s-out .s-bubble-wrap{align-items:flex-end}
+.s-bubble{padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.55;word-break:break-word;color:var(--text)}
+.s-msg-row.s-in .s-bubble{background:var(--navy3);border-radius:4px 14px 14px 14px}
+.s-msg-row.s-out .s-bubble{background:var(--accent2);border-radius:14px 4px 14px 14px;color:#cfe0ff}
+.s-msg-time{font-family:var(--font-mono);font-size:10px;color:var(--hint);padding:0 2px}
+.s-date-divider{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--hint)}
+.s-date-divider::before,.s-date-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.s-input-bar{padding:11px 13px;border-top:1px solid var(--border);display:flex;align-items:center;gap:9px;flex-shrink:0}
+.s-input-wrap{flex:1;background:var(--navy3);border:1px solid var(--border2);border-radius:9px;display:flex;align-items:center;padding:0 11px;transition:border-color .2s,box-shadow .2s}
+.s-input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,128,237,.15)}
+.s-input-wrap input{flex:1;background:transparent;border:none;outline:none;padding:10px 0;font-family:var(--font-sans);font-size:13px;color:var(--text)}
+.s-input-wrap input::placeholder{color:var(--hint)}
+.s-send-btn{width:38px;height:38px;border-radius:9px;border:none;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:background .15s,transform .1s;box-shadow:0 0 14px rgba(47,128,237,.3)}
+.s-send-btn:hover{background:var(--accent2);transform:scale(1.05)}
+.s-send-btn:active{transform:scale(.95)}
+.s-send-btn:disabled{background:var(--hint);box-shadow:none;cursor:default;transform:none}
+.s-live-badge{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;color:var(--green);letter-spacing:1px;text-transform:uppercase}
+.s-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:livePulse 2s infinite}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+.s-typing{display:flex;gap:3px;align-items:center;padding:8px 12px}
+.s-typing span{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:typingDot 1.2s infinite}
+.s-typing span:nth-child(2){animation-delay:.2s}
+.s-typing span:nth-child(3){animation-delay:.4s}
+@keyframes typingDot{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-4px);opacity:1}}
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --navy:#0A0F1E;--navy2:#111827;--navy3:#1a2236;--navy4:#1f2a40;
@@ -847,37 +983,59 @@ td.muted{color:var(--muted);font-size:12px}
       </div>
     </div>
   <!-- ═══ SUPPORT ═══ -->
-<div class="section" id="s-support">
-
-  <div class="page-header">
-    <div>
-      <div class="page-heading">Support Chat</div>
-      <div class="page-sub">Talk to users in real-time</div>
-    </div>
-  </div>
-
-  <div style="display:flex;height:500px;border:1px solid #333">
-
-    <!-- USERS -->
-    <div style="width:30%;border-right:1px solid #333;overflow-y:auto" id="userList"></div>
-
-    <!-- CHAT -->
-    <div style="flex:1;display:flex;flex-direction:column">
-
-      <div id="chatHeader" style="padding:10px;color:white;border-bottom:1px solid #333">
-        Select a user
+    <div class="section" id="s-support">
+      <div class="page-header">
+        <div>
+          <div class="page-heading">Support Chat</div>
+          <div class="page-sub">Talk to users in real-time</div>
+        </div>
+        <div class="s-live-badge"><div class="s-live-dot"></div>Live</div>
       </div>
 
-      <div id="chatMessages" style="flex:1;overflow-y:auto;padding:10px;color:white"></div>
+      <div class="chat-shell">
+        <!-- USER LIST -->
+        <div class="s-user-list">
+          <div class="s-ul-header">
+            <span class="s-ul-title">Conversations</span>
+            <span class="s-ul-count" id="s-user-count">0</span>
+          </div>
+          <div class="s-search-wrap">
+            <input type="text" placeholder="Search users…" id="s-search-input" oninput="sFilterUsers(this.value)"/>
+          </div>
+          <div class="s-user-scroll" id="userList"></div>
+        </div>
 
-      <div style="display:flex;padding:10px;border-top:1px solid #333">
-        <input id="adminMessage" placeholder="Type reply..." style="flex:1;padding:8px"/>
-        <button class="btn btn-primary" onclick="handleSend(this)">Send</button>
+        <!-- CHAT PANEL -->
+        <div class="s-chat-panel">
+          <div class="s-chat-header">
+            <div class="s-chat-header-left">
+              <div id="s-header-ava"></div>
+              <div>
+                <div class="s-chat-header-name" id="s-header-name">Select a conversation</div>
+                <div class="s-chat-header-status" id="s-header-status">—</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="icon-btn" onclick="sSendAdminMessage()" id="s-send-top-btn" title="Send" style="display:none">➤</button>
+            </div>
+          </div>
+
+          <div class="s-messages" id="chatMessages">
+            <div class="s-empty-state">
+              <div class="s-empty-icon">💬</div>
+              <div class="s-empty-label">No conversation selected</div>
+            </div>
+          </div>
+
+          <div class="s-input-bar">
+            <div class="s-input-wrap">
+              <input id="adminMessage" placeholder="Type a reply…" onkeydown="if(event.key==='Enter'){event.preventDefault();sSendAdminMessage()}"/>
+            </div>
+            <button class="s-send-btn" id="s-send-btn" onclick="sSendAdminMessage()" disabled title="Send">➤</button>
+          </div>
+        </div>
       </div>
-
     </div>
-  </div>
-</div>
  
 </div>
 </div>
@@ -888,131 +1046,279 @@ let selectedUserId = null;
 let selectedUserEmail = '';
 let detachChatListener = null;
 
-// LOAD USERS
-function loadUsers() {
-const chatsRef = window.firebaseRef(window.firebaseDb, 'supportChats');
+// ═══ SUPPORT CHAT UI ═══
+const S_COLORS = [
+  {bg:'#1e3a5f',fg:'#60a5fa'},{bg:'#3b1f5c',fg:'#c084fc'},
+  {bg:'#1a3d2b',fg:'#4ade80'},{bg:'#3d2a10',fg:'#fb923c'},
+  {bg:'#3d1a1a',fg:'#f87171'},{bg:'#1f3040',fg:'#38bdf8'},
+];
+function sGetColor(str){
+  let h=0;for(let i=0;i<str.length;i++)h=str.charCodeAt(i)+(h<<5)-h;
+  return S_COLORS[Math.abs(h)%S_COLORS.length];
+}
+function sInitials(email){ return (email||'??').substring(0,2).toUpperCase(); }
+function sAvaHtml(email,size=34){
+  const c=sGetColor(email);
+  return `<div class="s-ava" style="width:${size}px;height:${size}px;background:${c.bg};color:${c.fg}">${sInitials(email)}<div class="s-ava-dot" style="background:var(--green)"></div></div>`;
+}
+function sNow(){ return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
 
-window.firebaseOnValue(chatsRef, (snapshot) => {
-    const data = snapshot.val();
-    const userList = document.getElementById('userList');
-
-    userList.innerHTML = '';
-    if (!data) {
-      userList.innerHTML = "<p style='padding:10px;color:gray'>No users yet</p>";
+let sAllUsers = [];
+function loadUsers(){
+  const chatsRef = window.firebaseRef(window.firebaseDb,'supportChats');
+  window.firebaseOnValue(chatsRef,(snapshot)=>{
+    const data=snapshot.val();
+    const ul=document.getElementById('userList');
+    if(!data){
+      ul.innerHTML='<div style="padding:14px 16px;font-size:12px;color:var(--hint)">No conversations yet</div>';
+      document.getElementById('s-user-count').textContent='0';
+      sAllUsers=[];
       return;
     }
-
-    Object.keys(data).forEach(userId => {
-      const user = data[userId] || {};
-      const email = user.email || userId;
-
-      const div = document.createElement('div');
-      div.style.padding = '10px';
-      div.style.cursor = 'pointer';
-      div.style.borderBottom = '1px solid #333';
-      div.dataset.userId = userId;
-      if (selectedUserId === userId) {
-        div.style.background = 'rgba(47, 128, 237, 0.2)';
-      }
-
-      div.innerText = email;
-
-      div.onclick = () => openChat(userId, email);
-
-      userList.appendChild(div);
-    });
+    sAllUsers=Object.keys(data).map(uid=>({uid,email:data[uid].email||uid,data:data[uid]}));
+    document.getElementById('s-user-count').textContent=sAllUsers.length;
+    sRenderUserList(sAllUsers);
   });
 }
+function sRenderUserList(list){
+  const ul=document.getElementById('userList');
+  ul.innerHTML='';
+  list.forEach(u=>{
+    const msgs=u.data.messages?Object.values(u.data.messages):[];
+    const last=msgs.sort((a,b)=>(a.time||0)-(b.time||0)).at(-1);
+    const preview=last?last.text:'No messages yet';
+    const time=last?new Date(last.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+    const hasUnread=msgs.some(m=>m.sender!=='admin'&&!m.read);
+    const div=document.createElement('div');
+    div.className='s-user-item'+(selectedUserId===u.uid?' s-active':'')+(hasUnread?' s-unread':'');
+    div.dataset.userId=u.uid;
+    div.innerHTML=`${sAvaHtml(u.email)}<div class="s-user-meta"><div class="s-user-name">${u.email}</div><div class="s-user-preview">${preview}</div></div><div class="s-user-time">${time}</div>`;
+    div.onclick=()=>openChat(u.uid,u.email);
+    ul.appendChild(div);
+  });
+}
+function sFilterUsers(q){
+  const filtered=q?sAllUsers.filter(u=>u.email.toLowerCase().includes(q.toLowerCase())):sAllUsers;
+  sRenderUserList(filtered);
+}
+
 function openChat(userId, email) {
   selectedUserId = userId;
   selectedUserEmail = email || userId;
-
-  document.getElementById('chatHeader').innerText = selectedUserEmail;
-  document.querySelectorAll('#userList > div').forEach((row) => {
-    row.style.background = row.dataset.userId === userId ? 'rgba(47, 128, 237, 0.2)' : '';
+  document.getElementById('s-header-ava').innerHTML = sAvaHtml(selectedUserEmail, 30);
+  document.getElementById('s-header-name').textContent = selectedUserEmail;
+  document.getElementById('s-header-status').textContent = '● Online';
+  document.getElementById('s-header-status').style.color = 'var(--green)';
+  document.getElementById('s-send-btn').disabled = false;
+  document.querySelectorAll('#userList .s-user-item').forEach(row => {
+    row.classList.toggle('s-active', row.dataset.userId === userId);
+    row.classList.remove('s-unread');
   });
+  if (typeof detachChatListener === 'function') { detachChatListener(); detachChatListener = null; }
 
-  if (typeof detachChatListener === 'function') {
-    detachChatListener();
-    detachChatListener = null;
-  }
-
-const chatRef = window.firebaseRef(window.firebaseDb, `supportChats/${userId}/messages`);
-
-detachChatListener = window.firebaseOnValue(chatRef, (snapshot) => {
+  const chatRef = window.firebaseRef(window.firebaseDb, `supportChats/${userId}/messages`);
+  detachChatListener = window.firebaseOnValue(chatRef, (snapshot) => {
     const data = snapshot.val();
-    const chatBox = document.getElementById('chatMessages');
+    const box = document.getElementById('chatMessages');
+    box.innerHTML = '<div class="s-date-divider">Today</div>';
+    if (data) {
+      const msgs = Object.entries(data)
+        .map(([key, val]) => ({ key, ...val }))
+        .sort((a, b) => (a.time || 0) - (b.time || 0));
 
-    chatBox.innerHTML = '';
+      msgs.forEach(msg => {
+        const isOut = msg.sender === 'admin';
+        const c = sGetColor(selectedUserEmail);
+        const time = new Date(msg.time || 0).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    if (!data) return;
+        const row = document.createElement('div');
+        row.className = 's-msg-row ' + (isOut ? 's-out' : 's-in');
+        row.dataset.msgKey = msg.key;
+        row.dataset.msgText = msg.text || '';
 
-    Object.values(data)
-      .sort((a, b) => (a?.time || 0) - (b?.time || 0))
-      .forEach(msg => {
-      const div = document.createElement('div');
+        // reply quote
+        let quoteHtml = '';
+        if (msg.replyTo) {
+          const quoted = msgs.find(m => m.key === msg.replyTo);
+          if (quoted && !quoted.deleted) {
+            quoteHtml = `<div class="s-reply-quote">↩ ${escHtml((quoted.text || '').substring(0, 60))}${quoted.text?.length > 60 ? '…' : ''}</div>`;
+          }
+        }
 
-      div.style.margin = '5px';
-      div.style.padding = '8px';
-      div.style.borderRadius = '8px';
+        // reactions
+        const reactions = msg.reactions ? Object.entries(msg.reactions) : [];
+        const reactionMap = {};
+        reactions.forEach(([, val]) => {
+          reactionMap[val.emoji] = (reactionMap[val.emoji] || 0) + 1;
+        });
+        const reactionHtml = Object.keys(reactionMap).length
+          ? `<div class="s-reaction-bar">${Object.entries(reactionMap).map(([emoji, count]) =>
+              `<div class="s-reaction" onclick="sToggleReaction('${msg.key}','${emoji}')">${emoji}<span class="s-reaction-count">${count}</span></div>`
+            ).join('')}</div>`
+          : '';
 
-      if (msg.sender === 'admin') {
-        div.style.background = '#2563eb';
-        div.style.textAlign = 'right';
-      } else {
-        div.style.background = '#374151';
-      }
+        // action buttons
+        const actionsHtml = `
+          <div class="s-msg-actions">
+            <button class="s-msg-act-btn" title="React" onclick="sShowEmojiPicker(event,'${msg.key}')">😊</button>
+            <button class="s-msg-act-btn" title="Reply" onclick="sSetReply('${msg.key}','${escHtml(msg.text||'').replace(/'/g,"\\'")}')">↩</button>
+            ${!msg.deleted ? `<button class="s-msg-act-btn danger" title="Delete" onclick="sDeleteMsg('${userId}','${msg.key}')">🗑</button>` : ''}
+          </div>`;
 
-      div.innerText = msg.text;
+        const bubbleContent = msg.deleted
+          ? `<span class="s-deleted-msg">🚫 Message deleted</span>`
+          : escHtml(msg.text || '');
 
-      chatBox.appendChild(div);
-    });
-
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
-}
-function sendAdminMessage() {
-  const input = document.getElementById('adminMessage');
-  const text = input.value.trim();
-
-  if (!selectedUserId) {
-    showToast('Please select a user first.');
-    return;
-  }
-  if (!text) return;
-
-const msgRef = window.firebaseRef(window.firebaseDb, `supportChats/${selectedUserId}/messages`);
-const newMsg = window.firebasePush(msgRef);
-
-window.firebaseSet(newMsg, {
-    text: text,
-    sender: 'admin',
-    time: Date.now()
-  })
-  .then(() => {
-    input.value = '';
-    input.focus();
-  })
-  .catch((error) => {
-    console.error('Support send failed:', error);
-    showToast('Failed to send message. Please try again.');
-  });
-}
-
-function handleSend() {
-  sendAdminMessage();
-}
-
-const adminMessageInput = document.getElementById('adminMessage');
-if (adminMessageInput) {
-  adminMessageInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      sendAdminMessage();
+        if (!isOut) {
+          row.innerHTML = `
+            <div class="s-msg-ava" style="background:${c.bg};color:${c.fg}">${sInitials(selectedUserEmail)}</div>
+            <div class="s-bubble-wrap">
+              ${quoteHtml}
+              <div class="s-bubble">${bubbleContent}</div>
+              ${reactionHtml}
+              <div class="s-msg-time">${time}</div>
+              ${actionsHtml}
+            </div>`;
+        } else {
+          row.innerHTML = `
+            <div class="s-bubble-wrap">
+              ${quoteHtml}
+              <div class="s-bubble">${bubbleContent}</div>
+              ${reactionHtml}
+              <div class="s-msg-time">${time}</div>
+              ${actionsHtml}
+            </div>`;
+        }
+        box.appendChild(row);
+      });
     }
+    box.scrollTop = box.scrollHeight;
+    sCloseEmojiPicker();
   });
 }
 
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function sSendAdminMessage(){
+  const input=document.getElementById('adminMessage');
+  const text=(input.value||'').trim();
+  if(!selectedUserId){showToast('Select a user first.');return;}
+  if(!text)return;
+  const msgRef=window.firebaseRef(window.firebaseDb,`supportChats/${selectedUserId}/messages`);
+  const newMsg=window.firebasePush(msgRef);
+  window.firebaseSet(newMsg,{text,sender:'admin',time:Date.now()})
+    .then(()=>{input.value='';input.focus();})
+    .catch(err=>{console.error('Support send failed:',err);showToast('Failed to send message.');});
+}
+
+function handleSend(){sSendAdminMessage();}
+
+// ── Reply state ──
+let sReplyToKey = null;
+let sReplyToText = '';
+
+function sSetReply(key, text) {
+  sReplyToKey = key;
+  sReplyToText = text;
+  let preview = document.getElementById('s-reply-preview');
+  if (!preview) {
+    preview = document.createElement('div');
+    preview.id = 's-reply-preview';
+    preview.className = 's-reply-preview';
+    const inputBar = document.querySelector('.s-input-bar');
+    inputBar.insertBefore(preview, inputBar.firstChild);
+  }
+  preview.innerHTML = `<span class="s-reply-preview-text">↩ Replying to: ${escHtml(text.substring(0, 60))}${text.length > 60 ? '…' : ''}</span>
+    <button class="s-reply-preview-close" onclick="sClearReply()">✕</button>`;
+  document.getElementById('adminMessage').focus();
+}
+
+function sClearReply() {
+  sReplyToKey = null;
+  sReplyToText = '';
+  const preview = document.getElementById('s-reply-preview');
+  if (preview) preview.remove();
+}
+
+// ── Delete message ──
+async function sDeleteMsg(userId, msgKey) {
+  if (!confirm('Delete this message?')) return;
+  try {
+    const ref = window.firebaseRef(window.firebaseDb, `supportChats/${userId}/messages/${msgKey}`);
+    await window.firebaseSet(ref, { deleted: true, sender: 'admin', time: Date.now(), text: '' });
+    showToast('Message deleted');
+  } catch (err) {
+    console.error('Delete msg error:', err);
+    showToast('Failed to delete message');
+  }
+}
+
+// ── Emoji reactions ──
+let sEmojiPickerTarget = null;
+const S_QUICK_EMOJIS = ['👍','❤️','😂','😮','😢','🙏','🔥','✅'];
+
+function sShowEmojiPicker(event, msgKey) {
+  event.stopPropagation();
+  sCloseEmojiPicker();
+  sEmojiPickerTarget = msgKey;
+
+  const picker = document.createElement('div');
+  picker.className = 's-emoji-picker';
+  picker.id = 's-emoji-picker';
+  picker.style.position = 'fixed';
+  picker.style.zIndex = '9999';
+
+  S_QUICK_EMOJIS.forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.textContent = emoji;
+    btn.onclick = (e) => { e.stopPropagation(); sToggleReaction(msgKey, emoji); sCloseEmojiPicker(); };
+    picker.appendChild(btn);
+  });
+
+  document.body.appendChild(picker);
+
+  // Position AFTER appending so offsetHeight is known
+  const rect = event.target.getBoundingClientRect();
+  const pickerH = picker.offsetHeight || 80;
+  const pickerW = picker.offsetWidth || 180;
+  const top = rect.top - pickerH - 8;
+  const left = Math.min(rect.left, window.innerWidth - pickerW - 8);
+  picker.style.top = Math.max(8, top) + 'px';
+  picker.style.left = Math.max(8, left) + 'px';
+
+  setTimeout(() => document.addEventListener('click', sCloseEmojiPicker, { once: true }), 0);
+}
+
+function sCloseEmojiPicker() {
+  const p = document.getElementById('s-emoji-picker');
+  if (p) p.remove();
+}
+
+async function sToggleReaction(msgKey, emoji) {
+  if (!selectedUserId) return;
+  try {
+    const reactionRef = window.firebaseRef(window.firebaseDb,
+      `supportChats/${selectedUserId}/messages/${msgKey}/reactions/admin`);
+    await window.firebaseSet(reactionRef, { emoji, by: 'admin', time: Date.now() });
+  } catch (err) {
+    console.error('Reaction error:', err);
+  }
+}
+
+// ── Override send to include replyTo ──
+function sSendAdminMessage() {
+  const input = document.getElementById('adminMessage');
+  const text = (input.value || '').trim();
+  if (!selectedUserId) { showToast('Select a user first.'); return; }
+  if (!text) return;
+  const msgRef = window.firebaseRef(window.firebaseDb, `supportChats/${selectedUserId}/messages`);
+  const newMsg = window.firebasePush(msgRef);
+  const payload = { text, sender: 'admin', time: Date.now() };
+  if (sReplyToKey) { payload.replyTo = sReplyToKey; }
+  window.firebaseSet(newMsg, payload)
+    .then(() => { input.value = ''; input.focus(); sClearReply(); })
+    .catch(err => { console.error('Support send failed:', err); showToast('Failed to send message.'); });
+}
 
 // 🔧 Firebase Diagnostics
 function diagnoseCampaigns(){
