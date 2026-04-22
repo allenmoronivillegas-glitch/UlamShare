@@ -66,142 +66,288 @@
   });
 </script>
 <style>
-  /* Always show actions on touch/mobile */
-    @media (hover: none) {
-      .s-msg-actions { display: flex !important; position: static; transform: none; margin-top: 4px; border: none; background: transparent; box-shadow: none; padding: 0; }
-    }
-
-/* ═══ SUPPORT CHAT MESSENGER EXTRAS ═══ */
-.s-msg-row{position:relative}
-.s-msg-actions{
-  display:flex;align-items:center;gap:2px;
-  margin-top:4px;
-  opacity:0;pointer-events:none;
-  transition:opacity .15s;
-}
-.s-msg-row:hover .s-msg-actions{opacity:1;pointer-events:all;}
-.s-msg-row.s-in .s-msg-actions{justify-content:flex-start;}
-.s-msg-row.s-out .s-msg-actions{justify-content:flex-end;}
-.s-msg-act-btn{
-  width:24px;height:24px;border-radius:6px;border:1px solid var(--border2);
-  background:var(--navy3);color:var(--muted);cursor:pointer;
-  font-size:12px;display:flex;align-items:center;justify-content:center;
-  transition:background .15s,color .15s;
-}
-.s-msg-act-btn:hover{background:var(--navy4);color:var(--text);}
-.s-msg-act-btn.danger:hover{background:rgba(229,62,62,.15);color:var(--red);}
-.s-msg-act-btn{
-  width:26px;height:26px;border-radius:50%;border:none;
-  background:transparent;color:var(--muted);cursor:pointer;
-  font-size:13px;display:flex;align-items:center;justify-content:center;
-  transition:background .15s,color .15s;
-}
-.s-msg-act-btn:hover{background:var(--navy4);color:var(--text)}
-.s-msg-act-btn.danger:hover{background:rgba(229,62,62,.15);color:var(--red)}
-.s-reaction-bar{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
-.s-reaction{
-  display:inline-flex;align-items:center;gap:3px;
-  background:var(--navy3);border:1px solid var(--border2);
-  border-radius:10px;padding:2px 7px;font-size:12px;cursor:pointer;
-  transition:background .15s,border-color .15s;
-}
-.s-reaction:hover{background:var(--navy4);border-color:var(--accent)}
-.s-reaction.s-reacted{background:rgba(47,128,237,.12);border-color:rgba(47,128,237,.35);color:var(--accent)}
-.s-reaction-count{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
-.s-reply-preview{
-  background:var(--navy3);border-left:2px solid var(--accent);
-  border-radius:6px;padding:7px 10px;margin-bottom:6px;
-  font-size:12px;color:var(--muted);max-width:100%;
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-}
-.s-reply-preview-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-.s-reply-preview-close{background:none;border:none;color:var(--hint);cursor:pointer;font-size:14px;flex-shrink:0;padding:0 2px}
-.s-reply-preview-close:hover{color:var(--red)}
-.s-reply-quote{
-  background:rgba(255,255,255,.05);border-left:2px solid var(--accent);
-  border-radius:4px;padding:5px 8px;margin-bottom:5px;
-  font-size:11px;color:var(--muted);
-}
-.s-deleted-msg{
-  font-style:italic;color:var(--hint);font-size:12px;
-  opacity:.7;
-}
-.s-emoji-picker{
-  position:absolute;z-index:20;
-  background:var(--navy2);border:1px solid var(--border2);
-  border-radius:12px;padding:8px;
-  box-shadow:0 4px 20px rgba(0,0,0,.5);
-  display:flex;gap:4px;flex-wrap:wrap;width:180px;
-}
-.s-emoji-picker button{
-  width:30px;height:30px;border:none;background:none;
-  font-size:16px;cursor:pointer;border-radius:6px;
-  transition:background .15s;
-}
-.s-emoji-picker button:hover{background:var(--navy4)}
-  /* ═══ SUPPORT CHAT ═══ */
-.chat-shell{width:100%;height:560px;border:1px solid var(--border2);border-radius:14px;display:flex;overflow:hidden;background:var(--card);box-shadow:0 0 0 1px rgba(255,255,255,.03),0 20px 60px rgba(0,0,0,.5)}
-.s-user-list{width:268px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--navy2)}
-.s-ul-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.s-ul-title{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
-.s-ul-count{font-family:var(--font-mono);font-size:10px;background:rgba(47,128,237,.12);color:var(--accent);padding:2px 8px;border-radius:99px;border:1px solid rgba(47,128,237,.2)}
-.s-search-wrap{padding:10px 12px;border-bottom:1px solid var(--border)}
-.s-search-wrap input{width:100%;background:var(--navy4);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--font-sans);font-size:12px;color:var(--text);outline:none;transition:border-color .2s}
-.s-search-wrap input::placeholder{color:var(--hint)}
-.s-search-wrap input:focus{border-color:var(--accent)}
-.s-user-scroll{overflow-y:auto;flex:1}
-.s-user-scroll::-webkit-scrollbar{width:3px}
-.s-user-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-.s-user-item{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;position:relative}
-.s-user-item:hover{background:rgba(255,255,255,.03)}
-.s-user-item.s-active{background:rgba(47,128,237,.1);border-left:2px solid var(--accent)}
-.s-user-item.s-unread::after{content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)}
-.s-ava{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;position:relative}
-.s-ava-dot{position:absolute;bottom:0;right:0;width:9px;height:9px;border-radius:50%;border:2px solid var(--navy2)}
-.s-user-meta{flex:1;min-width:0}
-.s-user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
-.s-user-preview{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.s-user-time{font-family:var(--font-mono);font-size:10px;color:var(--hint);align-self:flex-start;margin-top:2px;flex-shrink:0}
-.s-chat-panel{flex:1;display:flex;flex-direction:column;min-width:0}
-.s-chat-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--card)}
-.s-chat-header-left{display:flex;align-items:center;gap:10px}
-.s-chat-header-name{font-size:14px;font-weight:600;color:var(--text)}
-.s-chat-header-status{font-size:11px;color:var(--muted);margin-top:1px}
-.s-messages{flex:1;overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:12px}
-.s-messages::-webkit-scrollbar{width:3px}
-.s-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-.s-empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--hint)}
-.s-empty-icon{font-size:32px;opacity:.25}
-.s-empty-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.5px}
-.s-msg-row{display:flex;gap:8px;animation:msgSlideIn .18s ease}
-@keyframes msgSlideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.s-msg-row.s-out{flex-direction:row-reverse}
-.s-msg-ava{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;align-self:flex-end;flex-shrink:0}
-.s-bubble-wrap{max-width:65%;display:flex;flex-direction:column;gap:3px}
-.s-msg-row.s-out .s-bubble-wrap{align-items:flex-end}
-.s-bubble{padding:8px 12px;border-radius:14px;font-size:13px;line-height:1.55;word-break:break-word;color:var(--text)}
-.s-msg-row.s-in .s-bubble{background:var(--navy3);border-radius:4px 14px 14px 14px}
-.s-msg-row.s-out .s-bubble{background:var(--accent2);border-radius:14px 4px 14px 14px;color:#cfe0ff}
-.s-msg-time{font-family:var(--font-mono);font-size:10px;color:var(--hint);padding:0 2px}
-.s-date-divider{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--hint)}
-.s-date-divider::before,.s-date-divider::after{content:'';flex:1;height:1px;background:var(--border)}
-.s-input-bar{padding:11px 13px;border-top:1px solid var(--border);display:flex;align-items:center;gap:9px;flex-shrink:0}
-.s-input-wrap{flex:1;background:var(--navy3);border:1px solid var(--border2);border-radius:9px;display:flex;align-items:center;padding:0 11px;transition:border-color .2s,box-shadow .2s}
-.s-input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,128,237,.15)}
-.s-input-wrap input{flex:1;background:transparent;border:none;outline:none;padding:10px 0;font-family:var(--font-sans);font-size:13px;color:var(--text)}
-.s-input-wrap input::placeholder{color:var(--hint)}
-.s-send-btn{width:38px;height:38px;border-radius:9px;border:none;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:background .15s,transform .1s;box-shadow:0 0 14px rgba(47,128,237,.3)}
-.s-send-btn:hover{background:var(--accent2);transform:scale(1.05)}
-.s-send-btn:active{transform:scale(.95)}
-.s-send-btn:disabled{background:var(--hint);box-shadow:none;cursor:default;transform:none}
-.s-live-badge{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;color:var(--green);letter-spacing:1px;text-transform:uppercase}
-.s-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:livePulse 2s infinite}
-@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
-.s-typing{display:flex;gap:3px;align-items:center;padding:8px 12px}
-.s-typing span{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:typingDot 1.2s infinite}
-.s-typing span:nth-child(2){animation-delay:.2s}
-.s-typing span:nth-child(3){animation-delay:.4s}
-@keyframes typingDot{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-4px);opacity:1}}
+  /* Support chat: messenger-like blue and white theme */
+  .chat-shell{
+    --s-bg:#f2f7ff;
+    --s-panel:#ffffff;
+    --s-border:#d8e7ff;
+    --s-text:#123157;
+    --s-muted:#5e7ea5;
+    --s-hint:#8aa5c5;
+    --s-accent:#2f80ed;
+    --s-accent-strong:#1f63c0;
+    --s-accent-soft:#e8f2ff;
+    --s-row-hover:#f4f9ff;
+    --s-in-bubble:#eef5ff;
+    width:100%;
+    height:600px;
+    border:1px solid var(--s-border);
+    border-radius:18px;
+    display:flex;
+    overflow:hidden;
+    background:linear-gradient(145deg,#eff6ff,#dcecff);
+    box-shadow:0 18px 40px rgba(19,68,130,.18);
+  }
+  .s-live-badge{
+    display:flex;align-items:center;gap:6px;
+    font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;
+    color:#1f63c0;background:#e7f1ff;border:1px solid #c8dcff;border-radius:999px;padding:6px 10px;
+  }
+  .s-live-dot{
+    width:7px;height:7px;border-radius:50%;background:#2f80ed;
+    box-shadow:0 0 0 0 rgba(47,128,237,.55);animation:livePulse 2s infinite;
+  }
+  @keyframes livePulse{
+    0%{box-shadow:0 0 0 0 rgba(47,128,237,.45)}
+    70%{box-shadow:0 0 0 8px rgba(47,128,237,0)}
+    100%{box-shadow:0 0 0 0 rgba(47,128,237,0)}
+  }
+  .s-user-list{
+    width:340px;flex-shrink:0;display:flex;flex-direction:column;
+    border-right:1px solid var(--s-border);background:var(--s-panel);
+  }
+  .s-ul-header{padding:14px 14px 10px;border-bottom:1px solid var(--s-border)}
+  .s-ul-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .s-ul-title{font-family:var(--font-mono);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--s-muted)}
+  .s-ul-count{
+    font-family:var(--font-mono);font-size:10px;color:var(--s-accent);
+    background:var(--s-accent-soft);border:1px solid #bfd8ff;border-radius:999px;padding:2px 8px;
+  }
+  .s-role-indicator{
+    margin-top:8px;font-size:11px;color:var(--s-muted);
+    background:#f3f8ff;border:1px solid #dbeaff;border-radius:8px;padding:6px 8px;
+  }
+  .s-search-wrap{padding:10px 12px;border-bottom:1px solid var(--s-border)}
+  .s-search-wrap input{
+    width:100%;height:36px;border-radius:10px;border:1px solid #c6ddff;
+    background:#f9fbff;color:var(--s-text);font-size:12px;font-family:var(--font-sans);
+    outline:none;padding:0 12px;transition:border-color .2s,box-shadow .2s;
+  }
+  .s-search-wrap input::placeholder{color:#8ea9c7}
+  .s-search-wrap input:focus{border-color:var(--s-accent);box-shadow:0 0 0 3px rgba(47,128,237,.15)}
+  .s-chat-type-tabs{
+    display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--s-border);
+    background:#f8fbff;
+  }
+  .s-tab-btn{
+    flex:1;height:30px;border-radius:999px;border:1px solid #c8dcff;background:#fff;color:var(--s-muted);
+    font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;
+  }
+  .s-tab-btn:hover{background:#edf5ff;color:var(--s-accent)}
+  .s-tab-btn.active{background:#2f80ed;color:#fff;border-color:#2f80ed}
+  .s-story-row{
+    display:flex;gap:10px;overflow-x:auto;padding:11px 12px 10px;border-bottom:1px solid var(--s-border);
+    background:#f6faff;
+  }
+  .s-story-row::-webkit-scrollbar{height:4px}
+  .s-story-row::-webkit-scrollbar-thumb{background:#c6dcfb;border-radius:999px}
+  .s-story-item{
+    width:62px;flex-shrink:0;border:none;background:transparent;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--s-muted);
+    font-size:10px;text-align:center;
+  }
+  .s-story-item span{
+    width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .s-story-item.active .s-ava{outline:2px solid #2f80ed;outline-offset:2px}
+  .s-story-empty{font-size:11px;color:var(--s-hint);padding:4px 0}
+  .s-user-scroll{overflow-y:auto;flex:1;background:var(--s-panel)}
+  .s-user-scroll::-webkit-scrollbar{width:4px}
+  .s-user-scroll::-webkit-scrollbar-thumb{background:#c9ddfb;border-radius:999px}
+  .s-empty-list{padding:18px 16px;font-size:12px;color:var(--s-hint)}
+  .s-user-item{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;
+    border-bottom:1px solid #edf3ff;transition:background .15s,border-color .15s;position:relative;
+  }
+  .s-user-item:hover{background:var(--s-row-hover)}
+  .s-user-item.s-active{background:var(--s-accent-soft);border-left:3px solid var(--s-accent)}
+  .s-user-item.s-unread::after{
+    content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    width:8px;height:8px;border-radius:50%;background:var(--s-accent);
+  }
+  .s-ava{
+    width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:#fff;position:relative;flex-shrink:0;
+  }
+  .s-ava-dot{
+    position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;
+    border:2px solid #fff;background:#22c55e;
+  }
+  .s-user-meta{flex:1;min-width:0}
+  .s-user-name-row{display:flex;align-items:center;gap:6px;min-width:0}
+  .s-user-name{
+    font-size:13px;font-weight:600;color:var(--s-text);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .s-user-type-pill{
+    font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+    border-radius:999px;padding:2px 6px;background:#e9f2ff;color:#2f80ed;border:1px solid #c5dcff;
+    flex-shrink:0;
+  }
+  .s-user-preview{
+    margin-top:2px;font-size:11px;color:var(--s-muted);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .s-user-time{font-family:var(--font-mono);font-size:10px;color:#8aa5c5;margin-top:2px}
+  .s-chat-panel{
+    flex:1;display:flex;flex-direction:column;min-width:0;background:linear-gradient(180deg,#fbfdff,#edf5ff);
+  }
+  .s-chat-header{
+    padding:14px 16px;border-bottom:1px solid var(--s-border);background:#fff;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .s-chat-header-left{display:flex;align-items:center;gap:10px;min-width:0}
+  .s-chat-header-name{
+    font-size:15px;font-weight:700;color:var(--s-text);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .s-chat-header-meta{display:flex;align-items:center;gap:8px;margin-top:2px}
+  .s-chat-header-status{font-size:11px;color:var(--s-muted)}
+  .s-chat-type-pill{
+    font-size:10px;color:#2f80ed;background:#e8f2ff;border:1px solid #c6dcff;border-radius:999px;padding:2px 7px;
+  }
+  .s-agent-pill{
+    font-size:11px;font-weight:700;color:#1f63c0;background:#e8f2ff;border:1px solid #bfd7ff;
+    border-radius:999px;padding:6px 10px;white-space:nowrap;
+  }
+  .s-messages{
+    flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;
+  }
+  .s-messages::-webkit-scrollbar{width:4px}
+  .s-messages::-webkit-scrollbar-thumb{background:#c9ddfb;border-radius:999px}
+  .s-empty-state{
+    flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;
+    color:var(--s-hint);
+  }
+  .s-empty-icon{
+    font-size:12px;text-transform:uppercase;letter-spacing:1.6px;
+    color:#7ea0c8;background:#edf5ff;border:1px solid #cbddf8;border-radius:999px;padding:6px 10px;
+  }
+  .s-empty-label{font-size:12px}
+  .s-date-divider{
+    display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:.8px;
+    text-transform:uppercase;color:#7a98bd;
+  }
+  .s-date-divider::before,.s-date-divider::after{content:'';flex:1;height:1px;background:#d6e6fd}
+  .s-msg-row{display:flex;gap:8px;position:relative;animation:msgSlideIn .15s ease}
+  @keyframes msgSlideIn{
+    from{opacity:0;transform:translateY(6px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+  .s-msg-row.s-out{flex-direction:row-reverse}
+  .s-msg-ava{
+    width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:700;color:#fff;align-self:flex-end;flex-shrink:0;
+  }
+  .s-bubble-wrap{max-width:min(74%,560px);display:flex;flex-direction:column;gap:4px}
+  .s-msg-row.s-out .s-bubble-wrap{align-items:flex-end}
+  .s-msg-meta{display:flex;align-items:center;gap:6px}
+  .s-msg-row.s-out .s-msg-meta{justify-content:flex-end}
+  .s-msg-sender{font-size:11px;color:var(--s-muted)}
+  .s-msg-role{
+    font-size:9px;font-weight:700;letter-spacing:.35px;text-transform:uppercase;
+    border-radius:999px;padding:2px 6px;border:1px solid #c7dcff;background:#edf5ff;color:#2f80ed;
+  }
+  .s-msg-role.user{background:#eef8ff;border-color:#d5e9ff;color:#2f80ed}
+  .s-msg-role.admin{background:#e7f1ff;border-color:#bfd8ff;color:#205fae}
+  .s-msg-role.moderator{background:#e9f7ff;border-color:#c4e2ff;color:#1a73b8}
+  .s-msg-role.superadmin{background:#e7f0ff;border-color:#b8d1ff;color:#1f4f9a}
+  .s-msg-role.support{background:#eff6ff;border-color:#cde1ff;color:#3970b2}
+  .s-bubble{
+    padding:9px 12px;border-radius:16px;font-size:13px;line-height:1.45;
+    border:1px solid #d6e5fb;color:var(--s-text);background:var(--s-in-bubble);
+    word-break:break-word;
+  }
+  .s-msg-row.s-in .s-bubble{border-radius:6px 16px 16px 16px}
+  .s-msg-row.s-out .s-bubble{
+    border-radius:16px 6px 16px 16px;background:#2f80ed;border-color:#2f80ed;color:#fff;
+  }
+  .s-msg-time{font-family:var(--font-mono);font-size:10px;color:#7f9fc2;padding:0 2px}
+  .s-msg-actions{
+    display:flex;align-items:center;gap:4px;opacity:0;pointer-events:none;transition:opacity .15s;
+  }
+  .s-msg-row:hover .s-msg-actions{opacity:1;pointer-events:all}
+  .s-msg-row.s-in .s-msg-actions{justify-content:flex-start}
+  .s-msg-row.s-out .s-msg-actions{justify-content:flex-end}
+  .s-msg-act-btn{
+    width:24px;height:24px;border-radius:50%;border:1px solid #c8dcfb;background:#f5faff;color:#4f76a4;
+    cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;
+  }
+  .s-msg-act-btn:hover{background:#e9f3ff;color:#2f80ed}
+  .s-msg-act-btn.danger:hover{background:#ffeef0;color:#e53e3e;border-color:#ffd0d4}
+  .s-reply-quote{
+    border-left:2px solid #8bb7f6;background:#edf4ff;border-radius:5px;
+    padding:5px 8px;font-size:11px;color:#52789f;
+  }
+  .s-deleted-msg{font-style:italic;color:#718faf}
+  .s-reaction-bar{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+  .s-reaction{
+    display:inline-flex;align-items:center;gap:4px;
+    background:#f2f8ff;border:1px solid #cfe1fb;border-radius:999px;padding:2px 8px;
+    font-size:11px;color:#366ea9;cursor:pointer;
+  }
+  .s-reaction:hover{background:#e8f2ff}
+  .s-reaction-count{font-size:10px;font-family:var(--font-mono);color:#557ba6}
+  .s-emoji-picker{
+    position:fixed;z-index:9999;display:flex;gap:4px;flex-wrap:wrap;width:200px;
+    background:#fff;border:1px solid #c6dcff;border-radius:12px;padding:8px;box-shadow:0 16px 30px rgba(25,76,145,.2);
+  }
+  .s-emoji-picker button{
+    height:28px;min-width:42px;border:1px solid #d3e3fa;background:#f5f9ff;border-radius:8px;
+    cursor:pointer;font-size:11px;color:#285e9b;padding:0 8px;
+  }
+  .s-emoji-picker button:hover{background:#e8f2ff}
+  .s-input-bar{
+    padding:10px 12px;border-top:1px solid var(--s-border);display:flex;align-items:center;gap:8px;
+    background:#fff;flex-shrink:0;
+  }
+  .s-reply-preview{
+    width:100%;background:#f1f7ff;border:1px solid #d1e2fa;border-left:3px solid #2f80ed;border-radius:8px;
+    padding:7px 10px;display:flex;align-items:center;gap:8px;justify-content:space-between;
+    margin-bottom:7px;
+  }
+  .s-reply-preview-text{
+    font-size:11px;color:#4f78a5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .s-reply-preview-close{
+    border:none;background:transparent;color:#7393b8;cursor:pointer;font-size:13px;
+  }
+  .s-reply-preview-close:hover{color:#e53e3e}
+  .s-input-wrap{
+    flex:1;display:flex;align-items:center;border:1px solid #c8dcff;background:#f9fbff;border-radius:11px;padding:0 10px;
+    transition:border-color .2s,box-shadow .2s;
+  }
+  .s-input-wrap:focus-within{border-color:#2f80ed;box-shadow:0 0 0 3px rgba(47,128,237,.14)}
+  .s-input-wrap input{
+    flex:1;height:40px;border:none;outline:none;background:transparent;font-size:13px;color:#163a66;font-family:var(--font-sans);
+  }
+  .s-input-wrap input::placeholder{color:#8aa5c5}
+  .s-send-btn{
+    height:40px;min-width:78px;padding:0 14px;border-radius:10px;border:none;background:#2f80ed;color:#fff;
+    font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;
+  }
+  .s-send-btn:hover{background:#1f63c0;transform:translateY(-1px)}
+  .s-send-btn:active{transform:translateY(0)}
+  .s-send-btn:disabled{background:#9dbce6;cursor:not-allowed;transform:none}
+  .s-typing{display:flex;gap:3px;align-items:center;padding:8px 12px}
+  .s-typing span{width:5px;height:5px;border-radius:50%;background:#7fa3cf;animation:typingDot 1.2s infinite}
+  .s-typing span:nth-child(2){animation-delay:.2s}
+  .s-typing span:nth-child(3){animation-delay:.4s}
+  @keyframes typingDot{
+    0%,60%,100%{transform:translateY(0);opacity:.45}
+    30%{transform:translateY(-4px);opacity:1}
+  }
+  @media (hover:none){
+    .s-msg-actions{opacity:1;pointer-events:all}
+  }
+  @media (max-width:1200px){
+    .chat-shell{height:640px}
+    .s-user-list{width:310px}
+  }
+  @media (max-width:960px){
+    .chat-shell{flex-direction:column;height:calc(100vh - 170px);min-height:620px}
+    .s-user-list{width:100%;max-height:320px;border-right:none;border-bottom:1px solid var(--s-border)}
+  }
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --navy:#0A0F1E;--navy2:#111827;--navy3:#1a2236;--navy4:#1f2a40;
@@ -982,56 +1128,68 @@ td.muted{color:var(--muted);font-size:12px}
         </div>
       </div>
     </div>
-  <!-- ═══ SUPPORT ═══ -->
+  <!-- SUPPORT -->
     <div class="section" id="s-support">
       <div class="page-header">
         <div>
           <div class="page-heading">Support Chat</div>
-          <div class="page-sub">Talk to users in real-time</div>
+          <div class="page-sub">Messenger-style inbox for User-User and User-Support conversations.</div>
         </div>
         <div class="s-live-badge"><div class="s-live-dot"></div>Live</div>
       </div>
 
       <div class="chat-shell">
-        <!-- USER LIST -->
         <div class="s-user-list">
           <div class="s-ul-header">
-            <span class="s-ul-title">Conversations</span>
-            <span class="s-ul-count" id="s-user-count">0</span>
+            <div class="s-ul-heading">
+              <span class="s-ul-title">Conversations</span>
+              <span class="s-ul-count" id="s-user-count">0</span>
+            </div>
+            <div class="s-role-indicator" id="s-role-indicator">Role: Support</div>
           </div>
+
           <div class="s-search-wrap">
-            <input type="text" placeholder="Search users…" id="s-search-input" oninput="sFilterUsers(this.value)"/>
+            <input type="text" placeholder="Search people or conversations..." id="s-search-input" oninput="sFilterUsers(this.value)"/>
           </div>
+
+          <div class="s-chat-type-tabs" id="s-chat-type-tabs">
+            <button type="button" class="s-tab-btn active" data-type="all" onclick="sSetTypeFilter('all')">All</button>
+            <button type="button" class="s-tab-btn" data-type="user-user" onclick="sSetTypeFilter('user-user')">User-User</button>
+            <button type="button" class="s-tab-btn" data-type="support" onclick="sSetTypeFilter('support')">User-Support</button>
+            <button type="button" class="s-tab-btn" data-type="admin-team" onclick="sSetTypeFilter('admin-team')">Admin Team</button>
+          </div>
+
+          <div class="s-story-row" id="s-story-row"></div>
           <div class="s-user-scroll" id="userList"></div>
         </div>
 
-        <!-- CHAT PANEL -->
         <div class="s-chat-panel">
           <div class="s-chat-header">
             <div class="s-chat-header-left">
               <div id="s-header-ava"></div>
               <div>
                 <div class="s-chat-header-name" id="s-header-name">Select a conversation</div>
-                <div class="s-chat-header-status" id="s-header-status">—</div>
+                <div class="s-chat-header-meta">
+                  <span class="s-chat-header-status" id="s-header-status">Waiting for selection</span>
+                  <span class="s-chat-type-pill" id="s-header-chat-type">--</span>
+                </div>
               </div>
             </div>
-            <div style="display:flex;gap:6px">
-              <button class="icon-btn" onclick="sSendAdminMessage()" id="s-send-top-btn" title="Send" style="display:none">➤</button>
-            </div>
+            <div class="s-agent-pill" id="s-agent-role">Support</div>
           </div>
 
           <div class="s-messages" id="chatMessages">
             <div class="s-empty-state">
-              <div class="s-empty-icon">💬</div>
+              <div class="s-empty-icon">Chat</div>
               <div class="s-empty-label">No conversation selected</div>
             </div>
           </div>
 
           <div class="s-input-bar">
             <div class="s-input-wrap">
-              <input id="adminMessage" placeholder="Type a reply…" onkeydown="if(event.key==='Enter'){event.preventDefault();sSendAdminMessage()}"/>
+              <input id="adminMessage" placeholder="Select a conversation first..." onkeydown="if(event.key==='Enter'){event.preventDefault();sSendAdminMessage()}"/>
             </div>
-            <button class="s-send-btn" id="s-send-btn" onclick="sSendAdminMessage()" disabled title="Send">➤</button>
+            <button class="s-send-btn" id="s-send-btn" onclick="sSendAdminMessage()" disabled title="Send">Send</button>
           </div>
         </div>
       </div>
@@ -1044,192 +1202,522 @@ td.muted{color:var(--muted);font-size:12px}
 const titles={dashboard:'Dashboard',campaigns:'Campaigns',donations:'Donations',donors:'Donors',payments:'Payments',users:'Team',settings:'Settings',support:'Support'};
 let selectedUserId = null;
 let selectedUserEmail = '';
+let selectedConversationType = 'support';
+let selectedChatSource = 'supportChats';
+let selectedConversationKey = '';
 let detachChatListener = null;
-
-// ═══ SUPPORT CHAT UI ═══
-const S_COLORS = [
-  {bg:'#1e3a5f',fg:'#60a5fa'},{bg:'#3b1f5c',fg:'#c084fc'},
-  {bg:'#1a3d2b',fg:'#4ade80'},{bg:'#3d2a10',fg:'#fb923c'},
-  {bg:'#3d1a1a',fg:'#f87171'},{bg:'#1f3040',fg:'#38bdf8'},
-];
-function sGetColor(str){
-  let h=0;for(let i=0;i<str.length;i++)h=str.charCodeAt(i)+(h<<5)-h;
-  return S_COLORS[Math.abs(h)%S_COLORS.length];
-}
-function sInitials(email){ return (email||'??').substring(0,2).toUpperCase(); }
-function sAvaHtml(email,size=34){
-  const c=sGetColor(email);
-  return `<div class="s-ava" style="width:${size}px;height:${size}px;background:${c.bg};color:${c.fg}">${sInitials(email)}<div class="s-ava-dot" style="background:var(--green)"></div></div>`;
-}
-function sNow(){ return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
-
 let sAllUsers = [];
-function loadUsers(){
-  const chatsRef = window.firebaseRef(window.firebaseDb,'supportChats');
-  window.firebaseOnValue(chatsRef,(snapshot)=>{
-    const data=snapshot.val();
-    const ul=document.getElementById('userList');
-    if(!data){
-      ul.innerHTML='<div style="padding:14px 16px;font-size:12px;color:var(--hint)">No conversations yet</div>';
-      document.getElementById('s-user-count').textContent='0';
-      sAllUsers=[];
-      return;
-    }
-    sAllUsers=Object.keys(data).map(uid=>({uid,email:data[uid].email||uid,data:data[uid]}));
-    document.getElementById('s-user-count').textContent=sAllUsers.length;
-    sRenderUserList(sAllUsers);
+let sTypeFilter = 'all';
+let sReplyToKey = null;
+let sReplyToText = '';
+let sEmojiPickerTarget = null;
+
+// Support chat UI
+const S_COLORS = [
+  {bg:'#2f80ed',fg:'#ffffff'},
+  {bg:'#1f63c0',fg:'#ffffff'},
+  {bg:'#3c93f6',fg:'#ffffff'},
+  {bg:'#5b8fd6',fg:'#ffffff'},
+  {bg:'#2c6fb2',fg:'#ffffff'},
+  {bg:'#74aaf3',fg:'#0f2c4f'},
+];
+const S_SUPPORT_ROLES = ['admin','moderator','superadmin','support'];
+const S_QUICK_REACTIONS = ['+1','love','wow','sad','ok','thanks'];
+const S_CHAT_SOURCES = [
+  { path:'supportChats', defaultType:'support', label:'Support' },
+  { path:'userUserChats', defaultType:'user-user', label:'User-User' },
+  { path:'adminTeamChats', defaultType:'admin-team', label:'Admin Team' },
+];
+let sSourceBuckets = {};
+let sSourceDetachers = [];
+
+function sNormalizeRole(value){
+  const raw = String(value || '').trim().toLowerCase();
+  if(raw === 'super admin' || raw === 'super_admin' || raw === 'superadmin') return 'superadmin';
+  if(raw === 'admin') return 'admin';
+  if(raw === 'moderator' || raw === 'mod') return 'moderator';
+  if(raw === 'support' || raw === 'agent') return 'support';
+  if(raw === 'system' || raw === 'bot') return 'system';
+  if(raw === 'user' || raw === 'member' || raw === 'donor') return 'user';
+  return '';
+}
+
+function sRoleLabel(role){
+  if(role === 'superadmin') return 'Super Admin';
+  if(role === 'moderator') return 'Moderator';
+  if(role === 'admin') return 'Admin';
+  if(role === 'support') return 'Support';
+  if(role === 'system') return 'System';
+  return 'User';
+}
+
+function sRoleClass(role){
+  if(role === 'superadmin') return 'superadmin';
+  if(role === 'moderator') return 'moderator';
+  if(role === 'admin') return 'admin';
+  if(role === 'support') return 'support';
+  return 'user';
+}
+
+function sTypeLabel(type){
+  if(type === 'user-user') return 'User-User';
+  if(type === 'admin-team') return 'Admin Team';
+  return 'User-Support';
+}
+
+function sGetCurrentSupportRole(){
+  const profileRole = window.currentUserProfile?.role || (typeof currentRole === 'function' ? currentRole() : 'Support');
+  return sNormalizeRole(profileRole) || 'support';
+}
+
+function sCanReplyToSupport(){
+  return ['superadmin','admin','moderator'].includes(sGetCurrentSupportRole());
+}
+
+function sIsSupportRole(role){
+  return S_SUPPORT_ROLES.includes(role);
+}
+
+function sGetColor(str){
+  const text = String(str || 'user');
+  let h = 0;
+  for(let i = 0; i < text.length; i++) h = text.charCodeAt(i) + ((h << 5) - h);
+  return S_COLORS[Math.abs(h) % S_COLORS.length];
+}
+
+function sInitials(name){
+  const clean = String(name || '').trim();
+  if(!clean) return 'US';
+  const words = clean.split(/[\s@._-]+/).filter(Boolean);
+  if(words.length >= 2){
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return clean.substring(0,2).toUpperCase();
+}
+
+function sAvaHtml(label,size=34,isOnline=true){
+  const c = sGetColor(label);
+  const dotColor = isOnline ? '#22c55e' : '#93c5fd';
+  return `<div class="s-ava" style="width:${size}px;height:${size}px;background:${c.bg};color:${c.fg}">${sInitials(label)}<div class="s-ava-dot" style="background:${dotColor}"></div></div>`;
+}
+
+function sFormatTime(value){
+  if(!value) return '';
+  return new Date(value).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+}
+
+function sFormatDateLabel(value){
+  if(!value) return 'Today';
+  return new Date(value).toLocaleDateString([], { month:'short', day:'numeric', year:'numeric' });
+}
+
+function sShortText(value,max=72){
+  const text = String(value || '').trim();
+  if(!text) return '';
+  return text.length > max ? (text.substring(0, max).trimEnd() + '...') : text;
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function sEscapeAttr(value){
+  return encodeURIComponent(String(value || ''));
+}
+
+function sReadAttr(encoded){
+  try{ return decodeURIComponent(String(encoded || '')); }
+  catch(_){ return String(encoded || ''); }
+}
+
+function sGetMessageRole(msg){
+  const direct = sNormalizeRole(msg?.senderRole || msg?.role || msg?.senderType);
+  if(direct) return direct;
+  const senderRaw = String(msg?.sender || '').trim().toLowerCase();
+  if(senderRaw === 'superadmin' || senderRaw === 'super admin') return 'superadmin';
+  if(senderRaw === 'moderator' || senderRaw === 'mod') return 'moderator';
+  if(senderRaw === 'admin') return 'admin';
+  if(senderRaw === 'support') return 'support';
+  if(senderRaw === 'system') return 'system';
+  return 'user';
+}
+
+function sGetSenderName(msg){
+  const known = msg?.senderName || msg?.name || msg?.senderEmail || '';
+  if(known) return String(known);
+  return sRoleLabel(sGetMessageRole(msg));
+}
+
+function sResolveConversationType(chatData,msgs,fallbackType='support'){
+  const raw = String(chatData?.chatType || chatData?.type || chatData?.conversationType || '').trim().toLowerCase();
+  if(raw === 'user-user' || raw === 'user_to_user' || raw === 'peer') return 'user-user';
+  if(raw === 'admin-team' || raw === 'admin_team' || raw === 'team-admin' || raw === 'admin') return 'admin-team';
+  if(raw === 'support' || raw === 'user-support' || raw === 'support-chat') return 'support';
+  const seenRoles = new Set(msgs.map(sGetMessageRole));
+  const hasSupport = Array.from(seenRoles).some(sIsSupportRole);
+  if(hasSupport) return 'support';
+  const uniqueSenders = new Set(msgs.map(m => String(m.senderId || m.sender || '').trim()).filter(Boolean));
+  if(uniqueSenders.size >= 2) return 'user-user';
+  return fallbackType || 'support';
+}
+
+function sBuildConversation(uid, chatData, sourcePath='supportChats', sourceType='support', sourceLabel='Support'){
+  const messages = chatData?.messages
+    ? Object.entries(chatData.messages).map(([key, val]) => ({ key, ...(val || {}) })).sort((a,b)=>(a.time||0)-(b.time||0))
+    : [];
+  const last = messages.at(-1) || null;
+  const type = sResolveConversationType(chatData, messages, sourceType);
+  const displayName = chatData?.displayName || chatData?.name || chatData?.email || uid;
+  const email = chatData?.email || uid;
+  const preview = !last
+    ? 'No messages yet'
+    : (last.deleted ? 'Message deleted' : `${sGetSenderName(last)}: ${sShortText(last.text || '', 54)}`);
+  const hasUnread = messages.some(m => !sIsSupportRole(sGetMessageRole(m)) && !m.read);
+  return {
+    uid,
+    email,
+    displayName,
+    type,
+    messages,
+    last,
+    preview,
+    timeLabel: last ? sFormatTime(last.time) : '',
+    hasUnread,
+    sourcePath,
+    sourceLabel,
+    conversationKey: `${sourcePath}:${uid}`
+  };
+}
+
+function sRenderStoryRow(list){
+  const row = document.getElementById('s-story-row');
+  if(!row) return;
+  row.innerHTML = '';
+  const top = list.slice(0, 10);
+  if(!top.length){
+    row.innerHTML = '<div class="s-story-empty">No active conversations.</div>';
+    return;
+  }
+  top.forEach(item => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 's-story-item' + (selectedConversationKey === item.conversationKey ? ' active' : '');
+    btn.innerHTML = `${sAvaHtml(item.displayName,36,true)}<span>${escHtml(sShortText(item.displayName, 10))}</span>`;
+    btn.onclick = () => openChat(item.uid, item.email, item.type, item.sourcePath);
+    row.appendChild(btn);
   });
 }
+
+function loadUsers(){
+  if(sSourceDetachers.length){
+    sSourceDetachers.forEach(detach => { if(typeof detach === 'function') detach(); });
+    sSourceDetachers = [];
+  }
+  sSourceBuckets = {};
+  S_CHAT_SOURCES.forEach(source => {
+    const sourceRef = window.firebaseRef(window.firebaseDb, source.path);
+    const detach = window.firebaseOnValue(sourceRef, (snapshot) => {
+      sSourceBuckets[source.path] = snapshot.val() || {};
+      sRebuildConversationList();
+    });
+    if(typeof detach === 'function') sSourceDetachers.push(detach);
+  });
+}
+
+function sRebuildConversationList(){
+  const ul = document.getElementById('userList');
+  if(!ul) return;
+
+  const combined = [];
+  S_CHAT_SOURCES.forEach(source => {
+    const bucket = sSourceBuckets[source.path] || {};
+    Object.entries(bucket).forEach(([uid, raw]) => {
+      const chatData = raw || {};
+      const normalized = {
+        ...chatData,
+        chatType: chatData.chatType || source.defaultType
+      };
+      combined.push(sBuildConversation(uid, normalized, source.path, source.defaultType, source.label));
+    });
+  });
+
+  sAllUsers = combined.sort((a,b) => (b.last?.time || 0) - (a.last?.time || 0));
+  document.getElementById('s-user-count').textContent = String(sAllUsers.length);
+
+  if(!sAllUsers.length){
+    ul.innerHTML = '<div class="s-empty-list">No conversations yet.</div>';
+    sRenderStoryRow([]);
+    sResetChatPanel();
+    sRefreshRoleBadges();
+    return;
+  }
+
+  if(selectedConversationKey && !sAllUsers.some(u => u.conversationKey === selectedConversationKey)){
+    sResetChatPanel();
+  }
+
+  sApplyUserFilters();
+  sRefreshRoleBadges();
+}
+
 function sRenderUserList(list){
-  const ul=document.getElementById('userList');
-  ul.innerHTML='';
-  list.forEach(u=>{
-    const msgs=u.data.messages?Object.values(u.data.messages):[];
-    const last=msgs.sort((a,b)=>(a.time||0)-(b.time||0)).at(-1);
-    const preview=last?last.text:'No messages yet';
-    const time=last?new Date(last.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
-    const hasUnread=msgs.some(m=>m.sender!=='admin'&&!m.read);
-    const div=document.createElement('div');
-    div.className='s-user-item'+(selectedUserId===u.uid?' s-active':'')+(hasUnread?' s-unread':'');
-    div.dataset.userId=u.uid;
-    div.innerHTML=`${sAvaHtml(u.email)}<div class="s-user-meta"><div class="s-user-name">${u.email}</div><div class="s-user-preview">${preview}</div></div><div class="s-user-time">${time}</div>`;
-    div.onclick=()=>openChat(u.uid,u.email);
+  const ul = document.getElementById('userList');
+  if(!ul) return;
+  ul.innerHTML = '';
+  if(!list.length){
+    ul.innerHTML = '<div class="s-empty-list">No conversations match your filters.</div>';
+    return;
+  }
+  list.forEach(u => {
+    const div = document.createElement('div');
+    div.className = 's-user-item' + (selectedConversationKey===u.conversationKey ? ' s-active' : '') + (u.hasUnread ? ' s-unread' : '');
+    div.dataset.userId = u.uid;
+    div.dataset.conversationKey = u.conversationKey;
+    div.innerHTML =
+      `${sAvaHtml(u.displayName)}` +
+      `<div class="s-user-meta">` +
+        `<div class="s-user-name-row">` +
+          `<div class="s-user-name">${escHtml(u.displayName)}</div>` +
+          `<span class="s-user-type-pill">${sTypeLabel(u.type)}</span>` +
+        `</div>` +
+        `<div class="s-user-preview">${escHtml(u.preview)}</div>` +
+      `</div>` +
+      `<div class="s-user-time">${u.timeLabel}</div>`;
+    div.onclick = () => openChat(u.uid, u.email, u.type, u.sourcePath);
     ul.appendChild(div);
   });
+  sRenderStoryRow(list);
 }
+
 function sFilterUsers(q){
-  const filtered=q?sAllUsers.filter(u=>u.email.toLowerCase().includes(q.toLowerCase())):sAllUsers;
+  sApplyUserFilters();
+}
+
+function sSetTypeFilter(type){
+  sTypeFilter = type;
+  document.querySelectorAll('#s-chat-type-tabs .s-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === type);
+  });
+  sApplyUserFilters();
+}
+
+function sApplyUserFilters(){
+  const q = (document.getElementById('s-search-input')?.value || '').trim().toLowerCase();
+  let filtered = sAllUsers.filter(u => {
+    if(!q) return true;
+    return (
+      String(u.displayName || '').toLowerCase().includes(q) ||
+      String(u.email || '').toLowerCase().includes(q) ||
+      String(u.preview || '').toLowerCase().includes(q)
+    );
+  });
+  if(sTypeFilter !== 'all'){
+    filtered = filtered.filter(u => u.type === sTypeFilter);
+  }
   sRenderUserList(filtered);
 }
 
-function openChat(userId, email) {
+function sRefreshRoleBadges(){
+  const roleLabel = sRoleLabel(sGetCurrentSupportRole());
+  const indicator = document.getElementById('s-role-indicator');
+  const agentRole = document.getElementById('s-agent-role');
+  if(indicator) indicator.textContent = `Role: ${roleLabel}`;
+  if(agentRole) agentRole.textContent = roleLabel;
+}
+
+function sUpdateComposerState(){
+  const input = document.getElementById('adminMessage');
+  const sendBtn = document.getElementById('s-send-btn');
+  const canReplyByRole = sCanReplyToSupport();
+  if(input){
+    input.disabled = !canReplyByRole;
+    if(!canReplyByRole){
+      input.placeholder = 'Read only. Admin, moderator, or super admin can reply.';
+    } else if(!selectedUserId){
+      input.placeholder = 'Select a conversation first...';
+    } else {
+      input.placeholder = `Reply as ${sRoleLabel(sGetCurrentSupportRole())}...`;
+    }
+  }
+  if(sendBtn){
+    sendBtn.disabled = !selectedUserId || !canReplyByRole;
+  }
+}
+
+function sResetChatPanel(){
+  selectedUserId = null;
+  selectedUserEmail = '';
+  selectedConversationType = 'support';
+  selectedChatSource = 'supportChats';
+  selectedConversationKey = '';
+  if(typeof detachChatListener === 'function'){ detachChatListener(); detachChatListener = null; }
+  const headerAva = document.getElementById('s-header-ava');
+  const headerName = document.getElementById('s-header-name');
+  const headerStatus = document.getElementById('s-header-status');
+  const headerType = document.getElementById('s-header-chat-type');
+  const chatBox = document.getElementById('chatMessages');
+  if(headerAva) headerAva.innerHTML = '';
+  if(headerName) headerName.textContent = 'Select a conversation';
+  if(headerStatus) headerStatus.textContent = 'Waiting for selection';
+  if(headerType) headerType.textContent = '--';
+  if(chatBox){
+    chatBox.innerHTML =
+      '<div class="s-empty-state">' +
+        '<div class="s-empty-icon">Chat</div>' +
+        '<div class="s-empty-label">No conversation selected</div>' +
+      '</div>';
+  }
+  sClearReply();
+  sUpdateComposerState();
+}
+
+function openChat(userId, email, forcedType, sourcePath = 'supportChats') {
+  const lookupKey = `${sourcePath}:${userId}`;
+  const conversation = sAllUsers.find(item => item.conversationKey === lookupKey) ||
+    sAllUsers.find(item => item.uid === userId && item.sourcePath === sourcePath);
   selectedUserId = userId;
-  selectedUserEmail = email || userId;
+  selectedUserEmail = conversation?.email || email || userId;
+  selectedConversationType = forcedType || conversation?.type || 'support';
+  selectedChatSource = conversation?.sourcePath || sourcePath || 'supportChats';
+  selectedConversationKey = conversation?.conversationKey || lookupKey;
   document.getElementById('s-header-ava').innerHTML = sAvaHtml(selectedUserEmail, 30);
-  document.getElementById('s-header-name').textContent = selectedUserEmail;
-  document.getElementById('s-header-status').textContent = '● Online';
-  document.getElementById('s-header-status').style.color = 'var(--green)';
-  document.getElementById('s-send-btn').disabled = false;
+  document.getElementById('s-header-name').textContent = conversation?.displayName || selectedUserEmail;
+  document.getElementById('s-header-status').textContent = 'Loading messages...';
+  document.getElementById('s-header-chat-type').textContent = sTypeLabel(selectedConversationType);
+  document.getElementById('s-header-status').style.color = '';
+  sUpdateComposerState();
   document.querySelectorAll('#userList .s-user-item').forEach(row => {
-    row.classList.toggle('s-active', row.dataset.userId === userId);
+    row.classList.toggle('s-active', row.dataset.conversationKey === selectedConversationKey);
     row.classList.remove('s-unread');
   });
   if (typeof detachChatListener === 'function') { detachChatListener(); detachChatListener = null; }
 
-  const chatRef = window.firebaseRef(window.firebaseDb, `supportChats/${userId}/messages`);
+  const chatRef = window.firebaseRef(window.firebaseDb, `${selectedChatSource}/${userId}/messages`);
   detachChatListener = window.firebaseOnValue(chatRef, (snapshot) => {
-    const data = snapshot.val();
+    const data = snapshot.val() || {};
     const box = document.getElementById('chatMessages');
-    box.innerHTML = '<div class="s-date-divider">Today</div>';
-    if (data) {
-      const msgs = Object.entries(data)
-        .map(([key, val]) => ({ key, ...val }))
-        .sort((a, b) => (a.time || 0) - (b.time || 0));
+    const msgs = Object.entries(data)
+      .map(([key, val]) => ({ key, ...(val || {}) }))
+      .sort((a, b) => (a.time || 0) - (b.time || 0));
 
-      msgs.forEach(msg => {
-        const isOut = msg.sender === 'admin';
-        const c = sGetColor(selectedUserEmail);
-        const time = new Date(msg.time || 0).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    selectedConversationType = conversation?.type || sResolveConversationType({type:selectedConversationType}, msgs);
+    document.getElementById('s-header-chat-type').textContent = sTypeLabel(selectedConversationType);
+    document.getElementById('s-header-status').textContent = msgs.length ? `${msgs.length} messages` : 'No messages yet';
 
-        const row = document.createElement('div');
-        row.className = 's-msg-row ' + (isOut ? 's-out' : 's-in');
-        row.dataset.msgKey = msg.key;
-        row.dataset.msgText = msg.text || '';
-
-        // reply quote
-        let quoteHtml = '';
-        if (msg.replyTo) {
-          const quoted = msgs.find(m => m.key === msg.replyTo);
-          if (quoted && !quoted.deleted) {
-            quoteHtml = `<div class="s-reply-quote">↩ ${escHtml((quoted.text || '').substring(0, 60))}${quoted.text?.length > 60 ? '…' : ''}</div>`;
-          }
-        }
-
-        // reactions
-        const reactions = msg.reactions ? Object.entries(msg.reactions) : [];
-        const reactionMap = {};
-        reactions.forEach(([, val]) => {
-          reactionMap[val.emoji] = (reactionMap[val.emoji] || 0) + 1;
-        });
-        const reactionHtml = Object.keys(reactionMap).length
-          ? `<div class="s-reaction-bar">${Object.entries(reactionMap).map(([emoji, count]) =>
-              `<div class="s-reaction" onclick="sToggleReaction('${msg.key}','${emoji}')">${emoji}<span class="s-reaction-count">${count}</span></div>`
-            ).join('')}</div>`
-          : '';
-
-        // action buttons
-        const actionsHtml = `
-          <div class="s-msg-actions">
-            <button class="s-msg-act-btn" title="React" onclick="sShowEmojiPicker(event,'${msg.key}')">😊</button>
-            <button class="s-msg-act-btn" title="Reply" onclick="sSetReply('${msg.key}','${escHtml(msg.text||'').replace(/'/g,"\\'")}')">↩</button>
-            ${!msg.deleted ? `<button class="s-msg-act-btn danger" title="Delete" onclick="sDeleteMsg('${userId}','${msg.key}')">🗑</button>` : ''}
-          </div>`;
-
-        const bubbleContent = msg.deleted
-          ? `<span class="s-deleted-msg">🚫 Message deleted</span>`
-          : escHtml(msg.text || '');
-
-        if (!isOut) {
-          row.innerHTML = `
-            <div class="s-msg-ava" style="background:${c.bg};color:${c.fg}">${sInitials(selectedUserEmail)}</div>
-            <div class="s-bubble-wrap">
-              ${quoteHtml}
-              <div class="s-bubble">${bubbleContent}</div>
-              ${reactionHtml}
-              <div class="s-msg-time">${time}</div>
-              ${actionsHtml}
-            </div>`;
-        } else {
-          row.innerHTML = `
-            <div class="s-bubble-wrap">
-              ${quoteHtml}
-              <div class="s-bubble">${bubbleContent}</div>
-              ${reactionHtml}
-              <div class="s-msg-time">${time}</div>
-              ${actionsHtml}
-            </div>`;
-        }
-        box.appendChild(row);
-      });
+    box.innerHTML = '';
+    if (!msgs.length) {
+      box.innerHTML =
+        '<div class="s-empty-state">' +
+          '<div class="s-empty-icon">Chat</div>' +
+          '<div class="s-empty-label">No messages in this conversation yet</div>' +
+        '</div>';
+      return;
     }
+
+    let lastDateLabel = '';
+    msgs.forEach(msg => {
+      const dateLabel = sFormatDateLabel(msg.time);
+      if(dateLabel !== lastDateLabel){
+        const divider = document.createElement('div');
+        divider.className = 's-date-divider';
+        divider.textContent = dateLabel;
+        box.appendChild(divider);
+        lastDateLabel = dateLabel;
+      }
+
+      const role = sGetMessageRole(msg);
+      const isOut = sIsSupportRole(role);
+      const senderName = sGetSenderName(msg);
+      const senderColor = sGetColor(senderName);
+      const time = sFormatTime(msg.time);
+      const roleLabel = sRoleLabel(role);
+      const roleClass = sRoleClass(role);
+
+      const row = document.createElement('div');
+      row.className = 's-msg-row ' + (isOut ? 's-out' : 's-in');
+      row.dataset.msgKey = msg.key;
+      row.dataset.msgText = msg.text || '';
+
+      let quoteHtml = '';
+      if (msg.replyTo) {
+        const quoted = msgs.find(m => m.key === msg.replyTo);
+        if (quoted && !quoted.deleted) {
+          quoteHtml = `<div class="s-reply-quote">Reply: ${escHtml(sShortText(quoted.text || '', 70))}</div>`;
+        }
+      }
+
+      const reactionValues = msg.reactions ? Object.values(msg.reactions) : [];
+      const reactionMap = {};
+      reactionValues.forEach(val => {
+        const token = typeof val === 'string' ? val : val?.emoji;
+        if(!token) return;
+        reactionMap[token] = (reactionMap[token] || 0) + 1;
+      });
+      const reactionHtml = Object.keys(reactionMap).length
+        ? `<div class="s-reaction-bar">${Object.entries(reactionMap).map(([emoji, count]) =>
+            `<div class="s-reaction" onclick="sToggleReaction('${msg.key}','${sEscapeAttr(emoji)}',true)">${escHtml(emoji)}<span class="s-reaction-count">${count}</span></div>`
+          ).join('')}</div>`
+        : '';
+
+      const encodedReplyText = sEscapeAttr(msg.text || '');
+      const actionsHtml = `
+        <div class="s-msg-actions">
+          <button class="s-msg-act-btn" title="React" onclick="sShowEmojiPicker(event,'${msg.key}')">R</button>
+          <button class="s-msg-act-btn" title="Reply" onclick="sSetReply('${msg.key}','${encodedReplyText}',true)">Re</button>
+          ${!msg.deleted ? `<button class="s-msg-act-btn danger" title="Delete" onclick="sDeleteMsg('${userId}','${msg.key}')">Del</button>` : ''}
+        </div>`;
+
+      const bubbleContent = msg.deleted
+        ? '<span class="s-deleted-msg">Message deleted</span>'
+        : escHtml(msg.text || '');
+      const metaHtml = `<div class="s-msg-meta"><span class="s-msg-sender">${escHtml(senderName)}</span><span class="s-msg-role ${roleClass}">${roleLabel}</span></div>`;
+
+      if (!isOut) {
+        row.innerHTML =
+          `<div class="s-msg-ava" style="background:${senderColor.bg};color:${senderColor.fg}">${sInitials(senderName)}</div>` +
+          `<div class="s-bubble-wrap">` +
+            `${metaHtml}` +
+            `${quoteHtml}` +
+            `<div class="s-bubble">${bubbleContent}</div>` +
+            `${reactionHtml}` +
+            `<div class="s-msg-time">${time}</div>` +
+            `${actionsHtml}` +
+          `</div>`;
+      } else {
+        row.innerHTML =
+          `<div class="s-bubble-wrap">` +
+            `${metaHtml}` +
+            `${quoteHtml}` +
+            `<div class="s-bubble">${bubbleContent}</div>` +
+            `${reactionHtml}` +
+            `<div class="s-msg-time">${time}</div>` +
+            `${actionsHtml}` +
+          `</div>`;
+      }
+      box.appendChild(row);
+    });
+
     box.scrollTop = box.scrollHeight;
     sCloseEmojiPicker();
   });
 }
 
-function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-function sSendAdminMessage(){
-  const input=document.getElementById('adminMessage');
-  const text=(input.value||'').trim();
-  if(!selectedUserId){showToast('Select a user first.');return;}
-  if(!text)return;
-  const msgRef=window.firebaseRef(window.firebaseDb,`supportChats/${selectedUserId}/messages`);
-  const newMsg=window.firebasePush(msgRef);
-  window.firebaseSet(newMsg,{text,sender:'admin',time:Date.now()})
-    .then(()=>{input.value='';input.focus();})
-    .catch(err=>{console.error('Support send failed:',err);showToast('Failed to send message.');});
-}
-
 function handleSend(){sSendAdminMessage();}
 
-// ── Reply state ──
-let sReplyToKey = null;
-let sReplyToText = '';
-
-function sSetReply(key, text) {
+function sSetReply(key, text, encoded = false) {
+  const decoded = encoded ? sReadAttr(text) : String(text || '');
   sReplyToKey = key;
-  sReplyToText = text;
+  sReplyToText = decoded;
   let preview = document.getElementById('s-reply-preview');
   if (!preview) {
     preview = document.createElement('div');
     preview.id = 's-reply-preview';
     preview.className = 's-reply-preview';
     const inputBar = document.querySelector('.s-input-bar');
+    if(!inputBar) return;
     inputBar.insertBefore(preview, inputBar.firstChild);
   }
-  preview.innerHTML = `<span class="s-reply-preview-text">↩ Replying to: ${escHtml(text.substring(0, 60))}${text.length > 60 ? '…' : ''}</span>
-    <button class="s-reply-preview-close" onclick="sClearReply()">✕</button>`;
+  preview.innerHTML = `<span class="s-reply-preview-text">Replying to: ${escHtml(sShortText(decoded, 80))}</span><button class="s-reply-preview-close" onclick="sClearReply()">x</button>`;
   document.getElementById('adminMessage').focus();
 }
 
@@ -1240,22 +1728,28 @@ function sClearReply() {
   if (preview) preview.remove();
 }
 
-// ── Delete message ──
 async function sDeleteMsg(userId, msgKey) {
   if (!confirm('Delete this message?')) return;
   try {
-    const ref = window.firebaseRef(window.firebaseDb, `supportChats/${userId}/messages/${msgKey}`);
-    await window.firebaseSet(ref, { deleted: true, sender: 'admin', time: Date.now(), text: '' });
+    const role = sGetCurrentSupportRole();
+    const senderName = window.currentUserProfile?.username || window.currentUserProfile?.email || sRoleLabel(role);
+    const root = selectedChatSource || 'supportChats';
+    const ref = window.firebaseRef(window.firebaseDb, `${root}/${userId}/messages/${msgKey}`);
+    await window.firebaseSet(ref, {
+      deleted: true,
+      sender: 'admin',
+      senderRole: role,
+      senderName,
+      senderId: window.currentUserProfile?.uid || 'admin-web',
+      time: Date.now(),
+      text: ''
+    });
     showToast('Message deleted');
   } catch (err) {
     console.error('Delete msg error:', err);
     showToast('Failed to delete message');
   }
 }
-
-// ── Emoji reactions ──
-let sEmojiPickerTarget = null;
-const S_QUICK_EMOJIS = ['👍','❤️','😂','😮','😢','🙏','🔥','✅'];
 
 function sShowEmojiPicker(event, msgKey) {
   event.stopPropagation();
@@ -1268,7 +1762,7 @@ function sShowEmojiPicker(event, msgKey) {
   picker.style.position = 'fixed';
   picker.style.zIndex = '9999';
 
-  S_QUICK_EMOJIS.forEach(emoji => {
+  S_QUICK_REACTIONS.forEach(emoji => {
     const btn = document.createElement('button');
     btn.textContent = emoji;
     btn.onclick = (e) => { e.stopPropagation(); sToggleReaction(msgKey, emoji); sCloseEmojiPicker(); };
@@ -1294,33 +1788,51 @@ function sCloseEmojiPicker() {
   if (p) p.remove();
 }
 
-async function sToggleReaction(msgKey, emoji) {
+async function sToggleReaction(msgKey, emoji, encoded = false) {
   if (!selectedUserId) return;
   try {
-    const reactionRef = window.firebaseRef(window.firebaseDb,
-      `supportChats/${selectedUserId}/messages/${msgKey}/reactions/admin`);
-    await window.firebaseSet(reactionRef, { emoji, by: 'admin', time: Date.now() });
+    const token = encoded ? sReadAttr(emoji) : emoji;
+    const actorRole = sGetCurrentSupportRole();
+    const actorKey = window.currentUserProfile?.uid ? `staff_${window.currentUserProfile.uid}` : `staff_${actorRole}`;
+    const root = selectedChatSource || 'supportChats';
+    const reactionRef = window.firebaseRef(window.firebaseDb, `${root}/${selectedUserId}/messages/${msgKey}/reactions/${actorKey}`);
+    await window.firebaseSet(reactionRef, { emoji: token, by: actorKey, role: actorRole, time: Date.now() });
   } catch (err) {
     console.error('Reaction error:', err);
   }
 }
 
-// ── Override send to include replyTo ──
 function sSendAdminMessage() {
   const input = document.getElementById('adminMessage');
   const text = (input.value || '').trim();
-  if (!selectedUserId) { showToast('Select a user first.'); return; }
+  if (!selectedUserId) { showToast('Select a conversation first.'); return; }
+  if (!sCanReplyToSupport()) { showToast('Only admin, moderator, or super admin can reply.'); return; }
   if (!text) return;
-  const msgRef = window.firebaseRef(window.firebaseDb, `supportChats/${selectedUserId}/messages`);
+  const role = sGetCurrentSupportRole();
+  const senderName = window.currentUserProfile?.username || window.currentUserProfile?.email || sRoleLabel(role);
+  const root = selectedChatSource || 'supportChats';
+  const msgRef = window.firebaseRef(window.firebaseDb, `${root}/${selectedUserId}/messages`);
   const newMsg = window.firebasePush(msgRef);
-  const payload = { text, sender: 'admin', time: Date.now() };
+  const payload = {
+    text,
+    sender: 'admin',
+    senderRole: role,
+    senderName,
+    senderId: window.currentUserProfile?.uid || 'admin-web',
+    chatType: selectedConversationType,
+    time: Date.now(),
+    read: false
+  };
   if (sReplyToKey) { payload.replyTo = sReplyToKey; }
   window.firebaseSet(newMsg, payload)
-    .then(() => { input.value = ''; input.focus(); sClearReply(); })
+    .then(() => { input.value = ''; input.focus(); sClearReply(); sUpdateComposerState(); })
     .catch(err => { console.error('Support send failed:', err); showToast('Failed to send message.'); });
 }
 
-// 🔧 Firebase Diagnostics
+sSetTypeFilter('all');
+sRefreshRoleBadges();
+sUpdateComposerState();
+
 function diagnoseCampaigns(){
   console.group('🔧 Firebase Campaign Diagnostics');
   console.log('\n👤 USER AUTHENTICATION:');

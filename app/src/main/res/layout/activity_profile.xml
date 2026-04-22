@@ -257,7 +257,7 @@
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:padding="10dp"
-                android:id="@+id/optionMessenger"
+                android:id="@+id/optionSupport"
                 android:layout_width="match_parent"
                 android:layout_height="72dp"
                 android:background="?attr/selectableItemBackground"
@@ -280,7 +280,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
-                    android:text="Messenger"
+                    android:text="Support"
                     android:textColor="#1A1C1E"
                     android:textSize="16sp"
                     android:textStyle="bold"
@@ -293,7 +293,7 @@
                     android:id="@+id/tvSubMessenger"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Contact support"
+                    android:text="Chat with support team"
                     android:textColor="#6C757D"
                     android:textSize="12sp"
                     app:layout_constraintBottom_toBottomOf="@id/ivIconMessenger"

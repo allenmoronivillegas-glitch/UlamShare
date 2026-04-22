@@ -57,7 +57,7 @@ class ProfileFragment : Fragment() {
         val optionLogout = view.findViewById<ConstraintLayout>(R.id.optionlogout)
         val optionPay = view.findViewById<ConstraintLayout>(R.id.optionPay)
         val myDonations = view.findViewById<ConstraintLayout>(R.id.mydonations)
-        val optionMessenger = view.findViewById<ConstraintLayout>(R.id.optionMessenger)
+        val optionSupport = view.findViewById<ConstraintLayout>(R.id.optionSupport)
         val optionNotifications = view.findViewById<ConstraintLayout>(R.id.optionDonations)
         val btnEditProfile = view.findViewById<ImageView>(R.id.btnEditProfile)
 
@@ -92,7 +92,7 @@ class ProfileFragment : Fragment() {
             startActivity(intent)
         }
 
-        optionMessenger.setOnClickListener {
+        optionSupport.setOnClickListener {
             val intent = Intent(requireContext(), ContactSupportActivity::class.java)
             startActivity(intent)
         }
