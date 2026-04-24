@@ -68,33 +68,38 @@
 <style>
   /* Support chat: messenger-like blue and white theme */
   .chat-shell{
-    --s-bg:#f2f7ff;
-    --s-panel:#ffffff;
-    --s-border:#d8e7ff;
-    --s-text:#123157;
-    --s-muted:#5e7ea5;
-    --s-hint:#8aa5c5;
-    --s-accent:#2f80ed;
-    --s-accent-strong:#1f63c0;
-    --s-accent-soft:#e8f2ff;
-    --s-row-hover:#f4f9ff;
-    --s-in-bubble:#eef5ff;
+    --s-bg:#101a2d;
+    --s-panel:rgba(17,24,39,.94);
+    --s-surface:rgba(255,255,255,.04);
+    --s-surface-strong:rgba(47,128,237,.16);
+    --s-border:rgba(255,255,255,.10);
+    --s-border-strong:rgba(94,168,255,.38);
+    --s-text:var(--text);
+    --s-muted:#9bb0c8;
+    --s-hint:#6f85a1;
+    --s-accent:var(--accent);
+    --s-accent-strong:#5aaeff;
+    --s-accent-soft:rgba(47,128,237,.18);
+    --s-row-hover:rgba(255,255,255,.05);
+    --s-in-bubble:rgba(255,255,255,.06);
     width:100%;
     height:600px;
     border:1px solid var(--s-border);
     border-radius:18px;
     display:flex;
     overflow:hidden;
-    background:linear-gradient(145deg,#eff6ff,#dcecff);
-    box-shadow:0 18px 40px rgba(19,68,130,.18);
+    background:
+      radial-gradient(circle at top right, rgba(47,128,237,.18), transparent 34%),
+      linear-gradient(145deg,var(--navy3) 0%, #1b2b45 48%, #132036 100%);
+    box-shadow:0 24px 54px rgba(0,0,0,.42);
   }
   .s-live-badge{
     display:flex;align-items:center;gap:6px;
     font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;
-    color:#1f63c0;background:#e7f1ff;border:1px solid #c8dcff;border-radius:999px;padding:6px 10px;
+    color:#9ed0ff;background:rgba(47,128,237,.14);border:1px solid var(--s-border-strong);border-radius:999px;padding:6px 10px;
   }
   .s-live-dot{
-    width:7px;height:7px;border-radius:50%;background:#2f80ed;
+    width:7px;height:7px;border-radius:50%;background:var(--s-accent);
     box-shadow:0 0 0 0 rgba(47,128,237,.55);animation:livePulse 2s infinite;
   }
   @keyframes livePulse{
@@ -104,43 +109,50 @@
   }
   .s-user-list{
     width:340px;flex-shrink:0;display:flex;flex-direction:column;
-    border-right:1px solid var(--s-border);background:var(--s-panel);
+    border-right:1px solid var(--s-border);background:linear-gradient(180deg,var(--navy2) 0%, #15233a 100%);
   }
-  .s-ul-header{padding:14px 14px 10px;border-bottom:1px solid var(--s-border)}
+  .s-ul-header{
+    padding:14px 14px 10px;border-bottom:1px solid var(--s-border);
+    background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.02) 100%);
+  }
   .s-ul-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .s-ul-title{font-family:var(--font-mono);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--s-muted)}
   .s-ul-count{
     font-family:var(--font-mono);font-size:10px;color:var(--s-accent);
-    background:var(--s-accent-soft);border:1px solid #bfd8ff;border-radius:999px;padding:2px 8px;
+    background:rgba(47,128,237,.12);border:1px solid var(--s-border-strong);border-radius:999px;padding:2px 8px;
   }
   .s-role-indicator{
     margin-top:8px;font-size:11px;color:var(--s-muted);
-    background:#f3f8ff;border:1px solid #dbeaff;border-radius:8px;padding:6px 8px;
+    background:rgba(255,255,255,.04);border:1px solid var(--s-border);border-radius:8px;padding:6px 8px;
   }
-  .s-search-wrap{padding:10px 12px;border-bottom:1px solid var(--s-border)}
+  .s-search-wrap{padding:10px 12px;border-bottom:1px solid var(--s-border);background:rgba(255,255,255,.02)}
   .s-search-wrap input{
-    width:100%;height:36px;border-radius:10px;border:1px solid #c6ddff;
-    background:#f9fbff;color:var(--s-text);font-size:12px;font-family:var(--font-sans);
+    width:100%;height:36px;border-radius:10px;border:1px solid var(--s-border-strong);
+    background:rgba(255,255,255,.05);color:var(--s-text);font-size:12px;font-family:var(--font-sans);
     outline:none;padding:0 12px;transition:border-color .2s,box-shadow .2s;
   }
-  .s-search-wrap input::placeholder{color:#8ea9c7}
-  .s-search-wrap input:focus{border-color:var(--s-accent);box-shadow:0 0 0 3px rgba(47,128,237,.15)}
+  .s-search-wrap input::placeholder{color:#7d96b5}
+  .s-search-wrap input:focus{border-color:var(--s-accent);box-shadow:0 0 0 3px rgba(47,128,237,.18)}
   .s-chat-type-tabs{
     display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--s-border);
-    background:#f8fbff;
+    background:rgba(255,255,255,.02);
   }
   .s-tab-btn{
-    flex:1;height:30px;border-radius:999px;border:1px solid #c8dcff;background:#fff;color:var(--s-muted);
+    flex:1;height:30px;border-radius:999px;border:1px solid var(--s-border);background:rgba(255,255,255,.04);color:var(--s-muted);
     font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;
   }
-  .s-tab-btn:hover{background:#edf5ff;color:var(--s-accent)}
-  .s-tab-btn.active{background:#2f80ed;color:#fff;border-color:#2f80ed}
+  .s-tab-btn:hover{background:rgba(47,128,237,.12);color:#d6e9ff}
+  .s-tab-btn.active{
+    background:linear-gradient(135deg,var(--s-accent) 0%,#4ea7ff 100%);
+    color:#fff;border-color:rgba(94,168,255,.48);
+    box-shadow:0 10px 24px rgba(47,128,237,.24);
+  }
   .s-story-row{
     display:flex;gap:10px;overflow-x:auto;padding:11px 12px 10px;border-bottom:1px solid var(--s-border);
-    background:#f6faff;
+    background:rgba(255,255,255,.03);
   }
   .s-story-row::-webkit-scrollbar{height:4px}
-  .s-story-row::-webkit-scrollbar-thumb{background:#c6dcfb;border-radius:999px}
+  .s-story-row::-webkit-scrollbar-thumb{background:rgba(94,168,255,.32);border-radius:999px}
   .s-story-item{
     width:62px;flex-shrink:0;border:none;background:transparent;cursor:pointer;
     display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--s-muted);
@@ -149,18 +161,22 @@
   .s-story-item span{
     width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  .s-story-item.active .s-ava{outline:2px solid #2f80ed;outline-offset:2px}
+  .s-story-item.active .s-ava{outline:2px solid var(--s-accent);outline-offset:2px;box-shadow:0 0 0 6px rgba(47,128,237,.15)}
   .s-story-empty{font-size:11px;color:var(--s-hint);padding:4px 0}
-  .s-user-scroll{overflow-y:auto;flex:1;background:var(--s-panel)}
+  .s-user-scroll{overflow-y:auto;flex:1;background:linear-gradient(180deg,rgba(255,255,255,.01) 0%,rgba(47,128,237,.04) 100%)}
   .s-user-scroll::-webkit-scrollbar{width:4px}
-  .s-user-scroll::-webkit-scrollbar-thumb{background:#c9ddfb;border-radius:999px}
+  .s-user-scroll::-webkit-scrollbar-thumb{background:rgba(94,168,255,.28);border-radius:999px}
   .s-empty-list{padding:18px 16px;font-size:12px;color:var(--s-hint)}
   .s-user-item{
     display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;
-    border-bottom:1px solid #edf3ff;transition:background .15s,border-color .15s;position:relative;
+    border-bottom:1px solid rgba(255,255,255,.06);transition:background .15s,border-color .15s,box-shadow .15s;position:relative;
   }
   .s-user-item:hover{background:var(--s-row-hover)}
-  .s-user-item.s-active{background:var(--s-accent-soft);border-left:3px solid var(--s-accent)}
+  .s-user-item.s-active{
+    background:linear-gradient(90deg,rgba(47,128,237,.26) 0%,rgba(47,128,237,.08) 100%);
+    border-left:3px solid var(--s-accent);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 24px rgba(0,0,0,.16);
+  }
   .s-user-item.s-unread::after{
     content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);
     width:8px;height:8px;border-radius:50%;background:var(--s-accent);
@@ -171,7 +187,7 @@
   }
   .s-ava-dot{
     position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;
-    border:2px solid #fff;background:#22c55e;
+    border:2px solid var(--navy2);background:#22c55e;
   }
   .s-user-meta{flex:1;min-width:0}
   .s-user-name-row{display:flex;align-items:center;gap:6px;min-width:0}
@@ -181,19 +197,21 @@
   }
   .s-user-type-pill{
     font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
-    border-radius:999px;padding:2px 6px;background:#e9f2ff;color:#2f80ed;border:1px solid #c5dcff;
+    border-radius:999px;padding:2px 6px;background:rgba(47,128,237,.14);color:#9fd2ff;border:1px solid var(--s-border-strong);
     flex-shrink:0;
   }
   .s-user-preview{
     margin-top:2px;font-size:11px;color:var(--s-muted);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  .s-user-time{font-family:var(--font-mono);font-size:10px;color:#8aa5c5;margin-top:2px}
+  .s-user-time{font-family:var(--font-mono);font-size:10px;color:#7f9ab8;margin-top:2px}
   .s-chat-panel{
-    flex:1;display:flex;flex-direction:column;min-width:0;background:linear-gradient(180deg,#fbfdff,#edf5ff);
+    flex:1;display:flex;flex-direction:column;min-width:0;background:
+      radial-gradient(circle at top center, rgba(47,128,237,.12), transparent 30%),
+      linear-gradient(180deg,#15233a 0%, #0f192d 100%);
   }
   .s-chat-header{
-    padding:14px 16px;border-bottom:1px solid var(--s-border);background:#fff;
+    padding:14px 16px;border-bottom:1px solid var(--s-border);background:linear-gradient(180deg,rgba(255,255,255,.05) 0%,rgba(255,255,255,.02) 100%);
     display:flex;align-items:center;justify-content:space-between;gap:10px;
   }
   .s-chat-header-left{display:flex;align-items:center;gap:10px;min-width:0}
@@ -204,31 +222,34 @@
   .s-chat-header-meta{display:flex;align-items:center;gap:8px;margin-top:2px}
   .s-chat-header-status{font-size:11px;color:var(--s-muted)}
   .s-chat-type-pill{
-    font-size:10px;color:#2f80ed;background:#e8f2ff;border:1px solid #c6dcff;border-radius:999px;padding:2px 7px;
+    font-size:10px;color:#9fd2ff;background:rgba(47,128,237,.12);border:1px solid var(--s-border-strong);border-radius:999px;padding:2px 7px;
   }
   .s-agent-pill{
-    font-size:11px;font-weight:700;color:#1f63c0;background:#e8f2ff;border:1px solid #bfd7ff;
+    font-size:11px;font-weight:700;color:#d7ebff;background:rgba(47,128,237,.14);border:1px solid var(--s-border-strong);
     border-radius:999px;padding:6px 10px;white-space:nowrap;
   }
   .s-messages{
     flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(47,128,237,.08), transparent 35%),
+      linear-gradient(180deg,rgba(255,255,255,.01) 0%,rgba(47,128,237,.03) 100%);
   }
   .s-messages::-webkit-scrollbar{width:4px}
-  .s-messages::-webkit-scrollbar-thumb{background:#c9ddfb;border-radius:999px}
+  .s-messages::-webkit-scrollbar-thumb{background:rgba(94,168,255,.28);border-radius:999px}
   .s-empty-state{
     flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;
     color:var(--s-hint);
   }
   .s-empty-icon{
     font-size:12px;text-transform:uppercase;letter-spacing:1.6px;
-    color:#7ea0c8;background:#edf5ff;border:1px solid #cbddf8;border-radius:999px;padding:6px 10px;
+    color:#9ccfff;background:rgba(47,128,237,.12);border:1px solid var(--s-border-strong);border-radius:999px;padding:6px 10px;
   }
   .s-empty-label{font-size:12px}
   .s-date-divider{
     display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:.8px;
-    text-transform:uppercase;color:#7a98bd;
+    text-transform:uppercase;color:#7e99b8;
   }
-  .s-date-divider::before,.s-date-divider::after{content:'';flex:1;height:1px;background:#d6e6fd}
+  .s-date-divider::before,.s-date-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.10)}
   .s-msg-row{display:flex;gap:8px;position:relative;animation:msgSlideIn .15s ease}
   @keyframes msgSlideIn{
     from{opacity:0;transform:translateY(6px)}
@@ -246,23 +267,23 @@
   .s-msg-sender{font-size:11px;color:var(--s-muted)}
   .s-msg-role{
     font-size:9px;font-weight:700;letter-spacing:.35px;text-transform:uppercase;
-    border-radius:999px;padding:2px 6px;border:1px solid #c7dcff;background:#edf5ff;color:#2f80ed;
+    border-radius:999px;padding:2px 6px;border:1px solid var(--s-border-strong);background:rgba(47,128,237,.12);color:#9fd2ff;
   }
-  .s-msg-role.user{background:#eef8ff;border-color:#d5e9ff;color:#2f80ed}
-  .s-msg-role.admin{background:#e7f1ff;border-color:#bfd8ff;color:#205fae}
-  .s-msg-role.moderator{background:#e9f7ff;border-color:#c4e2ff;color:#1a73b8}
-  .s-msg-role.superadmin{background:#e7f0ff;border-color:#b8d1ff;color:#1f4f9a}
-  .s-msg-role.support{background:#eff6ff;border-color:#cde1ff;color:#3970b2}
+  .s-msg-role.user{background:rgba(47,128,237,.10);border-color:rgba(94,168,255,.26);color:#8fc8ff}
+  .s-msg-role.admin{background:rgba(47,128,237,.14);border-color:rgba(94,168,255,.30);color:#b4dbff}
+  .s-msg-role.moderator{background:rgba(35,148,255,.12);border-color:rgba(94,168,255,.28);color:#96cfff}
+  .s-msg-role.superadmin{background:rgba(32,102,191,.18);border-color:rgba(94,168,255,.32);color:#cfe7ff}
+  .s-msg-role.support{background:rgba(47,128,237,.10);border-color:rgba(94,168,255,.24);color:#89c1f7}
   .s-bubble{
     padding:9px 12px;border-radius:16px;font-size:13px;line-height:1.45;
-    border:1px solid #d6e5fb;color:var(--s-text);background:var(--s-in-bubble);
+    border:1px solid rgba(255,255,255,.08);color:var(--s-text);background:var(--s-in-bubble);
     word-break:break-word;
   }
   .s-msg-row.s-in .s-bubble{border-radius:6px 16px 16px 16px}
   .s-msg-row.s-out .s-bubble{
-    border-radius:16px 6px 16px 16px;background:#2f80ed;border-color:#2f80ed;color:#fff;
+    border-radius:16px 6px 16px 16px;background:linear-gradient(135deg,#5ab2ff 0%,var(--s-accent) 42%,var(--accent2) 100%);border-color:rgba(94,168,255,.42);color:#fff;
   }
-  .s-msg-time{font-family:var(--font-mono);font-size:10px;color:#7f9fc2;padding:0 2px}
+  .s-msg-time{font-family:var(--font-mono);font-size:10px;color:#7f9ab8;padding:0 2px}
   .s-msg-actions{
     display:flex;align-items:center;gap:4px;opacity:0;pointer-events:none;transition:opacity .15s;
   }
@@ -270,67 +291,67 @@
   .s-msg-row.s-in .s-msg-actions{justify-content:flex-start}
   .s-msg-row.s-out .s-msg-actions{justify-content:flex-end}
   .s-msg-act-btn{
-    width:24px;height:24px;border-radius:50%;border:1px solid #c8dcfb;background:#f5faff;color:#4f76a4;
+    width:24px;height:24px;border-radius:50%;border:1px solid var(--s-border);background:rgba(255,255,255,.05);color:#8ba7c8;
     cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;
   }
-  .s-msg-act-btn:hover{background:#e9f3ff;color:#2f80ed}
+  .s-msg-act-btn:hover{background:rgba(47,128,237,.14);color:#d7ebff}
   .s-msg-act-btn.danger:hover{background:#ffeef0;color:#e53e3e;border-color:#ffd0d4}
   .s-reply-quote{
-    border-left:2px solid #8bb7f6;background:#edf4ff;border-radius:5px;
-    padding:5px 8px;font-size:11px;color:#52789f;
+    border-left:2px solid var(--s-accent);background:rgba(47,128,237,.10);border-radius:5px;
+    padding:5px 8px;font-size:11px;color:#b7d3f1;
   }
-  .s-deleted-msg{font-style:italic;color:#718faf}
+  .s-deleted-msg{font-style:italic;color:#8ca8c8}
   .s-reaction-bar{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
   .s-reaction{
     display:inline-flex;align-items:center;gap:4px;
-    background:#f2f8ff;border:1px solid #cfe1fb;border-radius:999px;padding:2px 8px;
-    font-size:11px;color:#366ea9;cursor:pointer;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:2px 8px;
+    font-size:11px;color:#9bbde3;cursor:pointer;
   }
-  .s-reaction:hover{background:#e8f2ff}
-  .s-reaction-count{font-size:10px;font-family:var(--font-mono);color:#557ba6}
+  .s-reaction:hover{background:rgba(47,128,237,.14)}
+  .s-reaction-count{font-size:10px;font-family:var(--font-mono);color:#8eafd4}
   .s-emoji-picker{
     position:fixed;z-index:9999;display:flex;gap:4px;flex-wrap:wrap;width:200px;
-    background:#fff;border:1px solid #c6dcff;border-radius:12px;padding:8px;box-shadow:0 16px 30px rgba(25,76,145,.2);
+    background:var(--navy2);border:1px solid var(--s-border);border-radius:12px;padding:8px;box-shadow:0 18px 34px rgba(0,0,0,.34);
   }
   .s-emoji-picker button{
-    height:28px;min-width:42px;border:1px solid #d3e3fa;background:#f5f9ff;border-radius:8px;
-    cursor:pointer;font-size:11px;color:#285e9b;padding:0 8px;
+    height:28px;min-width:42px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);border-radius:8px;
+    cursor:pointer;font-size:11px;color:#cfe6ff;padding:0 8px;
   }
-  .s-emoji-picker button:hover{background:#e8f2ff}
+  .s-emoji-picker button:hover{background:rgba(47,128,237,.14)}
   .s-input-bar{
     padding:10px 12px;border-top:1px solid var(--s-border);display:flex;align-items:center;gap:8px;
-    background:#fff;flex-shrink:0;
+    background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,rgba(255,255,255,.01) 100%);flex-shrink:0;
   }
   .s-reply-preview{
-    width:100%;background:#f1f7ff;border:1px solid #d1e2fa;border-left:3px solid #2f80ed;border-radius:8px;
+    width:100%;background:rgba(47,128,237,.10);border:1px solid rgba(94,168,255,.24);border-left:3px solid var(--s-accent);border-radius:8px;
     padding:7px 10px;display:flex;align-items:center;gap:8px;justify-content:space-between;
     margin-bottom:7px;
   }
   .s-reply-preview-text{
-    font-size:11px;color:#4f78a5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-size:11px;color:#a8c4e5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .s-reply-preview-close{
-    border:none;background:transparent;color:#7393b8;cursor:pointer;font-size:13px;
+    border:none;background:transparent;color:#8ba7c8;cursor:pointer;font-size:13px;
   }
   .s-reply-preview-close:hover{color:#e53e3e}
   .s-input-wrap{
-    flex:1;display:flex;align-items:center;border:1px solid #c8dcff;background:#f9fbff;border-radius:11px;padding:0 10px;
+    flex:1;display:flex;align-items:center;border:1px solid var(--s-border);background:rgba(255,255,255,.05);border-radius:11px;padding:0 10px;
     transition:border-color .2s,box-shadow .2s;
   }
-  .s-input-wrap:focus-within{border-color:#2f80ed;box-shadow:0 0 0 3px rgba(47,128,237,.14)}
+  .s-input-wrap:focus-within{border-color:#2f80ed;box-shadow:0 0 0 3px rgba(47,128,237,.16)}
   .s-input-wrap input{
-    flex:1;height:40px;border:none;outline:none;background:transparent;font-size:13px;color:#163a66;font-family:var(--font-sans);
+    flex:1;height:40px;border:none;outline:none;background:transparent;font-size:13px;color:var(--s-text);font-family:var(--font-sans);
   }
-  .s-input-wrap input::placeholder{color:#8aa5c5}
+  .s-input-wrap input::placeholder{color:#7d96b5}
   .s-send-btn{
-    height:40px;min-width:78px;padding:0 14px;border-radius:10px;border:none;background:#2f80ed;color:#fff;
+    height:40px;min-width:78px;padding:0 14px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--s-accent) 0%,#4ea7ff 100%);color:#fff;
     font-size:12px;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;
   }
-  .s-send-btn:hover{background:#1f63c0;transform:translateY(-1px)}
+  .s-send-btn:hover{background:linear-gradient(135deg,#2d90fb 0%,var(--accent2) 100%);transform:translateY(-1px)}
   .s-send-btn:active{transform:translateY(0)}
-  .s-send-btn:disabled{background:#9dbce6;cursor:not-allowed;transform:none}
+  .s-send-btn:disabled{background:#33547e;cursor:not-allowed;transform:none}
   .s-typing{display:flex;gap:3px;align-items:center;padding:8px 12px}
-  .s-typing span{width:5px;height:5px;border-radius:50%;background:#7fa3cf;animation:typingDot 1.2s infinite}
+  .s-typing span{width:5px;height:5px;border-radius:50%;background:#7ab7ff;animation:typingDot 1.2s infinite}
   .s-typing span:nth-child(2){animation-delay:.2s}
   .s-typing span:nth-child(3){animation-delay:.4s}
   @keyframes typingDot{
@@ -528,6 +549,12 @@ td.muted{color:var(--muted);font-size:12px}
 /* chart ghost (empty) */
 .chart-ghost{height:120px;display:flex;align-items:flex-end;gap:3px;opacity:.12}
 .ghost-bar{flex:1;border-radius:3px 3px 0 0;background:var(--muted)}
+.dashboard-volume-chart{height:160px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:end}
+.dashboard-volume-col{height:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;min-width:0}
+.dashboard-volume-bar-wrap{flex:1;display:flex;align-items:flex-end}
+.dashboard-volume-bar{width:100%;min-height:8px;border-radius:8px 8px 2px 2px;background:linear-gradient(180deg,#67b7ff 0%,var(--accent) 100%);box-shadow:0 10px 22px rgba(47,128,237,.18)}
+.dashboard-volume-bar.placeholder{background:var(--muted);box-shadow:none;opacity:.3}
+.dashboard-volume-label{font-size:10px;color:var(--hint);text-align:center;font-family:var(--font-mono);letter-spacing:.6px;text-transform:uppercase}
  
 /* tabs */
 .tab-row{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px}
@@ -779,19 +806,19 @@ td.muted{color:var(--muted);font-size:12px}
           <div class="stat-icon">💰</div>
           <div class="stat-label">Total raised</div>
           <div class="stat-value zero" data-stat="total-raised">₱0</div>
-          <div class="stat-sub">No donations yet</div>
+          <div class="stat-sub" id="dashboard-total-raised-sub">No donations yet</div>
         </div>
         <div class="stat-card">
           <div class="stat-icon">📋</div>
           <div class="stat-label">Active campaigns</div>
-          <div class="stat-value zero">0</div>
-          <div class="stat-sub">Create your first one →</div>
+          <div class="stat-value zero" data-stat="active-campaign-count">0</div>
+          <div class="stat-sub" id="dashboard-active-campaigns-sub">Create your first one →</div>
         </div>
         <div class="stat-card">
           <div class="stat-icon">👥</div>
           <div class="stat-label">Total donors</div>
-          <div class="stat-value zero">0</div>
-          <div class="stat-sub">Donors will appear here</div>
+          <div class="stat-value zero" data-stat="total-donor-count">0</div>
+          <div class="stat-sub" id="dashboard-total-donors-sub">Donors will appear here</div>
         </div>
         <div class="stat-card">
           <div class="stat-icon">📈</div>
@@ -1975,6 +2002,298 @@ function updateCheckProgress(){
 let editingCampaignKey = null;
 let donations = [];
 let donationStats = {};
+const DASHBOARD_CHART_PLACEHOLDER = [24, 40, 31, 56, 44, 68];
+
+function formatCurrency(value){
+  return '\u20B1' + Number(value || 0).toLocaleString();
+}
+
+function setTextContent(selector, value){
+  document.querySelectorAll(selector).forEach(el => {
+    el.textContent = value;
+  });
+}
+
+function getDonationDate(donation){
+  const raw = donation?.createdAt || donation?.time || donation?.timestamp || 0;
+  const numeric = Number(raw);
+  const date = new Date(Number.isFinite(numeric) && numeric > 0 ? numeric : raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getAccessibleCampaigns(){
+  return canManageCampaigns() ? campaigns : campaigns.filter(c => !c.hidden);
+}
+
+function getActiveCampaignCount(){
+  return getAccessibleCampaigns().filter(c => {
+    const status = String(c?.status || 'Active').trim().toLowerCase();
+    return !c?.hidden && status === 'active';
+  }).length;
+}
+
+function getDonorKey(donation){
+  const userId = String(donation?.userId || donation?.uid || donation?.donorId || '').trim().toLowerCase();
+  if(userId) return 'user:' + userId;
+  const email = String(donation?.donorEmail || donation?.email || '').trim().toLowerCase();
+  if(email) return 'email:' + email;
+  const name = String(donation?.donorName || donation?.name || '').trim().toLowerCase();
+  if(name) return 'name:' + name;
+  return donation?.id ? 'anon:' + donation.id : '';
+}
+
+function getDonorSummary(){
+  const donorsByKey = new Map();
+  const monthlyKeys = new Set();
+  const now = new Date();
+
+  donations.forEach(donation => {
+    const key = getDonorKey(donation);
+    if(!key) return;
+
+    if(!donorsByKey.has(key)){
+      donorsByKey.set(key, {
+        isRegistered: Boolean(
+          String(donation?.userId || donation?.uid || donation?.donorId || '').trim() ||
+          donation?.isRegistered === true ||
+          donation?.registered === true
+        )
+      });
+    }
+
+    const donatedAt = getDonationDate(donation);
+    if(donatedAt && donatedAt.getMonth() === now.getMonth() && donatedAt.getFullYear() === now.getFullYear()){
+      monthlyKeys.add(key);
+    }
+  });
+
+  const total = donorsByKey.size;
+  const registeredCount = Array.from(donorsByKey.values()).filter(donor => donor.isRegistered).length;
+
+  return {
+    total,
+    registeredCount,
+    guestCount: Math.max(total - registeredCount, 0),
+    monthlyCount: monthlyKeys.size
+  };
+}
+
+function hasAdditionalTeamMember(){
+  const currentUid = window.currentUserProfile?.uid || window.firebaseAuth?.currentUser?.uid || '';
+  if(!currentUid){
+    return teamMembers.length > 1;
+  }
+  return teamMembers.some(member => member.uid !== currentUid);
+}
+
+function hasConnectedPaymentProvider(){
+  return ['t-gcash','t-maya','t-stripe'].some(id => document.getElementById(id)?.classList.contains('on'));
+}
+
+function hasOrganizationDetails(){
+  return Boolean(document.getElementById('org-name')?.value.trim());
+}
+
+function setSetupStepDone(dotId, done){
+  const dot = document.getElementById(dotId);
+  if(!dot) return;
+  dot.classList.toggle('done', !!done);
+  dot.classList.remove('active');
+  const row = dot.parentElement;
+  if(row){
+    row.style.color = done ? 'var(--text)' : '';
+  }
+}
+
+function updateDashboardGettingStartedAction(states){
+  const button = document.querySelector('#s-dashboard .two-col .card:last-child button');
+  if(!button) return;
+
+  if(!states.campaign && canManageCampaigns()){
+    button.textContent = '+ Create first campaign';
+    button.onclick = () => openCampaignModal();
+    return;
+  }
+
+  if(!states.payment && ['Super Admin','Admin'].includes(currentRole())){
+    button.textContent = 'Configure payment providers';
+    button.onclick = () => nav('settings', document.getElementById('nav-settings'));
+    return;
+  }
+
+  if(!states.organization && ['Super Admin','Admin'].includes(currentRole())){
+    button.textContent = 'Complete organization details';
+    button.onclick = () => nav('settings', document.getElementById('nav-settings'));
+    return;
+  }
+
+  if(!states.team && canInviteUsers()){
+    button.textContent = '+ Invite team member';
+    button.onclick = () => openModal('modal-invite');
+    return;
+  }
+
+  button.textContent = 'View campaigns';
+  button.onclick = () => nav('campaigns', document.getElementById('nav-campaigns'));
+}
+
+function syncChecklistFromData(){
+  const states = {
+    campaign: campaigns.length > 0,
+    payment: hasConnectedPaymentProvider(),
+    organization: hasOrganizationDetails(),
+    team: hasAdditionalTeamMember()
+  };
+
+  [
+    { index: 1, done: states.campaign },
+    { index: 2, done: states.payment },
+    { index: 3, done: states.organization },
+    { index: 4, done: states.team }
+  ].forEach(item => {
+    const el = document.getElementById('chk-' + item.index);
+    if(!el) return;
+    const circle = el.querySelector('.check-circle');
+    const badge = el.querySelector('.check-badge');
+    if(badge && !el.dataset.defaultBadge){
+      el.dataset.defaultBadge = badge.textContent;
+    }
+    el.classList.toggle('done', item.done);
+    el.classList.remove('failed');
+    if(circle) circle.textContent = item.done ? '\u2713' : '';
+    if(badge) badge.textContent = item.done ? 'Done \u2713' : (el.dataset.defaultBadge || '\u2192 Start');
+    checks[item.index] = item.done;
+  });
+
+  setSetupStepDone('dot-campaign', states.campaign);
+  setSetupStepDone('dot-payment', states.payment);
+  setSetupStepDone('dot-org', states.organization);
+  setSetupStepDone('dot-team', states.team);
+  updateCheckProgress();
+  updateDashboardGettingStartedAction(states);
+}
+
+function buildDashboardDonationSeries(months = 6){
+  const now = new Date();
+  const series = [];
+  const monthIndex = new Map();
+
+  for(let offset = months - 1; offset >= 0; offset--){
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const key = monthDate.getFullYear() + '-' + monthDate.getMonth();
+    const item = {
+      key,
+      label: monthDate.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+      title: monthDate.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+      total: 0
+    };
+    monthIndex.set(key, item);
+    series.push(item);
+  }
+
+  donations.forEach(donation => {
+    const donatedAt = getDonationDate(donation);
+    if(!donatedAt) return;
+    const key = donatedAt.getFullYear() + '-' + donatedAt.getMonth();
+    const bucket = monthIndex.get(key);
+    if(!bucket) return;
+    bucket.total += Number(donation.amount || 0);
+  });
+
+  return series;
+}
+
+function renderDashboardVolumeChart(series){
+  const chart = document.getElementById('ghost-chart');
+  if(!chart) return;
+
+  chart.className = 'dashboard-volume-chart';
+  const hasData = series.some(item => item.total > 0);
+  const maxTotal = Math.max(...series.map(item => item.total), 1);
+
+  chart.innerHTML = series.map((item, index) => {
+    const height = hasData
+      ? Math.max(12, Math.round((item.total / maxTotal) * 100))
+      : DASHBOARD_CHART_PLACEHOLDER[index % DASHBOARD_CHART_PLACEHOLDER.length];
+    const barClass = 'dashboard-volume-bar' + (hasData ? '' : ' placeholder');
+    return `
+      <div class="dashboard-volume-col" title="${item.title}: ${formatCurrency(item.total)}">
+        <div class="dashboard-volume-bar-wrap">
+          <div class="${barClass}" style="height:${height}%"></div>
+        </div>
+        <div class="dashboard-volume-label">${item.label}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDashboardOverview(){
+  const totalRaised = donations.reduce((sum, donation) => sum + Number(donation.amount || 0), 0);
+  const avgDonation = donations.length > 0 ? Math.round(totalRaised / donations.length) : 0;
+  const activeCampaignCount = getActiveCampaignCount();
+  const donorSummary = getDonorSummary();
+  const donationLabel = donations.length === 1 ? 'donation' : 'donations';
+  const monthLabel = donorSummary.monthlyCount === 1 ? 'donor' : 'donors';
+
+  setTextContent('[data-stat="total-raised"]', formatCurrency(totalRaised));
+  setTextContent('[data-stat="active-campaign-count"]', String(activeCampaignCount));
+  setTextContent('[data-stat="total-donor-count"]', String(donorSummary.total));
+
+  const dashboardAvgValue = document.querySelector('#s-dashboard .stats-grid .stat-card:nth-child(4) .stat-value');
+  if(dashboardAvgValue){
+    dashboardAvgValue.textContent = donations.length > 0 ? formatCurrency(avgDonation) : '\u2014';
+  }
+
+  const totalRaisedSub = document.getElementById('dashboard-total-raised-sub');
+  if(totalRaisedSub){
+    totalRaisedSub.textContent = donations.length > 0
+      ? `${donations.length} ${donationLabel} received`
+      : 'No donations yet';
+  }
+
+  const activeCampaignsSub = document.getElementById('dashboard-active-campaigns-sub');
+  if(activeCampaignsSub){
+    activeCampaignsSub.textContent = activeCampaignCount > 0
+      ? `${activeCampaignCount} live campaign${activeCampaignCount === 1 ? '' : 's'} right now`
+      : (campaigns.length > 0 ? 'No live campaigns right now' : 'Create your first one \u2192');
+  }
+
+  const totalDonorsSub = document.getElementById('dashboard-total-donors-sub');
+  if(totalDonorsSub){
+    totalDonorsSub.textContent = donorSummary.total > 0
+      ? `${donorSummary.monthlyCount} ${monthLabel} gave this month`
+      : 'Donors will appear here';
+  }
+
+  const avgDonationSub = document.getElementById('dashboard-avg-donation-sub') ||
+    document.querySelector('#s-dashboard .stats-grid .stat-card:nth-child(4) .stat-sub');
+  if(avgDonationSub){
+    avgDonationSub.textContent = donations.length > 0
+      ? `Across ${donations.length} ${donationLabel}`
+      : 'No data yet';
+  }
+
+  const donationSeries = buildDashboardDonationSeries(6);
+  const currentMonth = donationSeries[donationSeries.length - 1] || { total: 0, title: 'No data yet' };
+  const volumeHeader = document.querySelector('#s-dashboard .two-col .card:first-child .card-body > div:first-child');
+  const volumeCaption = document.querySelector('#s-dashboard .two-col .card:first-child .card-body > div:last-child > div');
+
+  if(volumeHeader){
+    const totalEl = volumeHeader.querySelector('span:first-child');
+    const metaEl = volumeHeader.querySelector('span:last-child');
+    if(totalEl) totalEl.textContent = formatCurrency(currentMonth.total || 0);
+    if(metaEl) metaEl.textContent = donations.length > 0 ? currentMonth.title : 'No data yet';
+  }
+
+  if(volumeCaption){
+    volumeCaption.textContent = donations.length > 0
+      ? 'Monthly totals are based on donation dates from the last 6 months.'
+      : 'Chart will populate once donations come in';
+  }
+
+  renderDashboardVolumeChart(donationSeries);
+  syncChecklistFromData();
+}
 
 function getCategoryIcon(category) {
   const icons = {
@@ -2082,7 +2401,7 @@ function renderEmergencyCard() {
 }
 
 function amountToString(value) {
-  return '₱' + Number(value || 0).toLocaleString();
+  return formatCurrency(value);
 }
 
 function currentRole(){
@@ -2428,8 +2747,7 @@ function renderCampaigns(){
       <button class="btn btn-primary btn-sm" id="campaigns-add-another" onclick="openCampaignModal()">+ Add another campaign</button>
     </div>`;
  
-  // update stat
-  document.querySelectorAll('.stat-value.zero')[1].textContent=visibleCampaigns.length;
+  renderDashboardOverview();
   renderEmergencyCard();
   console.log(`✓ Rendered ${visibleCampaigns.length} campaigns to UI`);
 }
@@ -2518,9 +2836,7 @@ function renderDonationStats(){
   const totalRaised = donations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
   const avgDonation = donations.length > 0 ? Math.round(totalRaised / donations.length) : 0;
   
-  if(document.querySelector('[data-stat="donation-count"]')){
-    document.querySelector('[data-stat="donation-count"]').textContent = donations.length;
-  }
+  setTextContent('[data-stat="donation-count"]', String(donations.length));
   if(document.querySelector('[data-stat="total-raised"]')){
     document.querySelector('[data-stat="total-raised"]').textContent = '₱' + totalRaised.toLocaleString();
   }
@@ -2553,6 +2869,7 @@ function renderDonationStats(){
       }).join('');
     }
   }
+  renderDashboardOverview();
   renderEmergencyCard();
 }
 
@@ -2735,7 +3052,7 @@ async function sendInvite(){
   el.classList.add('done');
   el.querySelector('.check-circle').textContent='✓';
   el.querySelector('.check-badge').textContent='Done ✓';
-  document.getElementById('dot-team').classList.add('active');
+  setSetupStepDone('dot-team', true);
   updateCheckProgress();
   showToast('Invite saved for '+email);
   document.getElementById('invite-email').value='';
@@ -2744,6 +3061,10 @@ async function sendInvite(){
  
 function renderTeam(){
   const tbody=document.getElementById('team-table');
+  const currentUid = window.currentUserProfile?.uid || window.firebaseAuth?.currentUser?.uid || '';
+  const additionalMembers = currentUid
+    ? teamMembers.filter(member => member.uid !== currentUid)
+    : teamMembers.slice(1);
   const extra=teamMembers.map(m=>`
     <tr>
       <td><div class="row-cell"><div class="row-ava" style="background:var(--purple)">${m.initials}</div>${m.username}</div></td>
@@ -2753,9 +3074,11 @@ function renderTeam(){
       <td><span class="icon-btn" style="font-size:11px;color:var(--red)" onclick="removeTeamMember('${m.uid}')">✕</span></td>
     </tr>`).join('');
   tbody.innerHTML=extra;
-  if(teamMembers.length>0){
-    document.querySelector('#s-users .card:last-child').style.display='none';
+  const emptyCard = document.querySelector('#s-users .card:last-child');
+  if(emptyCard){
+    emptyCard.style.display = additionalMembers.length > 0 ? 'none' : '';
   }
+  renderDashboardOverview();
 }
  
 function removeTeamMember(uid){
@@ -2778,9 +3101,10 @@ function saveSettings(){
     el.classList.add('done');
     el.querySelector('.check-circle').textContent='✓';
     el.querySelector('.check-badge').textContent='Done ✓';
-    document.getElementById('dot-org').classList.add('active');
+    setSetupStepDone('dot-org', true);
     updateCheckProgress();
   }
+  renderDashboardOverview();
   showToast('Settings saved');
 }
  
@@ -2792,20 +3116,13 @@ function updatePaymentDots(){
     el.classList.add('done');
     el.querySelector('.check-circle').textContent='✓';
     el.querySelector('.check-badge').textContent='Done ✓';
-    document.getElementById('dot-payment').classList.add('active');
-    updateCheckProgress();
   }
+  setSetupStepDone('dot-payment', on);
+  updateCheckProgress();
+  renderDashboardOverview();
 }
  
-// build ghost chart
-const ghostData=[20,35,25,45,30,50,40,60,38,55,42,65,50,70];
-const gc=document.getElementById('ghost-chart');
-ghostData.forEach(v=>{
-  const b=document.createElement('div');
-  b.className='ghost-bar';
-  b.style.height=((v/70)*100)+'%';
-  gc.appendChild(b);
-});
+renderDashboardOverview();
  
 async function logout(){
   try {

@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
-        app:layout_constraintBottom_toTopOf="@id/btnBackHome"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.4">
 
@@ -53,11 +53,13 @@
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Reference ID"
                     android:textColor="#6C757D" />
+
                 <TextView
                     android:id="@+id/tvRefId"
                     android:layout_width="wrap_content"
@@ -68,22 +70,28 @@
                     android:textStyle="bold" />
             </RelativeLayout>
 
-            <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginVertical="12dp" android:background="#EEEEEE" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="12dp"
+                android:background="#EEEEEE" />
 
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Amount Paid"
                     android:textColor="#6C757D" />
+
                 <TextView
                     android:id="@+id/tvSuccessAmount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
-                    android:text="₱300.00"
+                    android:text="â‚±300.00"
                     android:textColor="#2172E5"
                     android:textStyle="bold" />
             </RelativeLayout>
@@ -95,21 +103,21 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Share your impact 🔗"
+            android:text="Share your impact ðŸ”—"
             android:textAllCaps="false"
             android:textColor="#2172E5" />
 
-    </LinearLayout>
+        <Button
+            android:id="@+id/btnBackHome"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="24dp"
+            android:backgroundTint="#2172E5"
+            android:text="Back to Home"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            app:cornerRadius="12dp" />
 
-    <Button
-        android:id="@+id/btnBackHome"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:backgroundTint="#2172E5"
-        android:text="Back to Home"
-        android:textColor="@color/white"
-        android:textAllCaps="false"
-        app:cornerRadius="12dp"
-        app:layout_constraintBottom_toBottomOf="parent" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

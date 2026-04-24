@@ -12,7 +12,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 
 class ReviewDonationActivity : AppCompatActivity() {
 
@@ -30,8 +32,6 @@ class ReviewDonationActivity : AppCompatActivity() {
 
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
         val btnComplete = findViewById<MaterialButton>(R.id.btnComplete)
-        val btnDelete = findViewById<MaterialButton>(R.id.btnDelete)
-        
         val tvHeaderTitle = findViewById<TextView>(R.id.tvHeaderTitle)
         val tvReviewCampaign = findViewById<TextView>(R.id.tvReviewCampaign)
         val tvReviewType = findViewById<TextView>(R.id.tvReviewType)
@@ -47,7 +47,7 @@ class ReviewDonationActivity : AppCompatActivity() {
         tvReviewCampaign.text = title ?: "Campaign Name"
         tvReviewType.text = donateType ?: "One-Time"
         tvReviewPayment.text = paymentMethod ?: "GCash"
-        tvReviewAmount.text = "₱${amount ?: "0.00"}"
+        tvReviewAmount.text = "\u20B1${amount ?: "0.00"}"
 
         btnBack.setOnClickListener {
             finish()
@@ -55,10 +55,6 @@ class ReviewDonationActivity : AppCompatActivity() {
 
         btnComplete.setOnClickListener {
             saveDonationToFirebase(title, amount, paymentMethod, donateType)
-        }
-
-        btnDelete.setOnClickListener {
-            finish()
         }
     }
 
@@ -76,17 +72,17 @@ class ReviewDonationActivity : AppCompatActivity() {
 
         val campaignId = intent.getStringExtra("campaignId") ?: ""
         val donationAmount = amount?.toIntOrNull() ?: 0
-        
-        // Fetch full name from Firestore
+
         firestore.collection("users").document(user.uid).get()
             .addOnSuccessListener { document ->
                 val fullName = document.getString("fullName") ?: user.displayName ?: "Anonymous"
-                
+
                 val donationId = UUID.randomUUID().toString()
                 val timestamp = System.currentTimeMillis()
-                val dateString = SimpleDateFormat("MM/dd/yyyy hh:mm a", Locale.getDefault()).format(Date())
+                val dateString = SimpleDateFormat("MM/dd/yyyy hh:mm a", Locale.getDefault())
+                    .format(Date())
                 val referenceId = System.currentTimeMillis().toString().takeLast(8)
-                
+
                 val donationData = mapOf(
                     "amount" to donationAmount,
                     "campaignId" to campaignId,
@@ -102,36 +98,36 @@ class ReviewDonationActivity : AppCompatActivity() {
                     "userId" to user.uid
                 )
 
-                // 1. Save donation to /donations
                 db.getReference("donations").child(donationId).setValue(donationData)
                     .addOnSuccessListener {
                         Log.d("ReviewDonation", "Donation saved: $donationId")
-                        
-                        // 2. Update campaign's raised amount
+
                         db.getReference("campaigns").child(campaignId).get()
                             .addOnSuccessListener { snapshot ->
                                 val campaign = snapshot.value as? Map<*, *> ?: emptyMap<String, Any>()
                                 val currentRaised = (campaign["raised"] as? Number)?.toLong()?.toInt() ?: 0
                                 val newRaised = currentRaised + donationAmount
-                                
+
                                 db.getReference("campaigns").child(campaignId).child("raised").setValue(newRaised)
                                     .addOnSuccessListener {
-                                        Log.d("ReviewDonation", "Campaign raised amount updated to ₱$newRaised")
-                                        
-                                        // 3. Save notification
-                                        val notification = AppNotification(
-                                            id = UUID.randomUUID().toString(),
-                                            title = "Donation Received",
-                                            message = "💝 You donated ₱$donationAmount to $campaignTitle",
-                                            timestamp = System.currentTimeMillis(),
-                                            type = "donation"
+                                        Log.d("ReviewDonation", "Campaign raised amount updated to \u20B1$newRaised")
+
+                                        AppNotificationManager.notifyDonation(
+                                            this@ReviewDonationActivity,
+                                            campaignTitle.orEmpty(),
+                                            donationAmount
                                         )
-                                        NotificationRepository.saveNotification(notification)
-                                        
-                                        Toast.makeText(this@ReviewDonationActivity, "Donation confirmed!", Toast.LENGTH_SHORT).show()
-                                        
-                                        // Proceed to payment processing
-                                        val intent = Intent(this@ReviewDonationActivity, PaymentProcessingActivity::class.java).apply {
+
+                                        Toast.makeText(
+                                            this@ReviewDonationActivity,
+                                            "Donation confirmed!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+
+                                        val intent = Intent(
+                                            this@ReviewDonationActivity,
+                                            PaymentProcessingActivity::class.java
+                                        ).apply {
                                             putExtra("amount", amount)
                                             putExtra("donationId", donationId)
                                             putExtra("referenceId", referenceId)

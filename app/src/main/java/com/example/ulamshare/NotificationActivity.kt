@@ -1,7 +1,6 @@
 package com.example.ulamshare
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -10,8 +9,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import java.text.SimpleDateFormat
-import java.util.*
 
 class NotificationAdapter(private val notifications: List<AppNotification>) :
     RecyclerView.Adapter<NotificationAdapter.ViewHolder>() {
@@ -53,6 +50,8 @@ class NotificationActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_notifications)
 
+        NotificationRepository.init(this)
+
         rvNotifications = findViewById(R.id.rvNotifications)
         emptyStateContainer = findViewById(R.id.emptyStateContainer)
         btnBack = findViewById(R.id.btnBack)
@@ -76,7 +75,7 @@ class NotificationActivity : AppCompatActivity() {
         val allNotifications = NotificationRepository.getNotifications()
         notifications.clear()
         notifications.addAll(allNotifications.sortedByDescending { it.timestamp })
-        
+
         if (notifications.isEmpty()) {
             showEmptyState()
         } else {

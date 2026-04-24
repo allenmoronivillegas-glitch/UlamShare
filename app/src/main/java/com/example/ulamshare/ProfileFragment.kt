@@ -1,18 +1,17 @@
 package com.example.ulamshare
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
+import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -35,6 +34,8 @@ class ProfileFragment : Fragment() {
     private lateinit var tvDonationCount: TextView
     private lateinit var tvCampaignCount: TextView
     private lateinit var tvSubDon: TextView
+    private lateinit var tvFollowingCount: TextView
+    private lateinit var tvFollowersCount: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,7 +45,10 @@ class ProfileFragment : Fragment() {
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
-        realtimeDb = FirebaseDatabase.getInstance("https://ulamshare-4f2b9-default-rtdb.asia-southeast1.firebasedatabase.app").reference.child("donations")
+        realtimeDb = FirebaseDatabase
+            .getInstance("https://ulamshare-4f2b9-default-rtdb.asia-southeast1.firebasedatabase.app")
+            .reference
+            .child("donations")
 
         tvUserName = view.findViewById(R.id.tvUserName)
         tvUserEmail = view.findViewById(R.id.tvUserEmail)
@@ -53,23 +57,29 @@ class ProfileFragment : Fragment() {
         tvDonationCount = view.findViewById(R.id.tvDonationCount)
         tvCampaignCount = view.findViewById(R.id.tvCampaignCount)
         tvSubDon = view.findViewById(R.id.tvSubDon)
-        
+        tvFollowingCount = view.findViewById(R.id.tvFollowingCount)
+        tvFollowersCount = view.findViewById(R.id.tvFollowersCount)
+
         val optionLogout = view.findViewById<ConstraintLayout>(R.id.optionlogout)
         val optionPay = view.findViewById<ConstraintLayout>(R.id.optionPay)
         val myDonations = view.findViewById<ConstraintLayout>(R.id.mydonations)
         val optionSupport = view.findViewById<ConstraintLayout>(R.id.optionSupport)
         val optionNotifications = view.findViewById<ConstraintLayout>(R.id.optionDonations)
         val btnEditProfile = view.findViewById<ImageView>(R.id.btnEditProfile)
+        val btnHeaderAddFriends = view.findViewById<MaterialButton>(R.id.btnHeaderAddFriends)
 
         loadUserData()
 
         btnEditProfile.setOnClickListener {
             if (auth.currentUser != null) {
-                val intent = Intent(requireContext(), EditProfileActivity::class.java)
-                startActivity(intent)
+                startActivity(Intent(requireContext(), EditProfileActivity::class.java))
             } else {
                 Toast.makeText(requireContext(), "Please log in to edit profile", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        btnHeaderAddFriends.setOnClickListener {
+            startActivity(Intent(requireContext(), AddFriendsActivity::class.java))
         }
 
         optionLogout.setOnClickListener {
@@ -83,23 +93,19 @@ class ProfileFragment : Fragment() {
         }
 
         optionPay.setOnClickListener {
-            val intent = Intent(requireContext(), PaymentMethodActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(requireContext(), PaymentMethodActivity::class.java))
         }
 
         myDonations.setOnClickListener {
-            val intent = Intent(requireContext(), ActivityHistory::class.java)
-            startActivity(intent)
+            startActivity(Intent(requireContext(), ActivityHistory::class.java))
         }
 
         optionSupport.setOnClickListener {
-            val intent = Intent(requireContext(), ContactSupportActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(requireContext(), ContactSupportActivity::class.java))
         }
 
         optionNotifications.setOnClickListener {
-            val intent = Intent(requireContext(), NotificationActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(requireContext(), NotificationActivity::class.java))
         }
 
         return view
@@ -114,6 +120,7 @@ class ProfileFragment : Fragment() {
         val user = auth.currentUser
         if (user != null) {
             tvUserEmail.text = user.email
+            tvTotalDonated.text = "\u20B10"
             loadUserDonationStats(user.uid)
             db.collection("users").document(user.uid)
                 .get()
@@ -123,14 +130,21 @@ class ProfileFragment : Fragment() {
                     } else {
                         "User"
                     }
+
+                    val following = (document.get("following") as? List<*>)?.size ?: 0
+                    val followers = (document.get("followers") as? List<*>)?.size ?: 0
+
                     tvUserName.text = fullName
-                    
+                    tvFollowingCount.text = following.toString()
+                    tvFollowersCount.text = followers.toString()
+
                     val initials = fullName.split(" ")
                         .filter { it.isNotEmpty() }
                         .mapNotNull { it.firstOrNull()?.toString() }
                         .take(2)
                         .joinToString("")
                         .uppercase()
+
                     ivAvatar.text = if (initials.isNotEmpty()) initials else "?"
                 }
                 .addOnFailureListener { e ->
@@ -140,10 +154,12 @@ class ProfileFragment : Fragment() {
             tvUserName.text = "Guest User"
             tvUserEmail.text = "Not logged in"
             ivAvatar.text = "G"
-            tvTotalDonated.text = "₱0"
+            tvTotalDonated.text = "\u20B10"
             tvDonationCount.text = "0"
             tvCampaignCount.text = "0"
             tvSubDon.text = "0 donations this year"
+            tvFollowingCount.text = "0"
+            tvFollowersCount.text = "0"
         }
     }
 
@@ -178,7 +194,7 @@ class ProfileFragment : Fragment() {
                         }
                     }
 
-                    tvTotalDonated.text = String.format(Locale.US, "₱%,d", totalDonated)
+                    tvTotalDonated.text = String.format(Locale.US, "\u20B1%,d", totalDonated)
                     tvDonationCount.text = donationCount.toString()
                     tvCampaignCount.text = donatedCampaignIds.size.toString()
                     tvSubDon.text = "$donationsThisYear donations this year"

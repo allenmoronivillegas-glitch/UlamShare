@@ -15,7 +15,7 @@
         android:paddingStart="14dp"
         android:paddingTop="10dp"
         android:paddingEnd="14dp"
-        android:paddingBottom="10dp"
+        android:paddingBottom="14dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -51,10 +51,11 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvHeaderSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="@string/tab_user_support"
+                    android:text="@string/messenger_header_subtitle"
                     android:textColor="#DAE8FF"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -65,9 +66,9 @@
                 android:layout_height="38dp"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/bg_support_header_icon"
-                android:contentDescription="@string/compose"
+                android:contentDescription="@string/add_friends"
                 android:padding="8dp"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@android:drawable/ic_input_add"
                 app:tint="#FFFFFF" />
 
             <ImageView
@@ -96,13 +97,19 @@
                 android:src="@android:drawable/ic_menu_search"
                 app:tint="#7A8FB5" />
 
-            <TextView
+            <EditText
+                android:id="@+id/etConversationSearch"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:layout_weight="1"
-                android:text="@string/ask_support_or_search"
-                android:textColor="#7A8FB5"
+                android:background="@android:color/transparent"
+                android:hint="@string/messenger_search_hint"
+                android:imeOptions="actionDone"
+                android:inputType="text"
+                android:maxLines="1"
+                android:textColor="#274B82"
+                android:textColorHint="#7A8FB5"
                 android:textSize="16sp" />
 
             <ImageView
@@ -112,196 +119,51 @@
                 android:src="@android:drawable/ic_dialog_dialer"
                 app:tint="#7A8FB5" />
         </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:orientation="horizontal"
-            android:weightSum="3">
-
-            <TextView
-                android:id="@+id/tabUserSupport"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/bg_support_chip_active"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingTop="7dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="7dp"
-                android:text="@string/tab_user_support"
-                android:textColor="#FFFFFF"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tabUserUser"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_support_chip"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingTop="7dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="7dp"
-                android:text="@string/tab_user_user"
-                android:textColor="#1B4F9E"
-                android:textSize="11sp" />
-
-            <TextView
-                android:id="@+id/tabAdminTeam"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_support_chip"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingTop="7dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="7dp"
-                android:text="@string/tab_admin_team"
-                android:textColor="#1B4F9E"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:overScrollMode="never"
-            android:scrollbars="none">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/chipSupportNow"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_support_chip"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:paddingStart="14dp"
-                    android:paddingTop="8dp"
-                    android:paddingEnd="14dp"
-                    android:paddingBottom="8dp"
-                    android:text="@string/chip_support_now"
-                    android:textColor="#1B4F9E"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/chipTrackDonation"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bg_support_chip"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:paddingStart="14dp"
-                    android:paddingTop="8dp"
-                    android:paddingEnd="14dp"
-                    android:paddingBottom="8dp"
-                    android:text="@string/chip_track_donation"
-                    android:textColor="#1B4F9E"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/chipReportIssue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:background="@drawable/bg_support_chip"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:paddingStart="14dp"
-                    android:paddingTop="8dp"
-                    android:paddingEnd="14dp"
-                    android:paddingBottom="8dp"
-                    android:text="@string/chip_report_issue"
-                    android:textColor="#1B4F9E"
-                    android:textSize="14sp" />
-            </LinearLayout>
-        </HorizontalScrollView>
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerChat"
+    <TextView
+        android:id="@+id/tvConversationSection"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="#F4F8FF"
-        android:clipToPadding="false"
-        android:paddingStart="8dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/inputContainer"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="16dp"
+        android:text="@string/messenger_section_title"
+        android:textColor="#183C72"
+        android:textSize="15sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/headerContainer" />
 
-    <LinearLayout
-        android:id="@+id/inputContainer"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerConversations"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:background="#FFFFFF"
-        android:elevation="8dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="10dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingStart="16dp"
         android:paddingTop="8dp"
-        android:paddingEnd="10dp"
-        android:paddingBottom="8dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvConversationSection" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/bg_support_role_badge"
-            android:paddingStart="8dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="8dp"
-            android:paddingBottom="4dp"
-            android:text="@string/you_label"
-            android:textColor="#1F63C0"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/etMessage"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_support_input"
-            android:hint="@string/type_a_message"
-            android:imeOptions="actionSend"
-            android:inputType="textMultiLine|textCapSentences"
-            android:maxLines="4"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:textColor="#12356F"
-            android:textColorHint="#8DA2C8"
-            android:textSize="14sp" />
-
-        <ImageButton
-            android:id="@+id/btnSend"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="10dp"
-            android:background="@drawable/bg_support_send"
-            android:contentDescription="@string/send_message"
-            android:padding="10dp"
-            android:src="@drawable/ic_send"
-            app:tint="#FFFFFF" />
-    </LinearLayout>
+    <TextView
+        android:id="@+id/tvConversationEmpty"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:text="@string/messenger_no_conversations"
+        android:textColor="#6A84AB"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/recyclerConversations"
+        app:layout_constraintEnd_toEndOf="@id/recyclerConversations"
+        app:layout_constraintStart_toStartOf="@id/recyclerConversations"
+        app:layout_constraintTop_toTopOf="@id/recyclerConversations" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
