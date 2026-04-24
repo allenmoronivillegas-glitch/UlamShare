@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardBackgroundColor="#FFFFFF"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="14dp">
+
+        <TextView
+            android:id="@+id/tvDiscoverAvatar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_avatar_blue"
+            android:gravity="center"
+            android:text="FR"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvDiscoverName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:textColor="#173C72"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvDiscoverEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:maxLines="1"
+                android:textColor="#59759E"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvDiscoverHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:maxLines="2"
+                android:textColor="#6D86AE"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:gravity="end"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/btnDiscoverPrimaryAction"
+                android:layout_width="92dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_friend_primary_action"
+                android:minWidth="0dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="@string/add_friend_action"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnDiscoverSecondaryAction"
+                android:layout_width="92dp"
+                android:layout_height="38dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_friend_danger_action"
+                android:minWidth="0dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="@string/unfriend_action"
+                android:textAllCaps="false"
+                android:textColor="#D23F4C"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

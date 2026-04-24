@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F4F8FF"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:id="@+id/headerContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rounded_header_bg"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="14dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_support_header_icon"
+            android:contentDescription="@string/back"
+            android:padding="9dp"
+            android:src="@drawable/back"
+            app:tint="#FFFFFF" />
+
+        <TextView
+            android:id="@+id/tvChatAvatar"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_avatar_blue"
+            android:gravity="center"
+            android:text="CH"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvChatTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvChatSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#DAE8FF"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_support_header_icon"
+            android:contentDescription="@string/support_agent"
+            android:padding="9dp"
+            android:src="@drawable/ic_support_avatar"
+            app:tint="#EAF2FF" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerChat"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#F4F8FF"
+        android:clipToPadding="false"
+        android:paddingStart="8dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/inputContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/headerContainer" />
+
+    <TextView
+        android:id="@+id/tvMessagesEmpty"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:text="@string/messenger_no_messages"
+        android:textColor="#6A84AB"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/recyclerChat"
+        app:layout_constraintEnd_toEndOf="@id/recyclerChat"
+        app:layout_constraintStart_toStartOf="@id/recyclerChat"
+        app:layout_constraintTop_toTopOf="@id/recyclerChat" />
+
+    <LinearLayout
+        android:id="@+id/inputContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_support_role_badge"
+            android:paddingStart="8dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="4dp"
+            android:text="@string/you_label"
+            android:textColor="#1F63C0"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etMessage"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_support_input"
+            android:hint="@string/type_a_message"
+            android:imeOptions="actionSend"
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLines="4"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:textColor="#12356F"
+            android:textColorHint="#8DA2C8"
+            android:textSize="14sp" />
+
+        <ImageButton
+            android:id="@+id/btnSend"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_support_send"
+            android:contentDescription="@string/send_message"
+            android:padding="10dp"
+            android:src="@drawable/ic_send"
+            app:tint="#FFFFFF" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
