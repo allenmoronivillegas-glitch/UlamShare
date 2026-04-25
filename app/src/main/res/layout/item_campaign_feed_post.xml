@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="14dp"
+    android:background="@drawable/bg_support_input"
+    android:elevation="1dp"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tvPostAvatar"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_avatar_blue"
+            android:gravity="center"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="HG" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvPostAuthor"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_black"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    tools:text="HopeGive Admin" />
+
+                <TextView
+                    android:id="@+id/tvPostRole"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_campaign_badge_official"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:textColor="@color/primary_blue"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    tools:text="Official" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvPostMeta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:textColor="@color/text_grey"
+                android:textSize="12sp"
+                tools:text="Admin • 2 hours ago" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnPostOptions"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_support_chip"
+            android:contentDescription="@string/more_options"
+            android:padding="6dp"
+            android:src="@android:drawable/ic_menu_more"
+            android:tint="@color/primary_blue"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvPostContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:lineSpacingExtra="2dp"
+        android:textColor="@color/text_black"
+        android:textSize="15sp"
+        tools:text="Here is the latest campaign update from HopeGive." />
+
+    <FrameLayout
+        android:id="@+id/postImageContainer"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_marginTop="14dp"
+        android:background="@drawable/rounded_soft_blue_rect"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/ivPostImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:adjustViewBounds="true"
+            android:contentDescription="@string/choose_campaign_post_image"
+            android:scaleType="centerCrop"
+            tools:src="@drawable/plant" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/campaignInfoContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:background="@drawable/rounded_soft_blue_rect"
+        android:orientation="vertical"
+        android:padding="14dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvCampaignTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/text_black"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="Scholarship Drive 2026" />
+
+            <TextView
+                android:id="@+id/tvCampaignStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:textColor="@color/primary_blue"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="Active" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvCampaignRaised"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="@color/text_black"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="Raised PHP 120,000" />
+
+        <TextView
+            android:id="@+id/tvCampaignGoal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/text_grey"
+            android:textSize="13sp"
+            tools:text="Goal PHP 250,000" />
+
+        <ProgressBar
+            android:id="@+id/pbCampaignProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:layout_marginTop="12dp"
+            android:max="100"
+            android:progress="48"
+            android:progressBackgroundTint="#CFE0FA"
+            android:progressTint="@color/brand_blue"
+            tools:progress="48" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnPostReact"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_support_chip"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="@string/choose_campaign_action_react"
+            android:textColor="@color/primary_blue"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            tools:text="React 4" />
+
+        <TextView
+            android:id="@+id/btnPostComment"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_support_chip"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="@string/choose_campaign_action_comment"
+            android:textColor="@color/primary_blue"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            tools:text="Comment 2" />
+
+        <TextView
+            android:id="@+id/btnPostShare"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_support_chip"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="@string/choose_campaign_action_share"
+            android:textColor="@color/primary_blue"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            tools:text="Share 1" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -7,9 +7,12 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
@@ -22,7 +25,7 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Locale
 
-class MessengerChatActivity : AppCompatActivity() {
+class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractionListener {
 
     companion object {
         private const val DATABASE_URL =
@@ -60,9 +63,14 @@ class MessengerChatActivity : AppCompatActivity() {
     private lateinit var tvChatTitle: TextView
     private lateinit var tvChatSubtitle: TextView
     private lateinit var tvMessagesEmpty: TextView
+    private lateinit var replyPreviewContainer: View
+    private lateinit var tvReplyPreviewSender: TextView
+    private lateinit var tvReplyPreviewText: TextView
+    private lateinit var btnReplyPreviewClose: ImageButton
 
     private lateinit var chatAdapter: ChatAdapter
     private val messages = mutableListOf<ChatMessage>()
+    private var replyTargetMessage: ChatMessage? = null
 
     private var activeMessagesQuery: Query? = null
     private var activeMessagesListener: ValueEventListener? = null
@@ -138,13 +146,17 @@ class MessengerChatActivity : AppCompatActivity() {
         tvChatTitle = findViewById(R.id.tvChatTitle)
         tvChatSubtitle = findViewById(R.id.tvChatSubtitle)
         tvMessagesEmpty = findViewById(R.id.tvMessagesEmpty)
+        replyPreviewContainer = findViewById(R.id.replyPreviewContainer)
+        tvReplyPreviewSender = findViewById(R.id.tvReplyPreviewSender)
+        tvReplyPreviewText = findViewById(R.id.tvReplyPreviewText)
+        btnReplyPreviewClose = findViewById(R.id.btnReplyPreviewClose)
     }
 
     private fun setupRecyclerView() {
         val layoutManager = LinearLayoutManager(this).apply {
             stackFromEnd = true
         }
-        chatAdapter = ChatAdapter(messages, currentUserId)
+        chatAdapter = ChatAdapter(messages, currentUserId, this)
         recyclerChat.layoutManager = layoutManager
         recyclerChat.adapter = chatAdapter
     }
@@ -152,6 +164,7 @@ class MessengerChatActivity : AppCompatActivity() {
     private fun setupActions() {
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
         btnSend.setOnClickListener { sendMessage() }
+        btnReplyPreviewClose.setOnClickListener { clearReplyTarget() }
 
         etMessage.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEND) {
@@ -327,6 +340,7 @@ class MessengerChatActivity : AppCompatActivity() {
         val messageRef = rootRef.child("messages").push()
         val timestamp = System.currentTimeMillis()
 
+        val replyTarget = replyTargetMessage
         val message = hashMapOf<String, Any>(
             "text" to messageText,
             "sender" to "user",
@@ -336,10 +350,19 @@ class MessengerChatActivity : AppCompatActivity() {
             "chatType" to conversationChatType,
             "time" to timestamp
         )
+        if (replyTarget != null) {
+            message["replyTo"] = replyTarget.key
+            message["replyText"] = replyTarget.text.ifBlank {
+                getString(R.string.deleted_message_label)
+            }
+            message["replySenderName"] = resolveReplySenderLabel(replyTarget)
+            message["replySenderRole"] = replyTarget.senderRole.ifBlank { replyTarget.sender }
+        }
 
         messageRef.setValue(message)
             .addOnSuccessListener {
                 etMessage.setText("")
+                clearReplyTarget()
 
                 val rootUpdates = hashMapOf<String, Any>(
                     "updatedAt" to ServerValue.TIMESTAMP,
@@ -394,15 +417,191 @@ class MessengerChatActivity : AppCompatActivity() {
         val senderName = if (senderNameRaw.isNotBlank()) senderNameRaw else fallbackSenderName(senderRole)
         val senderId = snapshot.child("senderId").getValue(String::class.java).orEmpty()
         val time = snapshot.child("time").getValue(Long::class.java) ?: 0L
+        val deleted = snapshot.child("deleted").getValue(Boolean::class.java) ?: false
+        val replyTo = snapshot.child("replyTo").getValue(String::class.java).orEmpty()
+        val replyText = snapshot.child("replyText").getValue(String::class.java)
+            ?: snapshot.child("replyToText").getValue(String::class.java).orEmpty()
+        val replySenderName = snapshot.child("replySenderName").getValue(String::class.java)
+            ?: snapshot.child("replyToSenderName").getValue(String::class.java).orEmpty()
+        val replySenderRole = snapshot.child("replySenderRole").getValue(String::class.java)
+            ?: snapshot.child("replyToSenderRole").getValue(String::class.java).orEmpty()
+        val reactions = snapshot.child("reactions").children
+            .mapNotNull { reactionSnapshot ->
+                val actorKey = reactionSnapshot.key.orEmpty()
+                if (actorKey.isBlank()) return@mapNotNull null
+
+                val emoji = reactionSnapshot.child("emoji").getValue(String::class.java)
+                    ?.trim()
+                    .orEmpty()
+                    .ifBlank { reactionSnapshot.getValue(String::class.java).orEmpty().trim() }
+                if (emoji.isBlank()) return@mapNotNull null
+
+                actorKey to ChatReactionEntry(
+                    emoji = emoji,
+                    by = reactionSnapshot.child("by").getValue(String::class.java)
+                        .orEmpty()
+                        .ifBlank { actorKey },
+                    role = reactionSnapshot.child("role").getValue(String::class.java).orEmpty(),
+                    time = reactionSnapshot.child("time").getValue(Long::class.java) ?: 0L
+                )
+            }
+            .toMap()
 
         return ChatMessage(
+            key = snapshot.key.orEmpty(),
             text = text,
             sender = sender,
             time = time,
             senderRole = senderRole,
             senderName = senderName,
-            senderId = senderId
+            senderId = senderId,
+            deleted = deleted,
+            replyTo = replyTo,
+            replyText = replyText,
+            replySenderName = replySenderName,
+            replySenderRole = replySenderRole,
+            reactions = reactions
         )
+    }
+
+    override fun onMessageActionsRequested(anchor: View, message: ChatMessage) {
+        val popupMenu = PopupMenu(this, anchor)
+        popupMenu.menu.add(0, 1, 0, getString(R.string.react_action))
+        popupMenu.menu.add(0, 2, 1, getString(R.string.reply_action))
+        popupMenu.menu.add(0, 3, 2, getString(R.string.delete_action))
+        popupMenu.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> {
+                    showReactionPicker(anchor, message)
+                    true
+                }
+                2 -> {
+                    setReplyTarget(message)
+                    true
+                }
+                3 -> {
+                    confirmDeleteMessage(message)
+                    true
+                }
+                else -> false
+            }
+        }
+        popupMenu.show()
+    }
+
+    override fun onReactionTapped(message: ChatMessage, reactionType: String) {
+        toggleReaction(message, reactionType)
+    }
+
+    private fun showReactionPicker(anchor: View, message: ChatMessage) {
+        val popupMenu = PopupMenu(this, anchor)
+        MessageReactionUi.quickReactionOrder.forEachIndexed { index, reactionType ->
+            popupMenu.menu.add(0, index, index, MessageReactionUi.displayLabel(reactionType))
+        }
+        popupMenu.setOnMenuItemClickListener { item ->
+            val reactionType = MessageReactionUi.quickReactionOrder.getOrNull(item.itemId) ?: return@setOnMenuItemClickListener false
+            toggleReaction(message, reactionType)
+            true
+        }
+        popupMenu.show()
+    }
+
+    private fun toggleReaction(message: ChatMessage, reactionType: String) {
+        if (message.key.isBlank()) return
+
+        val actorKey = MessageReactionUi.actorKey(currentUserId)
+        val messageRef = firebaseDb.getReference(conversationRootPath)
+            .child("messages")
+            .child(message.key)
+        val reactionRef = messageRef.child("reactions").child(actorKey)
+        val existingReaction = message.reactions[actorKey]?.emoji?.trim().orEmpty().ifBlank {
+            message.reactions.values.firstOrNull { it.by == actorKey }?.emoji?.trim().orEmpty()
+        }
+
+        if (existingReaction == reactionType) {
+            reactionRef.removeValue()
+                .addOnFailureListener {
+                    Toast.makeText(this, "Failed to update reaction", Toast.LENGTH_SHORT).show()
+                }
+            return
+        }
+
+        reactionRef.setValue(
+            hashMapOf<String, Any>(
+                "emoji" to reactionType,
+                "by" to actorKey,
+                "role" to "user",
+                "time" to ServerValue.TIMESTAMP
+            )
+        ).addOnFailureListener {
+            Toast.makeText(this, "Failed to update reaction", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setReplyTarget(message: ChatMessage) {
+        replyTargetMessage = message
+        replyPreviewContainer.visibility = View.VISIBLE
+        tvReplyPreviewSender.text = resolveReplySenderLabel(message)
+        tvReplyPreviewText.text = message.text.ifBlank { getString(R.string.deleted_message_label) }
+        etMessage.requestFocus()
+    }
+
+    private fun clearReplyTarget() {
+        replyTargetMessage = null
+        replyPreviewContainer.visibility = View.GONE
+        tvReplyPreviewSender.text = ""
+        tvReplyPreviewText.text = ""
+    }
+
+    private fun resolveReplySenderLabel(message: ChatMessage): String {
+        if (message.senderId == currentUserId) return getString(R.string.you_label)
+
+        if (message.senderName.isNotBlank()) return message.senderName
+        if (message.replySenderName.isNotBlank()) return message.replySenderName
+
+        return fallbackSenderName(message.senderRole.ifBlank { message.sender })
+    }
+
+    private fun confirmDeleteMessage(message: ChatMessage) {
+        if (message.senderId != currentUserId) {
+            Toast.makeText(this, getString(R.string.delete_own_messages_only), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.delete_message_title)
+            .setMessage(R.string.delete_message_confirm)
+            .setNegativeButton(R.string.cancel_action, null)
+            .setPositiveButton(R.string.delete_action) { _, _ ->
+                deleteMessage(message)
+            }
+            .show()
+    }
+
+    private fun deleteMessage(message: ChatMessage) {
+        if (message.key.isBlank()) return
+
+        val rootRef = firebaseDb.getReference(conversationRootPath)
+        val messageRef = rootRef.child("messages").child(message.key)
+        val updates = hashMapOf<String, Any>(
+            "deleted" to true,
+            "deletedAt" to ServerValue.TIMESTAMP,
+            "text" to ""
+        )
+
+        messageRef.updateChildren(updates)
+            .addOnFailureListener {
+                Toast.makeText(this, "Failed to delete message", Toast.LENGTH_SHORT).show()
+            }
+
+        if (messages.lastOrNull()?.key == message.key) {
+            rootRef.child("lastMessage")
+                .updateChildren(updates)
+        }
+
+        if (replyTargetMessage?.key == message.key) {
+            clearReplyTarget()
+        }
     }
 
     private fun initials(value: String): String {

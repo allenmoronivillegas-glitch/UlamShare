@@ -4,29 +4,41 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class CampaignsFragment : Fragment() {
+    private var feedController: ChooseCampaignFeedController? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.activity_choose_campaign, container, false)
+        return inflater.inflate(R.layout.activity_choose_campaign, container, false)
+    }
 
-        val rvCampaigns = view.findViewById<RecyclerView>(R.id.rvCampaigns)
-        val emptyState = view.findViewById<LinearLayout>(R.id.emptyStateContainer)
-        val emptyTitle = view.findViewById<TextView>(R.id.tvEmptyStateTitle)
-        val emptySubtitle = view.findViewById<TextView>(R.id.tvEmptyStateSubtitle)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        feedController = ChooseCampaignFeedController(
+            rootView = view,
+            lifecycleOwner = viewLifecycleOwner,
+            activityResultRegistry = requireActivity().activityResultRegistry,
+            onBackPressed = {
+                val bottomNav = activity?.findViewById<BottomNavigationView>(R.id.bottomNavigation)
+                if (bottomNav != null) {
+                    bottomNav.selectedItemId = R.id.nav_home
+                } else {
+                    activity?.onBackPressedDispatcher?.onBackPressed()
+                }
+            },
+            launchIntent = { startActivity(it) }
+        )
+        feedController?.bind()
+    }
 
-        rvCampaigns.visibility = View.GONE
-        emptyState.visibility = View.VISIBLE
-        emptyTitle.text = "Choose a Campaign"
-        emptySubtitle.text = "Campaign selection will be enabled here later."
-
-        return view
+    override fun onDestroyView() {
+        feedController?.dispose()
+        feedController = null
+        super.onDestroyView()
     }
 }

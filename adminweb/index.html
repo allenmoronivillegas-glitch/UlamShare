@@ -11,7 +11,8 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
   import { getDatabase, ref, push, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getAuth, onAuthStateChanged, signOut, getIdTokenResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, doc, getDoc, onSnapshot, query, orderBy, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // Your web app's Firebase configuration
   const firebaseConfig = {
@@ -29,8 +30,11 @@
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
   const db = getDatabase(app);
+  const firestore = getFirestore(app);
   const auth = getAuth(app);
   const campaignsRef = ref(db, 'campaigns');
+  const campaignFeedSettingsRef = doc(firestore, 'app_settings', 'campaign_feed');
+  const campaignFeedPostsRef = collection(firestore, 'campaign_posts');
   
   console.log('🔥 Firebase initialized - setting up window refs...');
   console.log('  Database:', db.app.options.projectId);
@@ -40,9 +44,13 @@
   window.firebaseApp = app;
   window.firebaseAnalytics = analytics;
   window.firebaseDb = db;
+  window.firebaseFirestore = firestore;
   window.firebaseAuth = auth;
+  window.firebaseGetIdTokenResult = getIdTokenResult;
   window.firebaseCampaignsPath = 'campaigns';
   window.firebaseCampaignsRef = campaignsRef;
+  window.firebaseCampaignFeedSettingsRef = campaignFeedSettingsRef;
+  window.firebaseCampaignFeedPostsRef = campaignFeedPostsRef;
   window.firebaseUsersRef = ref(db, 'users');
   window.firebasePush = push;
   window.firebaseSet = set;
@@ -50,6 +58,14 @@
   window.firebaseOnValue = onValue;
   window.firebaseRemove = remove;
   window.firebaseRef = ref;
+  window.firebaseCollection = collection;
+  window.firebaseDoc = doc;
+  window.firebaseGetDoc = getDoc;
+  window.firebaseOnFirestoreSnapshot = onSnapshot;
+  window.firebaseQuery = query;
+  window.firebaseOrderBy = orderBy;
+  window.firebaseSetDoc = setDoc;
+  window.firebaseServerTimestamp = serverTimestamp;
   console.log('✓ All Firebase window refs configured');
   
   window.firebaseAuthReady = new Promise((resolve, reject) => {
@@ -250,18 +266,24 @@
     text-transform:uppercase;color:#7e99b8;
   }
   .s-date-divider::before,.s-date-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.10)}
-  .s-msg-row{display:flex;gap:8px;position:relative;animation:msgSlideIn .15s ease}
+  .s-msg-row{display:flex;align-items:flex-end;gap:8px;position:relative;animation:msgSlideIn .15s ease}
   @keyframes msgSlideIn{
     from{opacity:0;transform:translateY(6px)}
     to{opacity:1;transform:translateY(0)}
   }
-  .s-msg-row.s-out{flex-direction:row-reverse}
+  .s-msg-row.s-out{justify-content:flex-end}
+  .s-msg-row.s-system{justify-content:center}
   .s-msg-ava{
     width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-size:10px;font-weight:700;color:#fff;align-self:flex-end;flex-shrink:0;
   }
+  .s-msg-main{display:inline-flex;flex-direction:column;gap:4px;min-width:0;flex:0 1 auto;max-width:calc(100% - 36px)}
+  .s-msg-row.s-in .s-msg-main{align-items:flex-start}
+  .s-msg-row.s-out .s-msg-main{align-items:flex-end}
+  .s-msg-content-row{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%}
   .s-bubble-wrap{max-width:min(74%,560px);display:flex;flex-direction:column;gap:4px}
   .s-msg-row.s-out .s-bubble-wrap{align-items:flex-end}
+  .s-msg-row.s-system .s-bubble-wrap{align-items:center;max-width:min(82%,720px)}
   .s-msg-meta{display:flex;align-items:center;gap:6px}
   .s-msg-row.s-out .s-msg-meta{justify-content:flex-end}
   .s-msg-sender{font-size:11px;color:var(--s-muted)}
@@ -274,32 +296,51 @@
   .s-msg-role.moderator{background:rgba(35,148,255,.12);border-color:rgba(94,168,255,.28);color:#96cfff}
   .s-msg-role.superadmin{background:rgba(32,102,191,.18);border-color:rgba(94,168,255,.32);color:#cfe7ff}
   .s-msg-role.support{background:rgba(47,128,237,.10);border-color:rgba(94,168,255,.24);color:#89c1f7}
+  .s-msg-role.system{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.10);color:#9bb0c8}
   .s-bubble{
     padding:9px 12px;border-radius:16px;font-size:13px;line-height:1.45;
     border:1px solid rgba(255,255,255,.08);color:var(--s-text);background:var(--s-in-bubble);
-    word-break:break-word;
+    word-break:break-word;min-width:0;max-width:calc(100% - 30px);
   }
   .s-msg-row.s-in .s-bubble{border-radius:6px 16px 16px 16px}
   .s-msg-row.s-out .s-bubble{
     border-radius:16px 6px 16px 16px;background:linear-gradient(135deg,#5ab2ff 0%,var(--s-accent) 42%,var(--accent2) 100%);border-color:rgba(94,168,255,.42);color:#fff;
   }
+  .s-msg-row.s-system .s-bubble{
+    border-radius:999px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.10);
+    color:#c9d6e8;text-align:center;font-size:12px;padding:8px 14px;
+  }
   .s-msg-time{font-family:var(--font-mono);font-size:10px;color:#7f9ab8;padding:0 2px}
+  .s-msg-footer{display:flex;align-items:center;gap:8px}
+  .s-msg-row.s-out .s-msg-footer{justify-content:flex-end}
   .s-msg-actions{
-    display:flex;align-items:center;gap:4px;opacity:0;pointer-events:none;transition:opacity .15s;
+    display:flex;align-items:center;align-self:center;gap:4px;opacity:0;pointer-events:none;flex-shrink:0;transition:opacity .15s;
   }
-  .s-msg-row:hover .s-msg-actions{opacity:1;pointer-events:all}
-  .s-msg-row.s-in .s-msg-actions{justify-content:flex-start}
-  .s-msg-row.s-out .s-msg-actions{justify-content:flex-end}
-  .s-msg-act-btn{
+  .s-msg-row:hover .s-msg-actions,.s-msg-row:focus-within .s-msg-actions{opacity:1;pointer-events:all}
+  .s-msg-menu-btn{
     width:24px;height:24px;border-radius:50%;border:1px solid var(--s-border);background:rgba(255,255,255,.05);color:#8ba7c8;
-    cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;
   }
-  .s-msg-act-btn:hover{background:rgba(47,128,237,.14);color:#d7ebff}
-  .s-msg-act-btn.danger:hover{background:#ffeef0;color:#e53e3e;border-color:#ffd0d4}
+  .s-msg-menu-btn:hover{background:rgba(47,128,237,.14);color:#d7ebff}
+  .s-msg-menu{
+    position:fixed;z-index:10000;display:flex;flex-direction:column;gap:4px;min-width:144px;
+    background:var(--navy2);border:1px solid var(--s-border);border-radius:12px;padding:8px;
+    box-shadow:0 18px 34px rgba(0,0,0,.34);
+  }
+  .s-msg-menu button{
+    height:34px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);border-radius:8px;
+    cursor:pointer;font-size:12px;color:#cfe6ff;padding:0 10px;text-align:left;
+  }
+  .s-msg-menu button:hover{background:rgba(47,128,237,.14)}
+  .s-msg-menu button.danger{color:#ffc2c8}
+  .s-msg-menu button.danger:hover{background:#3b1f2a;color:#ffd7db;border-color:#6d2f40}
   .s-reply-quote{
+    display:flex;flex-direction:column;gap:1px;max-width:min(100%,520px);
     border-left:2px solid var(--s-accent);background:rgba(47,128,237,.10);border-radius:5px;
-    padding:5px 8px;font-size:11px;color:#b7d3f1;
+    padding:5px 8px;
   }
+  .s-reply-quote-label{font-size:10px;font-weight:700;color:#d7ebff}
+  .s-reply-quote-text{font-size:11px;color:#b7d3f1;line-height:1.3}
   .s-deleted-msg{font-style:italic;color:#8ca8c8}
   .s-reaction-bar{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
   .s-reaction{
@@ -308,6 +349,11 @@
     font-size:11px;color:#9bbde3;cursor:pointer;
   }
   .s-reaction:hover{background:rgba(47,128,237,.14)}
+  .s-reaction.active{
+    background:rgba(47,128,237,.22);border-color:rgba(94,168,255,.40);color:#e5f3ff;
+    box-shadow:0 0 0 1px rgba(90,178,255,.16) inset;
+  }
+  .s-reaction.active .s-reaction-count{color:#f3f9ff}
   .s-reaction-count{font-size:10px;font-family:var(--font-mono);color:#8eafd4}
   .s-emoji-picker{
     position:fixed;z-index:9999;display:flex;gap:4px;flex-wrap:wrap;width:200px;
@@ -318,20 +364,25 @@
     cursor:pointer;font-size:11px;color:#cfe6ff;padding:0 8px;
   }
   .s-emoji-picker button:hover{background:rgba(47,128,237,.14)}
+  .s-emoji-picker button.active{background:rgba(47,128,237,.22);border-color:rgba(94,168,255,.42);color:#ffffff}
   .s-input-bar{
     padding:10px 12px;border-top:1px solid var(--s-border);display:flex;align-items:center;gap:8px;
     background:linear-gradient(180deg,rgba(255,255,255,.03) 0%,rgba(255,255,255,.01) 100%);flex-shrink:0;
   }
   .s-reply-preview{
     width:100%;background:rgba(47,128,237,.10);border:1px solid rgba(94,168,255,.24);border-left:3px solid var(--s-accent);border-radius:8px;
-    padding:7px 10px;display:flex;align-items:center;gap:8px;justify-content:space-between;
+    padding:7px 10px;display:flex;align-items:flex-start;gap:8px;justify-content:space-between;
     margin-bottom:7px;
+  }
+  .s-reply-preview-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .s-reply-preview-label{
+    font-size:10px;font-weight:700;color:#d7ebff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .s-reply-preview-text{
     font-size:11px;color:#a8c4e5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .s-reply-preview-close{
-    border:none;background:transparent;color:#8ba7c8;cursor:pointer;font-size:13px;
+    border:none;background:transparent;color:#8ba7c8;cursor:pointer;font-size:13px;flex-shrink:0;
   }
   .s-reply-preview-close:hover{color:#e53e3e}
   .s-input-wrap{
@@ -357,9 +408,6 @@
   @keyframes typingDot{
     0%,60%,100%{transform:translateY(0);opacity:.45}
     30%{transform:translateY(-4px);opacity:1}
-  }
-  @media (hover:none){
-    .s-msg-actions{opacity:1;pointer-events:all}
   }
   @media (max-width:1200px){
     .chat-shell{height:640px}
@@ -587,6 +635,7 @@ td.muted{color:var(--muted);font-size:12px}
 .toggle-sub{font-size:11px;color:var(--muted);margin-top:1px}
 .toggle{width:36px;height:20px;border-radius:10px;background:var(--hint);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
 .toggle.on{background:var(--accent)}
+.toggle.disabled{opacity:.45;cursor:not-allowed}
 .toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
 .toggle.on::after{transform:translateX(16px)}
  
@@ -595,6 +644,18 @@ td.muted{color:var(--muted);font-size:12px}
 .settings-section{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:0}
 .settings-header{padding:14px 20px;border-bottom:1px solid var(--border);font-size:14px;font-weight:500}
 .settings-body{padding:20px}
+.campaign-tab-pane{display:none}
+.campaign-tab-pane.active{display:block}
+.feed-settings-card{max-width:760px}
+.feed-settings-note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:14px}
+.feed-post-list{display:flex;flex-direction:column}
+.feed-post-row{display:flex;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border)}
+.feed-post-row:last-child{border-bottom:none}
+.feed-post-avatar{width:34px;height:34px;border-radius:50%;background:var(--navy3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--accent);flex-shrink:0}
+.feed-post-content{flex:1;min-width:0}
+.feed-post-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
+.feed-post-meta{font-size:11px;color:var(--muted);margin-bottom:8px}
+.feed-post-text{font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap}
  
 /* role pill */
 .role-pill{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(47,128,237,.15);color:#60a5fa;font-weight:500}
@@ -602,6 +663,8 @@ td.muted{color:var(--muted);font-size:12px}
  
 /* toast */
 .toast{position:fixed;bottom:24px;right:24px;background:var(--navy2);border:1px solid var(--green);border-radius:10px;padding:12px 18px;font-size:13px;color:var(--text);z-index:200;display:none;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast.success{border-color:var(--green)}
+.toast.error{border-color:var(--red)}
 .toast.show{display:flex}
  
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -871,6 +934,15 @@ td.muted{color:var(--muted);font-size:12px}
           <button class="btn btn-primary" id="btn-new-campaign-campaigns" onclick="openCampaignModal()">+ New Campaign</button>
         </div>
       </div>
+
+      <div class="tab-row">
+        <div class="tab active" data-campaign-tab="campaigns" onclick="switchCampaignsTab('campaigns')">Campaigns</div>
+        <div class="tab" data-campaign-tab="official" onclick="switchCampaignsTab('official')">Official Posts</div>
+        <div class="tab" data-campaign-tab="community" onclick="switchCampaignsTab('community')">Community Posts</div>
+        <div class="tab" data-campaign-tab="settings" onclick="switchCampaignsTab('settings')">Feed Settings</div>
+      </div>
+
+      <div class="campaign-tab-pane active" id="campaigns-tab-campaigns">
  
       <!-- empty state -->
       <div id="campaigns-empty" class="card">
@@ -896,6 +968,50 @@ td.muted{color:var(--muted);font-size:12px}
       <!-- campaigns list (populated after create) -->
       <div id="campaigns-list" style="display:none">
         <div class="card" id="campaigns-table-body"></div>
+      </div>
+      </div>
+
+      <div class="campaign-tab-pane" id="campaigns-tab-official">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Official posts</div></div>
+          <div id="official-posts-body" class="feed-post-list">
+            <div style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No official posts yet</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="campaign-tab-pane" id="campaigns-tab-community">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Community posts</div></div>
+          <div id="community-posts-body" class="feed-post-list">
+            <div style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No community posts yet</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="campaign-tab-pane" id="campaigns-tab-settings">
+        <div class="settings-section feed-settings-card">
+          <div class="settings-header">Campaign feed settings</div>
+          <div class="settings-body">
+            <div class="toggle-row">
+              <div><div class="toggle-label">Allow users to post</div><div class="toggle-sub">Logged-in app users can create community posts.</div></div>
+              <div class="toggle" id="feed-allow-user-posts" onclick="toggleCampaignFeedSetting('allowUserPosts')"></div>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Allow guests to post</div><div class="toggle-sub">Guest-mode users can create community posts.</div></div>
+              <div class="toggle" id="feed-allow-guest-posts" onclick="toggleCampaignFeedSetting('allowGuestPosts')"></div>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Allow guest reactions</div><div class="toggle-sub">Guest-mode users can react to feed posts.</div></div>
+              <div class="toggle" id="feed-allow-guest-reactions" onclick="toggleCampaignFeedSetting('allowGuestReactions')"></div>
+            </div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Allow guest comments</div><div class="toggle-sub">Guest-mode users can comment on feed posts.</div></div>
+              <div class="toggle" id="feed-allow-guest-comments" onclick="toggleCampaignFeedSetting('allowGuestComments')"></div>
+            </div>
+            <div class="feed-settings-note" id="feed-settings-status">Loading feed settings...</div>
+          </div>
+        </div>
       </div>
     </div>
  
@@ -1237,7 +1353,10 @@ let sAllUsers = [];
 let sTypeFilter = 'all';
 let sReplyToKey = null;
 let sReplyToText = '';
+let sReplyToSenderName = '';
+let sReplyToSenderRole = '';
 let sEmojiPickerTarget = null;
+let sCurrentMessages = [];
 
 // Support chat UI
 const S_COLORS = [
@@ -1250,6 +1369,20 @@ const S_COLORS = [
 ];
 const S_SUPPORT_ROLES = ['admin','moderator','superadmin','support'];
 const S_QUICK_REACTIONS = ['+1','love','wow','sad','ok','thanks'];
+const S_REACTION_DISPLAY_MAP = {
+  '+1': '👍',
+  '-1': '👎',
+  heart: '❤️',
+  laugh: '😄',
+  hooray: '🎉',
+  confused: '😕',
+  eyes: '👀',
+  love: '❤️',
+  wow: '😮',
+  sad: '😢',
+  ok: '👌',
+  thanks: '🙏'
+};
 const S_CHAT_SOURCES = [
   { path:'supportChats', defaultType:'support', label:'Support' },
   { path:'userUserChats', defaultType:'user-user', label:'User-User' },
@@ -1283,6 +1416,7 @@ function sRoleClass(role){
   if(role === 'moderator') return 'moderator';
   if(role === 'admin') return 'admin';
   if(role === 'support') return 'support';
+  if(role === 'system') return 'system';
   return 'user';
 }
 
@@ -1322,10 +1456,11 @@ function sInitials(name){
   return clean.substring(0,2).toUpperCase();
 }
 
-function sAvaHtml(label,size=34,isOnline=true){
+function sAvaHtml(label,size=34,isOnline=true,showDot=true){
   const c = sGetColor(label);
   const dotColor = isOnline ? '#22c55e' : '#93c5fd';
-  return `<div class="s-ava" style="width:${size}px;height:${size}px;background:${c.bg};color:${c.fg}">${sInitials(label)}<div class="s-ava-dot" style="background:${dotColor}"></div></div>`;
+  const fontSize = Math.max(11, Math.round(size * 0.35));
+  return `<div class="s-ava" style="width:${size}px;height:${size}px;background:${c.bg};color:${c.fg};font-size:${fontSize}px">${sInitials(label)}${showDot ? `<div class="s-ava-dot" style="background:${dotColor}"></div>` : ''}</div>`;
 }
 
 function sFormatTime(value){
@@ -1357,22 +1492,81 @@ function sReadAttr(encoded){
   catch(_){ return String(encoded || ''); }
 }
 
+function sGetReactionDisplay(reaction){
+  const token = String(reaction || '').trim();
+  if(!token) return '';
+  return S_REACTION_DISPLAY_MAP[token] || token;
+}
+
+function sGetReactionToken(entry){
+  return typeof entry === 'string' ? entry : String(entry?.emoji || '').trim();
+}
+
+function sGetReactionActorRole(){
+  return sGetCurrentSupportRole();
+}
+
+function sGetReactionActorKey(){
+  return window.currentUserProfile?.uid
+    ? `staff_${window.currentUserProfile.uid}`
+    : `staff_${sGetReactionActorRole()}`;
+}
+
+function sGetMyReactionToken(msg){
+  const reactions = msg?.reactions || {};
+  const actorKey = sGetReactionActorKey();
+  const directToken = sGetReactionToken(reactions[actorKey]);
+  if(directToken) return directToken;
+  const matched = Object.entries(reactions).find(([key, val]) => key === actorKey || val?.by === actorKey);
+  return sGetReactionToken(matched?.[1]);
+}
+
 function sGetMessageRole(msg){
   const direct = sNormalizeRole(msg?.senderRole || msg?.role || msg?.senderType);
   if(direct) return direct;
   const senderRaw = String(msg?.sender || '').trim().toLowerCase();
+  const senderNameRaw = String(msg?.senderName || msg?.name || '').trim().toLowerCase();
+  const senderEmailRaw = String(msg?.senderEmail || msg?.email || '').trim().toLowerCase();
+  const senderDisplayRaw = String(msg?.displayName || msg?.username || '').trim().toLowerCase();
+  const senderIdRaw = String(msg?.senderId || '').trim().toLowerCase();
+  const senderMetaRaw = [senderRaw, senderNameRaw, senderEmailRaw, senderDisplayRaw, senderIdRaw].filter(Boolean).join(' ');
+  const textRaw = String(msg?.text || '').trim().toLowerCase();
   if(senderRaw === 'superadmin' || senderRaw === 'super admin') return 'superadmin';
   if(senderRaw === 'moderator' || senderRaw === 'mod') return 'moderator';
   if(senderRaw === 'admin') return 'admin';
   if(senderRaw === 'support') return 'support';
-  if(senderRaw === 'system') return 'system';
+  if(/\b(system|community|bot|announcement)\b/.test(senderMetaRaw)) return 'system';
+  if(msg?.system === true || msg?.isSystem === true) return 'system';
+  if(
+    textRaw.includes('start a conversation with another user') ||
+    textRaw.includes('you are now in user-to-user chat') ||
+    textRaw.includes('you are now connected to admin/moderator/super admin team chat')
+  ) return 'system';
   return 'user';
 }
 
 function sGetSenderName(msg){
+  const role = sGetMessageRole(msg);
+  if(role === 'system') return 'System';
   const known = msg?.senderName || msg?.name || msg?.senderEmail || '';
   if(known) return String(known);
-  return sRoleLabel(sGetMessageRole(msg));
+  return sRoleLabel(role);
+}
+
+function sGetReplyMeta(msg, msgs){
+  if(!msg?.replyTo && !msg?.replyText && !msg?.replyToText) return null;
+  const quoted = msg?.replyTo ? msgs.find(item => item.key === msg.replyTo) : null;
+  const replyText = quoted && !quoted.deleted
+    ? String(quoted.text || '').trim()
+    : String(msg?.replyText || msg?.replyToText || '').trim();
+  if(!replyText) return null;
+  const replySenderName = quoted
+    ? sGetSenderName(quoted)
+    : String(msg?.replySenderName || msg?.replyToSenderName || '').trim();
+  return {
+    text: replyText,
+    senderName: replySenderName
+  };
 }
 
 function sResolveConversationType(chatData,msgs,fallbackType='support'){
@@ -1577,6 +1771,7 @@ function sResetChatPanel(){
   selectedConversationType = 'support';
   selectedChatSource = 'supportChats';
   selectedConversationKey = '';
+  sCurrentMessages = [];
   if(typeof detachChatListener === 'function'){ detachChatListener(); detachChatListener = null; }
   const headerAva = document.getElementById('s-header-ava');
   const headerName = document.getElementById('s-header-name');
@@ -1595,6 +1790,8 @@ function sResetChatPanel(){
       '</div>';
   }
   sClearReply();
+  sCloseEmojiPicker();
+  sCloseMsgMenu();
   sUpdateComposerState();
 }
 
@@ -1607,7 +1804,7 @@ function openChat(userId, email, forcedType, sourcePath = 'supportChats') {
   selectedConversationType = forcedType || conversation?.type || 'support';
   selectedChatSource = conversation?.sourcePath || sourcePath || 'supportChats';
   selectedConversationKey = conversation?.conversationKey || lookupKey;
-  document.getElementById('s-header-ava').innerHTML = sAvaHtml(selectedUserEmail, 30);
+  document.getElementById('s-header-ava').innerHTML = sAvaHtml(conversation?.displayName || selectedUserEmail, 30);
   document.getElementById('s-header-name').textContent = conversation?.displayName || selectedUserEmail;
   document.getElementById('s-header-status').textContent = 'Loading messages...';
   document.getElementById('s-header-chat-type').textContent = sTypeLabel(selectedConversationType);
@@ -1626,6 +1823,7 @@ function openChat(userId, email, forcedType, sourcePath = 'supportChats') {
     const msgs = Object.entries(data)
       .map(([key, val]) => ({ key, ...(val || {}) }))
       .sort((a, b) => (a.time || 0) - (b.time || 0));
+    sCurrentMessages = msgs;
 
     selectedConversationType = conversation?.type || sResolveConversationType({type:selectedConversationType}, msgs);
     document.getElementById('s-header-chat-type').textContent = sTypeLabel(selectedConversationType);
@@ -1653,7 +1851,8 @@ function openChat(userId, email, forcedType, sourcePath = 'supportChats') {
       }
 
       const role = sGetMessageRole(msg);
-      const isOut = sIsSupportRole(role);
+      const isSystem = role === 'system';
+      const isOut = !isSystem && sIsSupportRole(role);
       const senderName = sGetSenderName(msg);
       const senderColor = sGetColor(senderName);
       const time = sFormatTime(msg.time);
@@ -1661,64 +1860,74 @@ function openChat(userId, email, forcedType, sourcePath = 'supportChats') {
       const roleClass = sRoleClass(role);
 
       const row = document.createElement('div');
-      row.className = 's-msg-row ' + (isOut ? 's-out' : 's-in');
+      row.className = 's-msg-row ' + (isSystem ? 's-system' : (isOut ? 's-out' : 's-in'));
       row.dataset.msgKey = msg.key;
       row.dataset.msgText = msg.text || '';
 
-      let quoteHtml = '';
-      if (msg.replyTo) {
-        const quoted = msgs.find(m => m.key === msg.replyTo);
-        if (quoted && !quoted.deleted) {
-          quoteHtml = `<div class="s-reply-quote">Reply: ${escHtml(sShortText(quoted.text || '', 70))}</div>`;
-        }
-      }
+      const replyMeta = sGetReplyMeta(msg, msgs);
+      const quoteHtml = replyMeta
+        ? `<div class="s-reply-quote"><div class="s-reply-quote-label">${escHtml(replyMeta.senderName ? `Reply to ${replyMeta.senderName}` : 'Reply')}</div><div class="s-reply-quote-text">${escHtml(sShortText(replyMeta.text, 70))}</div></div>`
+        : '';
 
       const reactionValues = msg.reactions ? Object.values(msg.reactions) : [];
       const reactionMap = {};
+      const myReactionToken = sGetMyReactionToken(msg);
       reactionValues.forEach(val => {
-        const token = typeof val === 'string' ? val : val?.emoji;
+        const token = sGetReactionToken(val);
         if(!token) return;
         reactionMap[token] = (reactionMap[token] || 0) + 1;
       });
       const reactionHtml = Object.keys(reactionMap).length
-        ? `<div class="s-reaction-bar">${Object.entries(reactionMap).map(([emoji, count]) =>
-            `<div class="s-reaction" onclick="sToggleReaction('${msg.key}','${sEscapeAttr(emoji)}',true)">${escHtml(emoji)}<span class="s-reaction-count">${count}</span></div>`
+        ? `<div class="s-reaction-bar">${Object.entries(reactionMap).map(([reactionKey, count]) =>
+            `<div class="s-reaction${reactionKey === myReactionToken ? ' active' : ''}" onclick="sToggleReaction('${msg.key}','${sEscapeAttr(reactionKey)}',true)">${escHtml(sGetReactionDisplay(reactionKey))}<span class="s-reaction-count">${count}</span></div>`
           ).join('')}</div>`
         : '';
 
       const encodedReplyText = sEscapeAttr(msg.text || '');
-      const actionsHtml = `
+      const actionsHtml = !isSystem && !msg.deleted ? `
         <div class="s-msg-actions">
-          <button class="s-msg-act-btn" title="React" onclick="sShowEmojiPicker(event,'${msg.key}')">R</button>
-          <button class="s-msg-act-btn" title="Reply" onclick="sSetReply('${msg.key}','${encodedReplyText}',true)">Re</button>
-          ${!msg.deleted ? `<button class="s-msg-act-btn danger" title="Delete" onclick="sDeleteMsg('${userId}','${msg.key}')">Del</button>` : ''}
-        </div>`;
+          <button type="button" class="s-msg-menu-btn" title="More actions" aria-label="More actions" onclick="sShowMsgMenu(event,'${userId}','${msg.key}','${encodedReplyText}')">&#8942;</button>
+        </div>` : '';
 
       const bubbleContent = msg.deleted
         ? '<span class="s-deleted-msg">Message deleted</span>'
         : escHtml(msg.text || '');
-      const metaHtml = `<div class="s-msg-meta"><span class="s-msg-sender">${escHtml(senderName)}</span><span class="s-msg-role ${roleClass}">${roleLabel}</span></div>`;
+      const metaHtml =
+        `<div class="s-msg-meta">` +
+          `<span class="s-msg-sender">${escHtml(senderName)}</span>` +
+          `${role === 'user' ? '' : `<span class="s-msg-role ${roleClass}">${roleLabel}</span>`}` +
+        `</div>`;
 
-      if (!isOut) {
+      if (isSystem) {
+        row.innerHTML =
+          `<div class="s-bubble-wrap">` +
+            `<div class="s-bubble">${bubbleContent}</div>` +
+            `<div class="s-msg-time">${time}</div>` +
+          `</div>`;
+      } else if (!isOut) {
         row.innerHTML =
           `<div class="s-msg-ava" style="background:${senderColor.bg};color:${senderColor.fg}">${sInitials(senderName)}</div>` +
-          `<div class="s-bubble-wrap">` +
+          `<div class="s-msg-main">` +
             `${metaHtml}` +
             `${quoteHtml}` +
-            `<div class="s-bubble">${bubbleContent}</div>` +
+            `<div class="s-msg-content-row">` +
+              `<div class="s-bubble">${bubbleContent}</div>` +
+              `${actionsHtml}` +
+            `</div>` +
             `${reactionHtml}` +
-            `<div class="s-msg-time">${time}</div>` +
-            `${actionsHtml}` +
+            `<div class="s-msg-footer"><div class="s-msg-time">${time}</div></div>` +
           `</div>`;
       } else {
         row.innerHTML =
-          `<div class="s-bubble-wrap">` +
+          `<div class="s-msg-main">` +
             `${metaHtml}` +
             `${quoteHtml}` +
-            `<div class="s-bubble">${bubbleContent}</div>` +
+            `<div class="s-msg-content-row">` +
+              `${actionsHtml}` +
+              `<div class="s-bubble">${bubbleContent}</div>` +
+            `</div>` +
             `${reactionHtml}` +
-            `<div class="s-msg-time">${time}</div>` +
-            `${actionsHtml}` +
+            `<div class="s-msg-footer"><div class="s-msg-time">${time}</div></div>` +
           `</div>`;
       }
       box.appendChild(row);
@@ -1726,6 +1935,7 @@ function openChat(userId, email, forcedType, sourcePath = 'supportChats') {
 
     box.scrollTop = box.scrollHeight;
     sCloseEmojiPicker();
+    sCloseMsgMenu();
   });
 }
 
@@ -1733,8 +1943,11 @@ function handleSend(){sSendAdminMessage();}
 
 function sSetReply(key, text, encoded = false) {
   const decoded = encoded ? sReadAttr(text) : String(text || '');
+  const source = sCurrentMessages.find(msg => msg.key === key) || {};
   sReplyToKey = key;
   sReplyToText = decoded;
+  sReplyToSenderName = sGetSenderName(source);
+  sReplyToSenderRole = sGetMessageRole(source);
   let preview = document.getElementById('s-reply-preview');
   if (!preview) {
     preview = document.createElement('div');
@@ -1744,13 +1957,20 @@ function sSetReply(key, text, encoded = false) {
     if(!inputBar) return;
     inputBar.insertBefore(preview, inputBar.firstChild);
   }
-  preview.innerHTML = `<span class="s-reply-preview-text">Replying to: ${escHtml(sShortText(decoded, 80))}</span><button class="s-reply-preview-close" onclick="sClearReply()">x</button>`;
+  preview.innerHTML =
+    `<div class="s-reply-preview-copy">` +
+      `<div class="s-reply-preview-label">${escHtml(sReplyToSenderName ? `Replying to ${sShortText(sReplyToSenderName, 40)}` : 'Replying to message')}</div>` +
+      `<div class="s-reply-preview-text">${escHtml(sShortText(decoded, 80))}</div>` +
+    `</div>` +
+    `<button class="s-reply-preview-close" onclick="sClearReply()">x</button>`;
   document.getElementById('adminMessage').focus();
 }
 
 function sClearReply() {
   sReplyToKey = null;
   sReplyToText = '';
+  sReplyToSenderName = '';
+  sReplyToSenderRole = '';
   const preview = document.getElementById('s-reply-preview');
   if (preview) preview.remove();
 }
@@ -1758,19 +1978,24 @@ function sClearReply() {
 async function sDeleteMsg(userId, msgKey) {
   if (!confirm('Delete this message?')) return;
   try {
-    const role = sGetCurrentSupportRole();
-    const senderName = window.currentUserProfile?.username || window.currentUserProfile?.email || sRoleLabel(role);
     const root = selectedChatSource || 'supportChats';
+    const original = sCurrentMessages.find(msg => msg.key === msgKey) || {};
+    const { key, ...persisted } = original;
+    const originalRole = sGetMessageRole(original);
+    const senderName = persisted.senderName || persisted.name || persisted.senderEmail || sGetSenderName(original);
     const ref = window.firebaseRef(window.firebaseDb, `${root}/${userId}/messages/${msgKey}`);
     await window.firebaseSet(ref, {
-      deleted: true,
-      sender: 'admin',
-      senderRole: role,
+      ...persisted,
+      sender: persisted.sender || (sIsSupportRole(originalRole) ? 'admin' : 'user'),
+      senderRole: persisted.senderRole || persisted.role || originalRole,
       senderName,
-      senderId: window.currentUserProfile?.uid || 'admin-web',
-      time: Date.now(),
+      senderId: persisted.senderId || '',
+      deleted: true,
+      deletedAt: Date.now(),
+      time: persisted.time || Date.now(),
       text: ''
     });
+    sCloseMsgMenu();
     showToast('Message deleted');
   } catch (err) {
     console.error('Delete msg error:', err);
@@ -1778,10 +2003,12 @@ async function sDeleteMsg(userId, msgKey) {
   }
 }
 
-function sShowEmojiPicker(event, msgKey) {
-  event.stopPropagation();
+function sOpenEmojiPicker(anchorEl, msgKey) {
   sCloseEmojiPicker();
+  sCloseMsgMenu();
   sEmojiPickerTarget = msgKey;
+  const message = sCurrentMessages.find(msg => msg.key === msgKey) || null;
+  const activeReaction = sGetMyReactionToken(message);
 
   const picker = document.createElement('div');
   picker.className = 's-emoji-picker';
@@ -1791,7 +2018,10 @@ function sShowEmojiPicker(event, msgKey) {
 
   S_QUICK_REACTIONS.forEach(emoji => {
     const btn = document.createElement('button');
-    btn.textContent = emoji;
+    btn.textContent = sGetReactionDisplay(emoji);
+    btn.title = emoji;
+    btn.setAttribute('aria-label', `React with ${sGetReactionDisplay(emoji)}`);
+    if (emoji === activeReaction) btn.classList.add('active');
     btn.onclick = (e) => { e.stopPropagation(); sToggleReaction(msgKey, emoji); sCloseEmojiPicker(); };
     picker.appendChild(btn);
   });
@@ -1799,7 +2029,7 @@ function sShowEmojiPicker(event, msgKey) {
   document.body.appendChild(picker);
 
   // Position AFTER appending so offsetHeight is known
-  const rect = event.target.getBoundingClientRect();
+  const rect = anchorEl.getBoundingClientRect();
   const pickerH = picker.offsetHeight || 80;
   const pickerW = picker.offsetWidth || 180;
   const top = rect.top - pickerH - 8;
@@ -1810,19 +2040,97 @@ function sShowEmojiPicker(event, msgKey) {
   setTimeout(() => document.addEventListener('click', sCloseEmojiPicker, { once: true }), 0);
 }
 
+function sShowEmojiPicker(event, msgKey) {
+  event.stopPropagation();
+  sOpenEmojiPicker(event.currentTarget || event.target, msgKey);
+}
+
 function sCloseEmojiPicker() {
   const p = document.getElementById('s-emoji-picker');
   if (p) p.remove();
+}
+
+function sShowMsgMenu(event, userId, msgKey, encodedReplyText) {
+  event.stopPropagation();
+  const anchor = event.currentTarget || event.target;
+  const existing = document.getElementById('s-msg-menu');
+  if (existing && existing.dataset.msgKey === msgKey) {
+    sCloseMsgMenu();
+    return;
+  }
+
+  sCloseMsgMenu();
+  sCloseEmojiPicker();
+
+  const menu = document.createElement('div');
+  menu.className = 's-msg-menu';
+  menu.id = 's-msg-menu';
+  menu.dataset.msgKey = msgKey;
+
+  const reactBtn = document.createElement('button');
+  reactBtn.type = 'button';
+  reactBtn.textContent = 'React';
+  reactBtn.onclick = (e) => {
+    e.stopPropagation();
+    sCloseMsgMenu();
+    sOpenEmojiPicker(anchor, msgKey);
+  };
+  menu.appendChild(reactBtn);
+
+  const replyBtn = document.createElement('button');
+  replyBtn.type = 'button';
+  replyBtn.textContent = 'Reply';
+  replyBtn.onclick = (e) => {
+    e.stopPropagation();
+    sCloseMsgMenu();
+    sSetReply(msgKey, encodedReplyText, true);
+  };
+  menu.appendChild(replyBtn);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'danger';
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.onclick = (e) => {
+    e.stopPropagation();
+    sCloseMsgMenu();
+    sDeleteMsg(userId, msgKey);
+  };
+  menu.appendChild(deleteBtn);
+
+  document.body.appendChild(menu);
+
+  const rect = anchor.getBoundingClientRect();
+  const menuH = menu.offsetHeight || 124;
+  const menuW = menu.offsetWidth || 144;
+  const roomBelow = window.innerHeight - rect.bottom;
+  const top = roomBelow >= menuH + 8 ? rect.bottom + 6 : rect.top - menuH - 6;
+  const left = Math.min(rect.right - menuW, window.innerWidth - menuW - 8);
+  menu.style.top = Math.max(8, top) + 'px';
+  menu.style.left = Math.max(8, left) + 'px';
+
+  setTimeout(() => document.addEventListener('click', sCloseMsgMenu, { once: true }), 0);
+}
+
+function sCloseMsgMenu() {
+  const menu = document.getElementById('s-msg-menu');
+  if (menu) menu.remove();
 }
 
 async function sToggleReaction(msgKey, emoji, encoded = false) {
   if (!selectedUserId) return;
   try {
     const token = encoded ? sReadAttr(emoji) : emoji;
-    const actorRole = sGetCurrentSupportRole();
-    const actorKey = window.currentUserProfile?.uid ? `staff_${window.currentUserProfile.uid}` : `staff_${actorRole}`;
+    const actorRole = sGetReactionActorRole();
+    const actorKey = sGetReactionActorKey();
     const root = selectedChatSource || 'supportChats';
     const reactionRef = window.firebaseRef(window.firebaseDb, `${root}/${selectedUserId}/messages/${msgKey}/reactions/${actorKey}`);
+    const message = sCurrentMessages.find(msg => msg.key === msgKey) || null;
+    const existingToken = sGetMyReactionToken(message);
+    if (existingToken && existingToken === token) {
+      await window.firebaseRemove(reactionRef);
+      return;
+    }
     await window.firebaseSet(reactionRef, { emoji: token, by: actorKey, role: actorRole, time: Date.now() });
   } catch (err) {
     console.error('Reaction error:', err);
@@ -1850,8 +2158,18 @@ function sSendAdminMessage() {
     time: Date.now(),
     read: false
   };
-  if (sReplyToKey) { payload.replyTo = sReplyToKey; }
+  if (sReplyToKey) {
+    payload.replyTo = sReplyToKey;
+    payload.replyText = sReplyToText;
+    payload.replySenderName = sReplyToSenderName;
+    payload.replySenderRole = sReplyToSenderRole;
+  }
+  const conversationRef = window.firebaseRef(window.firebaseDb, `${root}/${selectedUserId}`);
   window.firebaseSet(newMsg, payload)
+    .then(() => window.firebaseUpdate(conversationRef, {
+      updatedAt: payload.time,
+      lastMessage: payload
+    }))
     .then(() => { input.value = ''; input.focus(); sClearReply(); sUpdateComposerState(); })
     .catch(err => { console.error('Support send failed:', err); showToast('Failed to send message.'); });
 }
@@ -1927,6 +2245,15 @@ function refreshRender(){
 let checks=[true,false,false,false,false];
 let campaigns=[];
 let teamMembers=[];
+const campaignFeedSettingsDefaults = {
+  allowUserPosts: true,
+  allowGuestPosts: false,
+  allowGuestReactions: true,
+  allowGuestComments: true
+};
+let campaignFeedSettings = {...campaignFeedSettingsDefaults};
+let campaignFeedSettingsExists = false;
+let campaignFeedPosts = [];
  
 function nav(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -1957,8 +2284,12 @@ document.querySelectorAll('.modal-bg').forEach(m=>{
   m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')});
 });
  
-function showToast(msg){
+function showToast(msg, type = 'success'){
   const t=document.getElementById('toast');
+  const icon=t.querySelector('span');
+  t.classList.remove('success','error');
+  t.classList.add(type === 'error' ? 'error' : 'success');
+  if(icon) icon.textContent = type === 'error' ? '!' : '✓';
   document.getElementById('toast-msg').textContent=msg;
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),3000);
@@ -2424,8 +2755,367 @@ function canInviteUsers(){
   return ['Super Admin','Admin'].includes(currentRole());
 }
 
+function canManageFeedSettings(){
+  return ['Super Admin','Admin'].includes(currentRole());
+}
+
+function isAdminRoleForFirestore(role){
+  const key = String(role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  return key === 'admin' || key === 'super_admin' || key === 'superadmin';
+}
+
+async function readCurrentFirestoreRoleState(user){
+  const state = {
+    userPath: user?.uid ? `users/${user.uid}` : '',
+    exists: false,
+    role: '',
+    roleKey: '',
+    email: '',
+    readErrorCode: '',
+    readErrorMessage: ''
+  };
+
+  if(!user || !window.firebaseDoc || !window.firebaseGetDoc || !window.firebaseFirestore){
+    state.readErrorMessage = 'Firestore SDK is not ready.';
+    return state;
+  }
+
+  try {
+    const userRef = window.firebaseDoc(window.firebaseFirestore, 'users', user.uid);
+    const snapshot = await window.firebaseGetDoc(userRef);
+    state.exists = snapshot.exists();
+    if(snapshot.exists()){
+      const data = snapshot.data() || {};
+      state.role = data.role || '';
+      state.roleKey = data.roleKey || '';
+      state.email = data.email || '';
+    }
+  } catch(err){
+    state.readErrorCode = err?.code || '';
+    state.readErrorMessage = err?.message || String(err);
+  }
+
+  return state;
+}
+
+async function buildCampaignFeedPermissionContext(user){
+  const tokenState = {
+    role: '',
+    readErrorCode: '',
+    readErrorMessage: ''
+  };
+
+  try {
+    const token = window.firebaseGetIdTokenResult
+      ? await window.firebaseGetIdTokenResult(user, false)
+      : null;
+    tokenState.role = token?.claims?.role || '';
+  } catch(err){
+    tokenState.readErrorCode = err?.code || '';
+    tokenState.readErrorMessage = err?.message || String(err);
+  }
+
+  const firestoreRole = await readCurrentFirestoreRoleState(user);
+  const context = {
+    uid: user.uid,
+    email: user.email || '',
+    uiRole: currentRole(),
+    tokenRole: tokenState.role,
+    tokenRoleErrorCode: tokenState.readErrorCode,
+    tokenRoleErrorMessage: tokenState.readErrorMessage,
+    firestoreUserPath: firestoreRole.userPath,
+    firestoreUserExists: firestoreRole.exists,
+    firestoreRole: firestoreRole.role,
+    firestoreRoleKey: firestoreRole.roleKey,
+    firestoreRoleReadErrorCode: firestoreRole.readErrorCode,
+    firestoreRoleReadErrorMessage: firestoreRole.readErrorMessage,
+    settingsPath: 'app_settings/campaign_feed'
+  };
+  context.hasFirestoreAdminRole =
+    isAdminRoleForFirestore(context.firestoreRole) ||
+    isAdminRoleForFirestore(context.firestoreRoleKey) ||
+    isAdminRoleForFirestore(context.tokenRole);
+  return context;
+}
+
 function canViewTeam(){
   return ['Super Admin','Admin'].includes(currentRole());
+}
+
+function switchCampaignsTab(tab){
+  document.querySelectorAll('[data-campaign-tab]').forEach(el => {
+    el.classList.toggle('active', el.dataset.campaignTab === tab);
+  });
+  document.querySelectorAll('.campaign-tab-pane').forEach(el => {
+    el.classList.toggle('active', el.id === 'campaigns-tab-' + tab);
+  });
+
+  const newCampaignButton = document.getElementById('btn-new-campaign-campaigns');
+  if(newCampaignButton){
+    newCampaignButton.style.display = tab === 'campaigns' && canManageCampaigns() ? '' : 'none';
+  }
+
+  const sub = document.getElementById('campaigns-sub');
+  if(sub){
+    if(tab === 'settings'){
+      sub.textContent = canManageFeedSettings()
+        ? 'Control who can create campaign feed posts'
+        : 'Feed settings are read only for your role';
+    } else if(tab === 'official'){
+      const count = campaignFeedPosts.filter(isOfficialFeedPost).length;
+      sub.textContent = `${count} official post${count === 1 ? '' : 's'}`;
+    } else if(tab === 'community'){
+      const count = campaignFeedPosts.filter(post => !isOfficialFeedPost(post)).length;
+      sub.textContent = `${count} community post${count === 1 ? '' : 's'}`;
+    } else {
+      const visibleCampaigns = getAccessibleCampaigns();
+      sub.textContent = visibleCampaigns.length === 0
+        ? (campaigns.length === 0 ? 'No campaigns yet' : 'No visible campaigns')
+        : visibleCampaigns.length+' campaign'+(visibleCampaigns.length>1?'s':'');
+    }
+  }
+}
+
+function normalizeCampaignFeedSettings(data){
+  const source = data || {};
+  return {
+    allowUserPosts: typeof source.allowUserPosts === 'boolean' ? source.allowUserPosts : campaignFeedSettingsDefaults.allowUserPosts,
+    allowGuestPosts: typeof source.allowGuestPosts === 'boolean' ? source.allowGuestPosts : campaignFeedSettingsDefaults.allowGuestPosts,
+    allowGuestReactions: typeof source.allowGuestReactions === 'boolean' ? source.allowGuestReactions : campaignFeedSettingsDefaults.allowGuestReactions,
+    allowGuestComments: typeof source.allowGuestComments === 'boolean' ? source.allowGuestComments : campaignFeedSettingsDefaults.allowGuestComments
+  };
+}
+
+function bindFeedSettingToggle(id, enabled, editable){
+  const toggle = document.getElementById(id);
+  if(!toggle) return;
+  toggle.classList.toggle('on', !!enabled);
+  toggle.classList.toggle('disabled', !editable);
+  toggle.setAttribute('aria-checked', enabled ? 'true' : 'false');
+  toggle.setAttribute('aria-disabled', editable ? 'false' : 'true');
+}
+
+function renderCampaignFeedSettings(){
+  const editable = canManageFeedSettings();
+  bindFeedSettingToggle('feed-allow-user-posts', campaignFeedSettings.allowUserPosts, editable);
+  bindFeedSettingToggle('feed-allow-guest-posts', campaignFeedSettings.allowGuestPosts, editable);
+  bindFeedSettingToggle('feed-allow-guest-reactions', campaignFeedSettings.allowGuestReactions, editable);
+  bindFeedSettingToggle('feed-allow-guest-comments', campaignFeedSettings.allowGuestComments, editable);
+
+  const status = document.getElementById('feed-settings-status');
+  if(status){
+    const updatedText = campaignFeedSettingsExists
+      ? 'Settings are synced from Firestore app_settings/campaign_feed.'
+      : 'Using default settings until Firestore app_settings/campaign_feed is readable.';
+    status.textContent = editable
+      ? updatedText
+      : updatedText + ' Only Admin and Super Admin can change these switches.';
+  }
+}
+
+async function ensureAdminFirestoreAccess(){
+  const user = await window.firebaseAuthReady;
+  if(!user){
+    console.error('Feed settings save blocked: no authenticated Firebase user.');
+    return { ok: false, user: null, context: null };
+  }
+
+  const context = await buildCampaignFeedPermissionContext(user);
+  console.log('Campaign feed Firestore permission context:', context);
+
+  if(!canManageFeedSettings()){
+    console.error(
+      'Feed settings save blocked: current Web Admin profile is not Admin/Super Admin.',
+      context,
+      window.currentUserProfile
+    );
+    return { ok: false, user, context };
+  }
+
+  if(!context.hasFirestoreAdminRole){
+    console.warn(
+      'Firestore rules do not currently see an admin/super_admin role for this user. ' +
+      'The write will still be attempted so the exact Firebase permission error is logged.',
+      context
+    );
+  }
+
+  return { ok: true, user, context };
+}
+
+async function ensureDefaultCampaignFeedSettings(){
+  if(!campaignFeedSettingsExists){
+    console.warn(
+      'Campaign feed settings document is not currently readable at app_settings/campaign_feed. ' +
+      'It will not be auto-created from the Web Admin.'
+    );
+  }
+}
+
+async function toggleCampaignFeedSetting(field){
+  if(!Object.prototype.hasOwnProperty.call(campaignFeedSettingsDefaults, field)){
+    return;
+  }
+  if(!canManageFeedSettings()){
+    showToast('Only Admin and Super Admin can change feed settings.', 'error');
+    return;
+  }
+  if(!window.firebaseSetDoc || !window.firebaseCampaignFeedSettingsRef || !window.firebaseServerTimestamp){
+    showToast('Feed settings are still loading. Please try again.', 'error');
+    return;
+  }
+
+  const nextValue = !campaignFeedSettings[field];
+  const previous = {...campaignFeedSettings};
+  campaignFeedSettings = {...campaignFeedSettings, [field]: nextValue};
+  renderCampaignFeedSettings();
+
+  try {
+    const access = await ensureAdminFirestoreAccess();
+    if(!access.ok || !access.user){
+      throw new Error('Current user cannot manage campaign feed settings.');
+    }
+    console.log('Saving campaign feed setting:', {
+      path: 'app_settings/campaign_feed',
+      settingKey: field,
+      value: nextValue,
+      uid: access.user.uid,
+      email: access.user.email || '',
+      uiRole: access.context?.uiRole || '',
+      firestoreRole: access.context?.firestoreRole || '',
+      firestoreRoleKey: access.context?.firestoreRoleKey || '',
+      tokenRole: access.context?.tokenRole || ''
+    });
+    await window.firebaseSetDoc(window.firebaseCampaignFeedSettingsRef, {
+      [field]: nextValue,
+      updatedAt: window.firebaseServerTimestamp(),
+      updatedBy: access.user.uid
+    }, { merge: true });
+    showToast('Feed setting saved.', 'success');
+  } catch(err){
+    console.error('Unable to save feed setting', {
+      path: 'app_settings/campaign_feed',
+      settingKey: field,
+      attemptedValue: nextValue,
+      code: err?.code || '',
+      message: err?.message || String(err),
+      error: err
+    });
+    campaignFeedSettings = previous;
+    renderCampaignFeedSettings();
+    showToast('Unable to save feed setting. Please check your permissions.', 'error');
+  }
+}
+
+function watchCampaignFeedSettings(){
+  if(!window.firebaseCampaignFeedSettingsRef || !window.firebaseOnFirestoreSnapshot){
+    console.warn('Firestore feed settings ref not initialized');
+    return;
+  }
+
+  window.firebaseOnFirestoreSnapshot(window.firebaseCampaignFeedSettingsRef, snapshot => {
+    campaignFeedSettingsExists = snapshot.exists();
+    campaignFeedSettings = normalizeCampaignFeedSettings(snapshot.exists() ? snapshot.data() : null);
+    renderCampaignFeedSettings();
+    ensureDefaultCampaignFeedSettings();
+  }, error => {
+    console.error('Campaign feed settings listener error', error);
+    campaignFeedSettings = {...campaignFeedSettingsDefaults};
+    renderCampaignFeedSettings();
+    showToast('Unable to load campaign feed settings.', 'error');
+  });
+}
+
+function isOfficialFeedPost(post){
+  const category = String(post?.category || '').toLowerCase();
+  const role = String(post?.authorRole || '').toLowerCase();
+  const type = String(post?.postType || '').toLowerCase();
+  return category === 'official' || role === 'admin' || role === 'super_admin' || type === 'live_campaign';
+}
+
+function feedPostTimestamp(value){
+  if(value && typeof value.toDate === 'function'){
+    return value.toDate().getTime();
+  }
+  if(typeof value === 'number') return value;
+  return 0;
+}
+
+function feedPostInitials(name){
+  return String(name || 'HG')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part.charAt(0).toUpperCase())
+    .join('') || 'HG';
+}
+
+function escapeHtml(value){
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderCampaignFeedPostList(targetId, posts, emptyText){
+  const target = document.getElementById(targetId);
+  if(!target) return;
+  if(posts.length === 0){
+    target.innerHTML = `<div style="text-align:center;padding:28px;color:var(--hint);font-size:13px">${emptyText}</div>`;
+    return;
+  }
+
+  target.innerHTML = posts.map(post => {
+    const author = post.authorName || 'HopeGive';
+    const createdAt = feedPostTimestamp(post.createdAt);
+    const dateText = createdAt ? new Date(createdAt).toLocaleString() : 'Recently';
+    const text = post.text || (post.postType === 'live_campaign' ? post.campaignTitle || 'Live campaign update' : 'Photo update');
+    return `
+      <div class="feed-post-row">
+        <div class="feed-post-avatar">${escapeHtml(feedPostInitials(author))}</div>
+        <div class="feed-post-content">
+          <div class="feed-post-title">${escapeHtml(author)}</div>
+          <div class="feed-post-meta">${escapeHtml(post.category || 'community')} · ${escapeHtml(post.postType || 'note')} · ${escapeHtml(dateText)}</div>
+          <div class="feed-post-text">${escapeHtml(text)}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderCampaignFeedPosts(){
+  const officialPosts = campaignFeedPosts.filter(isOfficialFeedPost);
+  const communityPosts = campaignFeedPosts.filter(post => !isOfficialFeedPost(post));
+  renderCampaignFeedPostList('official-posts-body', officialPosts, 'No official posts yet');
+  renderCampaignFeedPostList('community-posts-body', communityPosts, 'No community posts yet');
+
+  const activeTab = document.querySelector('[data-campaign-tab].active')?.dataset?.campaignTab;
+  if(activeTab === 'official' || activeTab === 'community'){
+    switchCampaignsTab(activeTab);
+  }
+}
+
+function watchCampaignFeedPosts(){
+  if(!window.firebaseCampaignFeedPostsRef || !window.firebaseOnFirestoreSnapshot || !window.firebaseQuery || !window.firebaseOrderBy){
+    console.warn('Firestore campaign feed posts ref not initialized');
+    return;
+  }
+
+  const postsQuery = window.firebaseQuery(
+    window.firebaseCampaignFeedPostsRef,
+    window.firebaseOrderBy('createdAt', 'desc')
+  );
+
+  window.firebaseOnFirestoreSnapshot(postsQuery, snapshot => {
+    campaignFeedPosts = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+    renderCampaignFeedPosts();
+  }, error => {
+    console.error('Campaign feed posts listener error', error);
+    campaignFeedPosts = [];
+    renderCampaignFeedPosts();
+  });
 }
 
 function openCampaignModal(key){
@@ -2687,6 +3377,7 @@ function renderCampaigns(){
   const list=document.getElementById('campaigns-list');
   const sub=document.getElementById('campaigns-sub');
   const body=document.getElementById('campaigns-table-body');
+  const activeCampaignTab = document.querySelector('[data-campaign-tab].active')?.dataset?.campaignTab || 'campaigns';
   
   // Safe DOM check
   if(!empty || !list || !sub || !body){
@@ -2706,6 +3397,7 @@ function renderCampaigns(){
     empty.style.display='';
     list.style.display='none';
     sub.textContent = campaigns.length === 0 ? 'No campaigns yet' : 'No visible campaigns';
+    if(activeCampaignTab !== 'campaigns') switchCampaignsTab(activeCampaignTab);
     return;
   }
   
@@ -2749,6 +3441,7 @@ function renderCampaigns(){
  
   renderDashboardOverview();
   renderEmergencyCard();
+  if(activeCampaignTab !== 'campaigns') switchCampaignsTab(activeCampaignTab);
   console.log(`✓ Rendered ${visibleCampaigns.length} campaigns to UI`);
 }
  
@@ -2945,6 +3638,8 @@ function applyRoleRestrictions(role){
   if(btnConfigure) btnConfigure.style.display = isAdmin ? '' : 'none';
   if(btnInvite) btnInvite.style.display = isAdmin ? '' : 'none';
   if(btnInviteFirst) btnInviteFirst.style.display = isAdmin ? '' : 'none';
+  renderCampaignFeedSettings();
+  ensureDefaultCampaignFeedSettings();
 
   if(!isAdmin){
     const navToHide = [document.getElementById('nav-users'), document.getElementById('nav-settings')];
@@ -3155,6 +3850,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     console.log('📽️ Watching campaigns...');
     watchCampaigns();
+    watchCampaignFeedSettings();
+    watchCampaignFeedPosts();
     
     console.log('👥 Watching users...');
     watchUsers();

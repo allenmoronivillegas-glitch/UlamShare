@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isImage() {
+      return request.resource != null
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /campaign_posts/{postId}/post_image.jpg {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && isImage()
+        && request.resource.size < 10 * 1024 * 1024;
+      allow delete: if signedIn();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

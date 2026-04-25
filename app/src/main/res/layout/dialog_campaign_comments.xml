@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/tvCommentsTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/choose_campaign_comments_title"
+        android:textColor="@color/text_black"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvCommentsSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/choose_campaign_comments_subtitle"
+        android:textColor="@color/text_grey"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/tvCommentsEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/rounded_soft_blue_rect"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="@string/choose_campaign_comments_empty"
+        android:textColor="@color/text_grey"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvComments"
+        android:layout_width="match_parent"
+        android:layout_height="260dp"
+        android:layout_marginTop="16dp"
+        android:nestedScrollingEnabled="false" />
+
+    <EditText
+        android:id="@+id/etCommentInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/rounded_edittext"
+        android:hint="@string/choose_campaign_comment_hint"
+        android:importantForAutofill="no"
+        android:inputType="textCapSentences|textMultiLine"
+        android:maxLines="4"
+        android:minHeight="52dp"
+        android:padding="14dp"
+        android:textColor="@color/text_black"
+        android:textColorHint="@color/text_grey" />
+
+    <TextView
+        android:id="@+id/btnSendComment"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_marginTop="14dp"
+        android:background="@drawable/bg_support_send"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:text="@string/choose_campaign_send_comment"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

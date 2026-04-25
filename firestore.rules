@@ -1,0 +1,210 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isGuest() {
+      return signedIn()
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userRole() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? userDoc().data.role
+        : '';
+    }
+
+    function userRoleKey() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? userDoc().data.roleKey
+        : '';
+    }
+
+    function tokenRole() {
+      return signedIn() && request.auth.token.role != null
+        ? request.auth.token.role
+        : '';
+    }
+
+    function isAdminRole(role) {
+      return role in [
+        'Admin',
+        'admin',
+        'ADMIN',
+        'Super Admin',
+        'super admin',
+        'SuperAdmin',
+        'super_admin',
+        'SUPER_ADMIN',
+        'superadmin'
+      ];
+    }
+
+    function isAdmin() {
+      return signedIn() && (isAdminRole(userRole()) || isAdminRole(userRoleKey()) || isAdminRole(tokenRole()));
+    }
+
+    function feedSettings() {
+      return get(/databases/$(database)/documents/app_settings/campaign_feed).data;
+    }
+
+    function hasFeedSettings() {
+      return exists(/databases/$(database)/documents/app_settings/campaign_feed);
+    }
+
+    function allowUserPosts() {
+      return !hasFeedSettings() || feedSettings().allowUserPosts == true;
+    }
+
+    function allowGuestPosts() {
+      return hasFeedSettings() && feedSettings().allowGuestPosts == true;
+    }
+
+    function allowGuestReactions() {
+      return !hasFeedSettings() || feedSettings().allowGuestReactions == true;
+    }
+
+    function allowGuestComments() {
+      return !hasFeedSettings() || feedSettings().allowGuestComments == true;
+    }
+
+    function validPostBase(postId) {
+      return signedIn()
+        && request.resource.data.id == postId
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'id',
+          'authorId',
+          'authorName',
+          'authorRole',
+          'category',
+          'postType',
+          'text',
+          'imageUrl',
+          'campaignTitle',
+          'campaignGoal',
+          'campaignRaised',
+          'campaignStatus',
+          'createdAt',
+          'updatedAt',
+          'reactCount',
+          'commentCount',
+          'shareCount',
+          'isLiveCampaign'
+        ]);
+    }
+
+    function isCommunityCreate(postId) {
+      return validPostBase(postId)
+        && request.resource.data.category == 'community'
+        && request.resource.data.postType in ['note', 'photo']
+        && request.resource.data.isLiveCampaign == false;
+    }
+
+    function canCreatePost(postId) {
+      return isAdmin()
+        && validPostBase(postId)
+        && (request.resource.data.category in ['community', 'official'])
+        && (request.resource.data.postType in ['note', 'photo', 'live_campaign'])
+        || (
+          signedIn()
+          && !isGuest()
+          && allowUserPosts()
+          && isCommunityCreate(postId)
+          && request.resource.data.authorRole == 'user'
+        )
+        || (
+          isGuest()
+          && allowGuestPosts()
+          && isCommunityCreate(postId)
+          && request.resource.data.authorRole == 'guest'
+        );
+    }
+
+    function canUpdatePostCounters() {
+      return signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['reactCount', 'commentCount', 'shareCount', 'updatedAt']);
+    }
+
+    function canUpdateOwnPost() {
+      return signedIn()
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.category == resource.data.category
+        && request.resource.data.authorRole == resource.data.authorRole
+        && request.resource.data.postType == resource.data.postType;
+    }
+
+    function canManagePost(postId) {
+      return isAdmin()
+        || (
+          signedIn()
+          && get(/databases/$(database)/documents/campaign_posts/$(postId)).data.authorId == request.auth.uid
+        );
+    }
+
+    match /app_settings/campaign_feed {
+      allow read: if true;
+      allow create, update: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        || (
+          signedIn()
+          && request.auth.uid == userId
+          && !request.resource.data.keys().hasAny(['role', 'roleKey'])
+        );
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && request.auth.uid == userId
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'roleKey'])
+        )
+        || (
+          signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers'])
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /campaign_posts/{postId} {
+      allow read: if true;
+      allow create: if canCreatePost(postId);
+      allow update: if isAdmin() || canUpdateOwnPost() || canUpdatePostCounters();
+      allow delete: if canManagePost(postId);
+
+      match /reactions/{reactionId} {
+        allow read: if true;
+        allow create: if signedIn()
+          && reactionId == request.auth.uid
+          && request.resource.data.userId == request.auth.uid
+          && (!isGuest() || allowGuestReactions());
+        allow delete: if canManagePost(postId)
+          || (signedIn() && reactionId == request.auth.uid);
+      }
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if signedIn()
+          && request.resource.data.userId == request.auth.uid
+          && (!isGuest() || allowGuestComments());
+        allow update, delete: if canManagePost(postId)
+          || (signedIn() && resource.data.userId == request.auth.uid);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

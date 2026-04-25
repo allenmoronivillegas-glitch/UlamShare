@@ -1,17 +1,29 @@
 package com.example.ulamshare
 
 import android.os.Bundle
-import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 
 class CampaignsGuestActivity : AppCompatActivity() {
+    private var feedController: ChooseCampaignFeedController? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_choose_campaign)
+        val rootView = layoutInflater.inflate(R.layout.activity_choose_campaign, null, false)
+        setContentView(rootView)
 
-        val btnBack = findViewById<ImageButton>(R.id.btnBack)
-        btnBack.setOnClickListener {
-            finish()
-        }
+        feedController = ChooseCampaignFeedController(
+            rootView = rootView,
+            lifecycleOwner = this,
+            activityResultRegistry = activityResultRegistry,
+            onBackPressed = { finish() },
+            launchIntent = { startActivity(it) }
+        )
+        feedController?.bind()
+    }
+
+    override fun onDestroy() {
+        feedController?.dispose()
+        feedController = null
+        super.onDestroy()
     }
 }

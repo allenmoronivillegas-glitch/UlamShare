@@ -355,7 +355,9 @@ class ContactSupportActivity : AppCompatActivity() {
     }
 
     private fun buildPreview(message: ChatMessage?, fallback: String): String {
-        if (message == null || message.text.isBlank()) return fallback
+        if (message == null) return fallback
+        if (message.deleted) return getString(R.string.deleted_message_label)
+        if (message.text.isBlank()) return fallback
 
         val senderName = if (message.senderId == currentUserId) {
             getString(R.string.you_label)
@@ -397,14 +399,17 @@ class ContactSupportActivity : AppCompatActivity() {
         val senderName = if (senderNameRaw.isNotBlank()) senderNameRaw else fallbackSenderName(senderRole)
         val senderId = snapshot.child("senderId").getValue(String::class.java).orEmpty()
         val time = snapshot.child("time").getValue(Long::class.java) ?: 0L
+        val deleted = snapshot.child("deleted").getValue(Boolean::class.java) ?: false
 
         return ChatMessage(
+            key = snapshot.key.orEmpty(),
             text = text,
             sender = sender,
             time = time,
             senderRole = senderRole,
             senderName = senderName,
-            senderId = senderId
+            senderId = senderId,
+            deleted = deleted
         )
     }
 
