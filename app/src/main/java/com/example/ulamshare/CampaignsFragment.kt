@@ -23,6 +23,10 @@ class CampaignsFragment : Fragment() {
             rootView = view,
             lifecycleOwner = viewLifecycleOwner,
             activityResultRegistry = requireActivity().activityResultRegistry,
+            targetPostId = arguments?.getString(MainActivity.EXTRA_POST_ID).orEmpty(),
+            targetCommentId = arguments?.getString(MainActivity.EXTRA_COMMENT_ID).orEmpty(),
+            targetReplyId = arguments?.getString(MainActivity.EXTRA_REPLY_ID).orEmpty(),
+            notificationType = arguments?.getString(MainActivity.EXTRA_NOTIFICATION_TYPE).orEmpty(),
             onBackPressed = {
                 val bottomNav = activity?.findViewById<BottomNavigationView>(R.id.bottomNavigation)
                 if (bottomNav != null) {
@@ -40,5 +44,21 @@ class CampaignsFragment : Fragment() {
         feedController?.dispose()
         feedController = null
         super.onDestroyView()
+    }
+
+    companion object {
+        fun newInstance(extras: Bundle?): CampaignsFragment {
+            return CampaignsFragment().apply {
+                arguments = Bundle().apply {
+                    putString(MainActivity.EXTRA_POST_ID, extras?.getString(MainActivity.EXTRA_POST_ID).orEmpty())
+                    putString(MainActivity.EXTRA_COMMENT_ID, extras?.getString(MainActivity.EXTRA_COMMENT_ID).orEmpty())
+                    putString(MainActivity.EXTRA_REPLY_ID, extras?.getString(MainActivity.EXTRA_REPLY_ID).orEmpty())
+                    putString(
+                        MainActivity.EXTRA_NOTIFICATION_TYPE,
+                        extras?.getString(MainActivity.EXTRA_NOTIFICATION_TYPE).orEmpty()
+                    )
+                }
+            }
+        }
     }
 }

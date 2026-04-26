@@ -18,9 +18,11 @@ data class CampaignFeedPost(
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
     val reactCount: Int = 0,
+    val reactionCounts: Map<String, Int> = emptyMap(),
     val commentCount: Int = 0,
     val shareCount: Int = 0,
     val isLiveCampaign: Boolean = false,
+    val myReactionType: String = "",
     val reactedByMe: Boolean = false
 ) {
     val hasText: Boolean
@@ -65,12 +67,87 @@ data class CampaignFeedPost(
 
 data class CampaignPostComment(
     val id: String = "",
-    val userId: String = "",
-    val userName: String = "",
-    val userRole: String = CampaignFeedPost.ROLE_USER,
+    val postId: String = "",
+    val authorId: String = "",
+    val authorName: String = "",
+    val authorRole: String = CampaignFeedPost.ROLE_USER,
     val text: String = "",
-    val createdAt: Long = 0L
+    val createdAt: Long = 0L,
+    val updatedAt: Long = 0L,
+    val replyCount: Int = 0,
+    val replies: List<CampaignPostReply> = emptyList()
+) {
+    val userId: String
+        get() = authorId
+
+    val userName: String
+        get() = authorName
+
+    val userRole: String
+        get() = authorRole
+}
+
+data class CampaignPostReply(
+    val id: String = "",
+    val postId: String = "",
+    val parentCommentId: String = "",
+    val replyingToReplyId: String = "",
+    val authorId: String = "",
+    val authorName: String = "",
+    val authorRole: String = CampaignFeedPost.ROLE_USER,
+    val text: String = "",
+    val mentionedUserId: String = "",
+    val mentionedUserName: String = "",
+    val replyingToUserId: String = "",
+    val replyingToUserName: String = "",
+    val createdAt: Long = 0L,
+    val updatedAt: Long = 0L
 )
+
+data class CampaignPostReaction(
+    val actorId: String = "",
+    val actorName: String = "",
+    val actorRole: String = CampaignFeedPost.ROLE_USER,
+    val actorPhotoUrl: String = "",
+    val type: String = CampaignReactionUi.LIKE,
+    val createdAt: Long = 0L,
+    val updatedAt: Long = 0L
+)
+
+object CampaignReactionUi {
+    const val LIKE = "like"
+    const val HEART = "heart"
+    const val HAHA = "haha"
+    const val SAD = "sad"
+    const val CARE = "care"
+    const val ANGRY = "angry"
+
+    val reactionOrder = listOf(LIKE, HEART, HAHA, SAD, CARE, ANGRY)
+
+    val displayMap = linkedMapOf(
+        LIKE to "\uD83D\uDC4D",
+        HEART to "\u2764\uFE0F",
+        HAHA to "\uD83D\uDE02",
+        SAD to "\uD83D\uDE22",
+        CARE to "\uD83E\uDD17",
+        ANGRY to "\uD83D\uDE21"
+    )
+
+    fun emoji(type: String): String = displayMap[type] ?: displayMap.getValue(LIKE)
+
+    fun label(type: String): String {
+        return when (type) {
+            HEART -> "Heart"
+            HAHA -> "Haha"
+            SAD -> "Sad"
+            CARE -> "Care"
+            ANGRY -> "Angry"
+            else -> "Like"
+        }
+    }
+
+    fun displayLabel(type: String): String = "${emoji(type)} ${label(type)}"
+}
 
 data class CampaignComposerDraft(
     val text: String = "",

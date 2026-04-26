@@ -15,6 +15,8 @@ import java.util.Locale
 
 class CampaignFeedAdapter(
     private val onReactClicked: (CampaignFeedPost) -> Unit,
+    private val onReactionLongPressed: (View, CampaignFeedPost) -> Unit,
+    private val onReactionSummaryClicked: (CampaignFeedPost) -> Unit,
     private val onCommentClicked: (CampaignFeedPost) -> Unit,
     private val onShareClicked: (CampaignFeedPost) -> Unit,
     private val onPostOptionsClicked: (View, CampaignFeedPost) -> Unit,
@@ -56,6 +58,7 @@ class CampaignFeedAdapter(
         private val raisedView: TextView = itemView.findViewById(R.id.tvCampaignRaised)
         private val goalView: TextView = itemView.findViewById(R.id.tvCampaignGoal)
         private val progressBar: ProgressBar = itemView.findViewById(R.id.pbCampaignProgress)
+        private val reactionSummaryView: TextView = itemView.findViewById(R.id.tvPostReactionSummary)
         private val reactButton: TextView = itemView.findViewById(R.id.btnPostReact)
         private val commentButton: TextView = itemView.findViewById(R.id.btnPostComment)
         private val shareButton: TextView = itemView.findViewById(R.id.btnPostShare)
@@ -126,12 +129,8 @@ class CampaignFeedAdapter(
                 campaignInfoContainer.visibility = View.GONE
             }
 
-            bindActionButton(
-                button = reactButton,
-                label = itemView.context.getString(R.string.choose_campaign_action_react),
-                count = post.reactCount,
-                selected = post.reactedByMe
-            )
+            bindReactionSummary(post)
+            bindReactionButton(post)
             bindActionButton(
                 button = commentButton,
                 label = itemView.context.getString(R.string.choose_campaign_action_comment),
@@ -146,8 +145,48 @@ class CampaignFeedAdapter(
             )
 
             reactButton.setOnClickListener { onReactClicked(post) }
+            reactButton.setOnLongClickListener {
+                onReactionLongPressed(it, post)
+                true
+            }
             commentButton.setOnClickListener { onCommentClicked(post) }
             shareButton.setOnClickListener { onShareClicked(post) }
+        }
+
+        private fun bindReactionSummary(post: CampaignFeedPost) {
+            if (post.reactCount <= 0) {
+                reactionSummaryView.visibility = View.GONE
+                reactionSummaryView.text = ""
+                return
+            }
+
+            val topEmojis = CampaignReactionUi.reactionOrder
+                .filter { (post.reactionCounts[it] ?: 0) > 0 }
+                .take(3)
+                .joinToString(separator = " ") { CampaignReactionUi.emoji(it) }
+                .ifBlank { CampaignReactionUi.emoji(CampaignReactionUi.LIKE) }
+            reactionSummaryView.visibility = View.VISIBLE
+            reactionSummaryView.text = "$topEmojis ${post.reactCount}"
+            reactionSummaryView.isClickable = true
+            reactionSummaryView.isFocusable = true
+            reactionSummaryView.setOnClickListener { onReactionSummaryClicked(post) }
+        }
+
+        private fun bindReactionButton(post: CampaignFeedPost) {
+            val selectedType = post.myReactionType.ifBlank {
+                if (post.reactedByMe) CampaignReactionUi.LIKE else ""
+            }
+            val label = if (selectedType.isNotBlank()) {
+                CampaignReactionUi.displayLabel(selectedType)
+            } else {
+                itemView.context.getString(R.string.choose_campaign_action_react)
+            }
+            reactButton.text = label
+            reactButton.setBackgroundResource(
+                if (selectedType.isNotBlank()) R.drawable.bg_support_chip_active else R.drawable.bg_support_chip
+            )
+            val colorRes = if (selectedType.isNotBlank()) android.R.color.white else R.color.primary_blue
+            reactButton.setTextColor(ContextCompat.getColor(reactButton.context, colorRes))
         }
 
         private fun bindActionButton(

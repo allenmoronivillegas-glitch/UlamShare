@@ -2,6 +2,7 @@ package com.example.ulamshare
 
 import android.net.Uri
 import android.util.Log
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -70,7 +71,62 @@ class CampaignFeedRepository(
                     return@addSnapshotListener
                 }
 
-                onUpdate(snapshot?.documents.orEmpty().map(::mapComment))
+                val commentDocuments = snapshot?.documents.orEmpty()
+                if (commentDocuments.isEmpty()) {
+                    onUpdate(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val commentsWithIndex = mutableListOf<Pair<Int, CampaignPostComment>>()
+                var remaining = commentDocuments.size
+                var reportedError = false
+                commentDocuments.forEachIndexed { index, document ->
+                    document.reference
+                        .collection(REPLIES_COLLECTION)
+                        .orderBy("createdAt", Query.Direction.ASCENDING)
+                        .get()
+                        .addOnSuccessListener { repliesSnapshot ->
+                            val replies = repliesSnapshot.documents.map(::mapReply)
+                            commentsWithIndex += index to mapComment(document).copy(replies = replies)
+                        }
+                        .addOnFailureListener { replyError ->
+                            if (!reportedError) {
+                                reportedError = true
+                                onError(replyError)
+                            }
+                        }
+                        .addOnCompleteListener {
+                            remaining -= 1
+                            if (remaining == 0 && !reportedError) {
+                                onUpdate(
+                                    commentsWithIndex
+                                        .sortedBy { it.first }
+                                        .map { it.second }
+                                )
+                            }
+                        }
+                }
+            }
+    }
+
+    fun loadReactions(
+        postId: String,
+        onComplete: (Result<List<CampaignPostReaction>>) -> Unit
+    ) {
+        postDocument(postId)
+            .collection(REACTIONS_COLLECTION)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                onComplete(
+                    Result.success(
+                        snapshot.documents
+                            .map(::mapReaction)
+                            .sortedByDescending { it.updatedAt.takeIf { value -> value > 0L } ?: it.createdAt }
+                    )
+                )
+            }
+            .addOnFailureListener { error ->
+                onComplete(Result.failure(error))
             }
     }
 
@@ -113,8 +169,9 @@ class CampaignFeedRepository(
             postRef.set(payload)
                 .addOnSuccessListener { onComplete(Result.success(Unit)) }
                 .addOnFailureListener { error ->
-                    Log.e(TAG, "Failed to save campaign post: ${firebaseErrorDetails(error)}", error)
-                    onComplete(Result.failure(error))
+                    Log.e(TAG, "Firestore post save failed", error)
+                    Log.e(TAG, "Firestore post save failed details: ${firebaseErrorDetails(error)}")
+                    onComplete(Result.failure(CampaignFirestoreSaveException(error)))
                 }
         }
 
@@ -132,37 +189,91 @@ class CampaignFeedRepository(
     }
 
     fun toggleReaction(
+        post: CampaignFeedPost,
         postId: String,
         actorId: String,
         actorName: String,
-        onComplete: (Result<Boolean>) -> Unit
+        actorRole: String,
+        reactionType: String = DEFAULT_REACTION_TYPE,
+        onComplete: (Result<String>) -> Unit
     ) {
         val postRef = postDocument(postId)
         val reactionRef = postRef.collection(REACTIONS_COLLECTION).document(actorId)
+        val normalizedReactionType = normalizeReactionType(reactionType)
 
         firestore.runTransaction { transaction ->
             val postSnapshot = transaction.get(postRef)
             val reactionSnapshot = transaction.get(reactionRef)
             val currentCount = numberToInt(postSnapshot.get("reactCount"))
+            val reactionCounts = mapReactionCounts(postSnapshot.get("reactionCounts"))
+            val existingType = normalizeReactionType(reactionSnapshot.getString("type"))
 
-            if (reactionSnapshot.exists()) {
+            if (reactionSnapshot.exists() && existingType == normalizedReactionType) {
                 transaction.delete(reactionRef)
-                transaction.update(postRef, "reactCount", (currentCount - 1).coerceAtLeast(0))
-                false
+                decrementReactionCount(reactionCounts, existingType)
+                transaction.update(
+                    postRef,
+                    mapOf(
+                        "reactCount" to (currentCount - 1).coerceAtLeast(0),
+                        "reactionCounts" to reactionCounts,
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                )
+                ""
             } else {
                 transaction.set(
                     reactionRef,
                     hashMapOf<String, Any>(
-                        "userId" to actorId,
-                        "userName" to actorName,
-                        "type" to DEFAULT_REACTION_TYPE,
-                        "createdAt" to FieldValue.serverTimestamp()
+                        "actorId" to actorId,
+                        "actorName" to actorName,
+                        "actorRole" to normalizeRole(actorRole),
+                        "actorPhotoUrl" to "",
+                        "type" to normalizedReactionType,
+                        "createdAt" to if (reactionSnapshot.exists()) {
+                            reactionSnapshot.getTimestamp("createdAt") ?: FieldValue.serverTimestamp()
+                        } else {
+                            FieldValue.serverTimestamp()
+                        },
+                        "updatedAt" to FieldValue.serverTimestamp()
                     )
                 )
-                transaction.update(postRef, "reactCount", currentCount + 1)
-                true
+                if (reactionSnapshot.exists()) {
+                    decrementReactionCount(reactionCounts, existingType)
+                    incrementReactionCount(reactionCounts, normalizedReactionType)
+                    transaction.update(
+                        postRef,
+                        mapOf(
+                            "reactionCounts" to reactionCounts,
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+                    )
+                } else {
+                    incrementReactionCount(reactionCounts, normalizedReactionType)
+                    transaction.update(
+                        postRef,
+                        mapOf(
+                            "reactCount" to currentCount + 1,
+                            "reactionCounts" to reactionCounts,
+                            "updatedAt" to FieldValue.serverTimestamp()
+                        )
+                    )
+                }
+
+                createNotificationInTransaction(
+                    transaction = transaction,
+                    recipientId = postSnapshot.getString("authorId").orEmpty().ifBlank { post.authorId },
+                    senderId = actorId,
+                    senderName = actorName,
+                    senderRole = normalizeRole(actorRole),
+                    type = "post_reaction",
+                    postId = postId,
+                    commentId = "",
+                    replyId = "",
+                    message = "$actorName reacted ${CampaignReactionUi.emoji(normalizedReactionType)} to your post."
+                )
+                normalizedReactionType
             }
-        }.addOnSuccessListener { reacted -> onComplete(Result.success(reacted)) }
+        }.addOnSuccessListener { selectedReaction -> onComplete(Result.success(selectedReaction)) }
             .addOnFailureListener { error -> onComplete(Result.failure(error)) }
     }
 
@@ -184,14 +295,136 @@ class CampaignFeedRepository(
             transaction.set(
                 commentRef,
                 hashMapOf<String, Any>(
-                    "userId" to userId,
-                    "userName" to userName,
-                    "userRole" to normalizeRole(userRole),
+                    "id" to commentRef.id,
+                    "postId" to postId,
+                    "authorId" to userId,
+                    "authorName" to userName,
+                    "authorRole" to normalizeRole(userRole),
                     "text" to text.trim(),
-                    "createdAt" to FieldValue.serverTimestamp()
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp(),
+                    "replyCount" to 0
                 )
             )
             transaction.update(postRef, "commentCount", currentCount + 1)
+
+            createNotificationInTransaction(
+                transaction = transaction,
+                recipientId = postSnapshot.getString("authorId").orEmpty(),
+                senderId = userId,
+                senderName = userName,
+                senderRole = normalizeRole(userRole),
+                type = "comment",
+                postId = postId,
+                commentId = commentRef.id,
+                replyId = "",
+                message = "$userName commented on your post."
+            )
+        }.addOnSuccessListener { onComplete(Result.success(Unit)) }
+            .addOnFailureListener { error -> onComplete(Result.failure(error)) }
+    }
+
+    fun addReply(
+        postId: String,
+        parentComment: CampaignPostComment,
+        replyingToReply: CampaignPostReply?,
+        userId: String,
+        userName: String,
+        userRole: String,
+        text: String,
+        mentionedUserId: String,
+        mentionedUserName: String,
+        onComplete: (Result<Unit>) -> Unit
+    ) {
+        val postRef = postDocument(postId)
+        val commentRef = postRef.collection(COMMENTS_COLLECTION).document(parentComment.id)
+        val replyRef = commentRef.collection(REPLIES_COLLECTION).document()
+
+        firestore.runTransaction { transaction ->
+            val postSnapshot = transaction.get(postRef)
+            val commentSnapshot = transaction.get(commentRef)
+            val postCommentCount = numberToInt(postSnapshot.get("commentCount"))
+            val replyCount = numberToInt(commentSnapshot.get("replyCount"))
+            val parentAuthorId = commentSnapshot.getString("authorId").orEmpty()
+                .ifBlank { commentSnapshot.getString("userId").orEmpty() }
+                .ifBlank { parentComment.authorId }
+            val parentAuthorName = commentSnapshot.getString("authorName").orEmpty()
+                .ifBlank { commentSnapshot.getString("userName").orEmpty() }
+                .ifBlank { parentComment.authorName }
+            val targetUserId = replyingToReply?.authorId?.ifBlank { mentionedUserId }
+                ?: mentionedUserId.ifBlank { parentAuthorId }
+            val targetUserName = replyingToReply?.authorName?.ifBlank { mentionedUserName }
+                ?: mentionedUserName.ifBlank { parentAuthorName }
+            val replyingToReplyId = replyingToReply?.id.orEmpty()
+
+            transaction.set(
+                replyRef,
+                hashMapOf<String, Any>(
+                    "id" to replyRef.id,
+                    "postId" to postId,
+                    "parentCommentId" to parentComment.id,
+                    "replyingToReplyId" to replyingToReplyId,
+                    "authorId" to userId,
+                    "authorName" to userName,
+                    "authorRole" to normalizeRole(userRole),
+                    "text" to text.trim(),
+                    "mentionedUserId" to targetUserId,
+                    "mentionedUserName" to targetUserName,
+                    "replyingToUserId" to targetUserId,
+                    "replyingToUserName" to targetUserName,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            )
+            transaction.update(
+                commentRef,
+                mapOf(
+                    "replyCount" to replyCount + 1,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            )
+            transaction.update(postRef, "commentCount", postCommentCount + 1)
+
+            createNotificationInTransaction(
+                transaction = transaction,
+                recipientId = targetUserId,
+                senderId = userId,
+                senderName = userName,
+                senderRole = normalizeRole(userRole),
+                type = if (replyingToReplyId.isBlank()) "comment_reply" else "reply_reply",
+                postId = postId,
+                commentId = parentComment.id,
+                replyId = replyRef.id,
+                replyingToReplyId = replyingToReplyId,
+                message = if (replyingToReplyId.isBlank()) {
+                    "$userName replied to your comment."
+                } else {
+                    "$userName replied to your reply."
+                }
+            )
+
+            if (
+                targetUserId.isNotBlank() &&
+                targetUserId != userId &&
+                targetUserId != parentAuthorId &&
+                targetUserId != replyingToReply?.authorId.orEmpty()
+            ) {
+                createNotificationInTransaction(
+                    transaction = transaction,
+                    recipientId = targetUserId,
+                    senderId = userId,
+                    senderName = userName,
+                    senderRole = normalizeRole(userRole),
+                    type = "mention",
+                    postId = postId,
+                    commentId = parentComment.id,
+                    replyId = replyRef.id,
+                    replyingToReplyId = replyingToReplyId,
+                    message = "$userName mentioned you in a reply."
+                )
+            }
+
+            parentAuthorName
         }.addOnSuccessListener { onComplete(Result.success(Unit)) }
             .addOnFailureListener { error -> onComplete(Result.failure(error)) }
     }
@@ -212,22 +445,34 @@ class CampaignFeedRepository(
             commentsTask
         }.addOnSuccessListener { commentsSnapshot ->
             reactionsTask.addOnSuccessListener { reactionsSnapshot ->
-                val batch = firestore.batch()
-                reactionsSnapshot.documents.forEach { batch.delete(it.reference) }
-                commentsSnapshot.documents.forEach { batch.delete(it.reference) }
-                batch.delete(postRef)
-                batch.commit()
-                    .addOnSuccessListener {
-                        if (post.imageUrl.isNotBlank()) {
-                            storage.reference
-                                .child("campaign_posts/${post.id}/post_image.jpg")
-                                .delete()
-                                .addOnCompleteListener {
+                val replyTasks = commentsSnapshot.documents.map { commentDocument ->
+                    commentDocument.reference.collection(REPLIES_COLLECTION).get()
+                }
+                Tasks.whenAllSuccess<com.google.firebase.firestore.QuerySnapshot>(replyTasks)
+                    .addOnSuccessListener { repliesSnapshots ->
+                        val batch = firestore.batch()
+                        reactionsSnapshot.documents.forEach { batch.delete(it.reference) }
+                        repliesSnapshots.forEach { repliesSnapshot ->
+                            repliesSnapshot.documents.forEach { batch.delete(it.reference) }
+                        }
+                        commentsSnapshot.documents.forEach { batch.delete(it.reference) }
+                        batch.delete(postRef)
+                        batch.commit()
+                            .addOnSuccessListener {
+                                if (post.imageUrl.isNotBlank()) {
+                                    storage.reference
+                                        .child("campaign_posts/${post.id}/post_image.jpg")
+                                        .delete()
+                                        .addOnCompleteListener {
+                                            onComplete(Result.success(Unit))
+                                        }
+                                } else {
                                     onComplete(Result.success(Unit))
                                 }
-                        } else {
-                            onComplete(Result.success(Unit))
-                        }
+                            }
+                            .addOnFailureListener { error ->
+                                onComplete(Result.failure(error))
+                            }
                     }
                     .addOnFailureListener { error ->
                         onComplete(Result.failure(error))
@@ -245,7 +490,7 @@ class CampaignFeedRepository(
         currentUserId: String,
         onUpdate: (List<CampaignFeedPost>) -> Unit
     ) {
-        val reactedIds = mutableSetOf<String>()
+        val selectedReactions = mutableMapOf<String, String>()
         if (posts.isEmpty()) {
             onUpdate(posts)
             return
@@ -259,14 +504,18 @@ class CampaignFeedRepository(
                 .get()
                 .addOnSuccessListener { snapshot ->
                     if (snapshot.exists()) {
-                        reactedIds += post.id
+                        selectedReactions[post.id] = normalizeReactionType(snapshot.getString("type"))
                     }
                 }
                 .addOnCompleteListener {
                     remaining -= 1
                     if (remaining == 0) {
                         onUpdate(posts.map { item ->
-                            item.copy(reactedByMe = reactedIds.contains(item.id))
+                            val selectedReaction = selectedReactions[item.id].orEmpty()
+                            item.copy(
+                                reactedByMe = selectedReaction.isNotBlank(),
+                                myReactionType = selectedReaction
+                            )
                         })
                     }
                 }
@@ -289,8 +538,9 @@ class CampaignFeedRepository(
             }
             .addOnSuccessListener { uri -> onComplete(Result.success(uri.toString())) }
             .addOnFailureListener { error ->
-                Log.e(TAG, "Failed to upload campaign post image: ${firebaseErrorDetails(error)}", error)
-                onComplete(Result.failure(error))
+                Log.e(TAG, "Image upload failed", error)
+                Log.e(TAG, "Image upload failed details: ${firebaseErrorDetails(error)}")
+                onComplete(Result.failure(CampaignImageUploadException(error)))
             }
     }
 
@@ -315,6 +565,7 @@ class CampaignFeedRepository(
             createdAt = timestampToMillis(snapshot.getTimestamp("createdAt")),
             updatedAt = timestampToMillis(snapshot.getTimestamp("updatedAt")),
             reactCount = numberToInt(snapshot.get("reactCount")),
+            reactionCounts = mapReactionCounts(snapshot.get("reactionCounts")),
             commentCount = numberToInt(snapshot.get("commentCount")),
             shareCount = numberToInt(snapshot.get("shareCount")),
             isLiveCampaign = snapshot.getBoolean("isLiveCampaign") ?: false
@@ -323,12 +574,54 @@ class CampaignFeedRepository(
 
     private fun mapComment(snapshot: DocumentSnapshot): CampaignPostComment {
         return CampaignPostComment(
-            id = snapshot.id,
-            userId = snapshot.getString("userId").orEmpty(),
-            userName = snapshot.getString("userName").orEmpty().ifBlank { "HopeGive User" },
-            userRole = normalizeRole(snapshot.getString("userRole")),
+            id = snapshot.getString("id").orEmpty().ifBlank { snapshot.id },
+            postId = snapshot.getString("postId").orEmpty(),
+            authorId = snapshot.getString("authorId").orEmpty()
+                .ifBlank { snapshot.getString("userId").orEmpty() },
+            authorName = snapshot.getString("authorName").orEmpty()
+                .ifBlank { snapshot.getString("userName").orEmpty() }
+                .ifBlank { "HopeGive User" },
+            authorRole = normalizeRole(
+                snapshot.getString("authorRole").orEmpty()
+                    .ifBlank { snapshot.getString("userRole").orEmpty() }
+            ),
             text = snapshot.getString("text").orEmpty(),
-            createdAt = timestampToMillis(snapshot.getTimestamp("createdAt"))
+            createdAt = timestampToMillis(snapshot.getTimestamp("createdAt")),
+            updatedAt = timestampToMillis(snapshot.getTimestamp("updatedAt")),
+            replyCount = numberToInt(snapshot.get("replyCount"))
+        )
+    }
+
+    private fun mapReply(snapshot: DocumentSnapshot): CampaignPostReply {
+        return CampaignPostReply(
+            id = snapshot.getString("id").orEmpty().ifBlank { snapshot.id },
+            postId = snapshot.getString("postId").orEmpty(),
+            parentCommentId = snapshot.getString("parentCommentId").orEmpty(),
+            replyingToReplyId = snapshot.getString("replyingToReplyId").orEmpty(),
+            authorId = snapshot.getString("authorId").orEmpty(),
+            authorName = snapshot.getString("authorName").orEmpty().ifBlank { "HopeGive User" },
+            authorRole = normalizeRole(snapshot.getString("authorRole")),
+            text = snapshot.getString("text").orEmpty(),
+            mentionedUserId = snapshot.getString("mentionedUserId").orEmpty(),
+            mentionedUserName = snapshot.getString("mentionedUserName").orEmpty(),
+            replyingToUserId = snapshot.getString("replyingToUserId").orEmpty(),
+            replyingToUserName = snapshot.getString("replyingToUserName").orEmpty(),
+            createdAt = timestampToMillis(snapshot.getTimestamp("createdAt")),
+            updatedAt = timestampToMillis(snapshot.getTimestamp("updatedAt"))
+        )
+    }
+
+    private fun mapReaction(snapshot: DocumentSnapshot): CampaignPostReaction {
+        return CampaignPostReaction(
+            actorId = snapshot.getString("actorId").orEmpty().ifBlank { snapshot.id },
+            actorName = snapshot.getString("actorName").orEmpty()
+                .ifBlank { snapshot.getString("userName").orEmpty() }
+                .ifBlank { "Guest User" },
+            actorRole = normalizeRole(snapshot.getString("actorRole")),
+            actorPhotoUrl = snapshot.getString("actorPhotoUrl").orEmpty(),
+            type = normalizeReactionType(snapshot.getString("type")),
+            createdAt = timestampToMillis(snapshot.getTimestamp("createdAt")),
+            updatedAt = timestampToMillis(snapshot.getTimestamp("updatedAt"))
         )
     }
 
@@ -369,6 +662,28 @@ class CampaignFeedRepository(
             is String -> value.toLongOrNull() ?: 0L
             else -> 0L
         }
+    }
+
+    private fun mapReactionCounts(value: Any?): MutableMap<String, Int> {
+        val rawMap = value as? Map<*, *> ?: return CampaignReactionUi.reactionOrder.associateWith { 0 }
+            .toMutableMap()
+        return CampaignReactionUi.reactionOrder.associateWith { key ->
+            numberToInt(rawMap[key])
+        }.toMutableMap()
+    }
+
+    private fun incrementReactionCount(counts: MutableMap<String, Int>, type: String) {
+        counts[type] = (counts[type] ?: 0) + 1
+    }
+
+    private fun decrementReactionCount(counts: MutableMap<String, Int>, type: String) {
+        if (type.isBlank()) return
+        counts[type] = ((counts[type] ?: 0) - 1).coerceAtLeast(0)
+    }
+
+    private fun normalizeReactionType(raw: String?): String {
+        val normalized = raw.orEmpty().trim().lowercase(Locale.getDefault())
+        return if (normalized in CampaignReactionUi.reactionOrder) normalized else CampaignReactionUi.LIKE
     }
 
     private fun normalizeRole(raw: String?): String {
@@ -412,6 +727,40 @@ class CampaignFeedRepository(
         return "type=${error.javaClass.simpleName}, firestoreCode=${firestoreCode.orEmpty()}, storageCode=${storageCode ?: ""}, message=${error.message.orEmpty()}"
     }
 
+    private fun createNotificationInTransaction(
+        transaction: com.google.firebase.firestore.Transaction,
+        recipientId: String,
+        senderId: String,
+        senderName: String,
+        senderRole: String,
+        type: String,
+        postId: String,
+        commentId: String,
+        replyId: String,
+        replyingToReplyId: String = "",
+        message: String
+    ) {
+        if (recipientId.isBlank() || senderId.isBlank() || recipientId == senderId) return
+
+        val notificationRef = firestore.collection(NOTIFICATIONS_COLLECTION).document()
+        val payload = hashMapOf<String, Any>(
+            "id" to notificationRef.id,
+            "recipientId" to recipientId,
+            "senderId" to senderId,
+            "senderName" to senderName,
+            "senderRole" to normalizeRole(senderRole),
+            "type" to type,
+            "postId" to postId,
+            "message" to message,
+            "isRead" to false,
+            "createdAt" to FieldValue.serverTimestamp()
+        )
+        if (commentId.isNotBlank()) payload["commentId"] = commentId
+        if (replyId.isNotBlank()) payload["replyId"] = replyId
+        if (replyingToReplyId.isNotBlank()) payload["replyingToReplyId"] = replyingToReplyId
+        transaction.set(notificationRef, payload)
+    }
+
     companion object {
         private const val TAG = "CampaignFeed"
         private const val POSTS_COLLECTION = "campaign_posts"
@@ -419,6 +768,12 @@ class CampaignFeedRepository(
         private const val CAMPAIGN_FEED_SETTINGS_DOCUMENT = "campaign_feed"
         private const val REACTIONS_COLLECTION = "reactions"
         private const val COMMENTS_COLLECTION = "comments"
+        private const val REPLIES_COLLECTION = "replies"
+        private const val NOTIFICATIONS_COLLECTION = "notifications"
         private const val DEFAULT_REACTION_TYPE = "like"
     }
 }
+
+class CampaignImageUploadException(cause: Exception) : Exception("Image upload failed", cause)
+
+class CampaignFirestoreSaveException(cause: Exception) : Exception("Firestore post save failed", cause)

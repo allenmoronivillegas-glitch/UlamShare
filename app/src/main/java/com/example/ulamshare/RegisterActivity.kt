@@ -78,7 +78,8 @@ class RegisterActivity : AppCompatActivity() {
         val etMobileNumber = findViewById<EditText>(R.id.etMobileNumber)
         val tvLoginLink = findViewById<TextView>(R.id.tvLoginLink)
 
-        btnRegister.text = "Register"
+        // Keep the button text as per the XML "Send OTP to Verify" or change it if you prefer
+        btnRegister.text = "Send OTP to Verify"
 
         btnBack.setOnClickListener {
             finish()
@@ -197,10 +198,10 @@ class RegisterActivity : AppCompatActivity() {
             onComplete = {
                 Toast.makeText(
                     this@RegisterActivity,
-                    "Registration Successful",
+                    "Step 1 Complete: Registration Successful",
                     Toast.LENGTH_SHORT
                 ).show()
-                navigateToMain()
+                navigateToOtp(user.uid, email)
             },
             onError = { error ->
                 Toast.makeText(
@@ -210,6 +211,14 @@ class RegisterActivity : AppCompatActivity() {
                 ).show()
             }
         )
+    }
+
+    private fun navigateToOtp(userId: String, email: String) {
+        val intent = Intent(this@RegisterActivity, OtpActivity::class.java)
+        intent.putExtra(OtpActivity.EXTRA_USER_ID, userId)
+        intent.putExtra(OtpActivity.EXTRA_EMAIL, email)
+        startActivity(intent)
+        finish()
     }
 
     private fun navigateToMain() {

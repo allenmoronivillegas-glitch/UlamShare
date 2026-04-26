@@ -131,7 +131,7 @@ service cloud.firestore {
     function canUpdatePostCounters() {
       return signedIn()
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['reactCount', 'commentCount', 'shareCount', 'updatedAt']);
+          .hasOnly(['reactCount', 'reactionCounts', 'commentCount', 'shareCount', 'updatedAt']);
     }
 
     function canUpdateOwnPost() {
@@ -151,6 +151,84 @@ service cloud.firestore {
         );
     }
 
+    function isSafeOwnUserUpdate(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'roleKey']);
+    }
+
+    function isFollowerCountMirrorUpdate(userId) {
+      return signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followersCount'])
+        && (
+          exists(/databases/$(database)/documents/users/$(userId)/followers/$(request.auth.uid))
+          || existsAfter(/databases/$(database)/documents/users/$(userId)/followers/$(request.auth.uid))
+        );
+    }
+
+    function isValidFollowRecord(expectedUserId) {
+      return request.resource.data.userId == expectedUserId
+        && request.resource.data.keys().hasAll(['userId', 'fullName', 'followedAt'])
+        && request.resource.data.keys().hasOnly([
+          'userId',
+          'fullName',
+          'email',
+          'profilePhotoUrl',
+          'profilePhotoLocalUri',
+          'role',
+          'status',
+          'followedAt'
+        ]);
+    }
+
+    function validReactionType(type) {
+      return type in ['like', 'heart', 'haha', 'sad', 'care', 'angry'];
+    }
+
+    function canCreateCampaignComment(postId, commentId) {
+      return signedIn()
+        && request.resource.data.id == commentId
+        && request.resource.data.postId == postId
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorRole in ['user', 'guest', 'admin', 'super_admin']
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.replyCount == 0
+        && (!isGuest() || allowGuestComments());
+    }
+
+    function canCreateCampaignReply(postId, commentId, replyId) {
+      return signedIn()
+        && request.resource.data.id == replyId
+        && request.resource.data.postId == postId
+        && request.resource.data.parentCommentId == commentId
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.authorRole in ['user', 'guest', 'admin', 'super_admin']
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && (!isGuest() || allowGuestComments());
+    }
+
+    function canCreateOrUpdateReaction(actorId) {
+      return signedIn()
+        && actorId == request.auth.uid
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.actorRole in ['user', 'guest', 'admin', 'super_admin']
+        && validReactionType(request.resource.data.type)
+        && (!isGuest() || allowGuestReactions());
+    }
+
+    function canCreateNotification(notificationId) {
+      return signedIn()
+        && request.resource.data.id == notificationId
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.recipientId != request.auth.uid
+        && request.resource.data.type in ['comment', 'comment_reply', 'reply_reply', 'post_reaction', 'mention']
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.isRead == false;
+    }
+
     match /app_settings/campaign_feed {
       allow read: if true;
       allow create, update: if isAdmin();
@@ -165,16 +243,35 @@ service cloud.firestore {
           && !request.resource.data.keys().hasAny(['role', 'roleKey'])
         );
       allow update: if isAdmin()
-        || (
-          signedIn()
-          && request.auth.uid == userId
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'roleKey'])
-        )
+        || isSafeOwnUserUpdate(userId)
+        || isFollowerCountMirrorUpdate(userId)
         || (
           signedIn()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers'])
         );
       allow delete: if isAdmin();
+
+      match /following/{targetUserId} {
+        allow read: if signedIn();
+        allow create, update: if signedIn()
+          && request.auth.uid == userId
+          && targetUserId != userId
+          && isValidFollowRecord(targetUserId);
+        allow delete: if signedIn()
+          && request.auth.uid == userId
+          && targetUserId != userId;
+      }
+
+      match /followers/{followerUserId} {
+        allow read: if signedIn();
+        allow create, update: if signedIn()
+          && request.auth.uid == followerUserId
+          && followerUserId != userId
+          && isValidFollowRecord(followerUserId);
+        allow delete: if signedIn()
+          && request.auth.uid == followerUserId
+          && followerUserId != userId;
+      }
     }
 
     match /campaign_posts/{postId} {
@@ -185,22 +282,53 @@ service cloud.firestore {
 
       match /reactions/{reactionId} {
         allow read: if true;
-        allow create: if signedIn()
-          && reactionId == request.auth.uid
-          && request.resource.data.userId == request.auth.uid
-          && (!isGuest() || allowGuestReactions());
+        allow create, update: if canCreateOrUpdateReaction(reactionId);
         allow delete: if canManagePost(postId)
           || (signedIn() && reactionId == request.auth.uid);
       }
 
       match /comments/{commentId} {
         allow read: if true;
-        allow create: if signedIn()
-          && request.resource.data.userId == request.auth.uid
-          && (!isGuest() || allowGuestComments());
-        allow update, delete: if canManagePost(postId)
-          || (signedIn() && resource.data.userId == request.auth.uid);
+        allow create: if canCreateCampaignComment(postId, commentId);
+        allow update: if isAdmin()
+          || (
+            signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount', 'updatedAt'])
+            && (!isGuest() || allowGuestComments())
+          );
+        allow delete: if canManagePost(postId)
+          || (
+            signedIn()
+            && (
+              resource.data.authorId == request.auth.uid
+              || resource.data.userId == request.auth.uid
+            )
+          );
+
+        match /replies/{replyId} {
+          allow read: if true;
+          allow create: if canCreateCampaignReply(postId, commentId, replyId);
+          allow update, delete: if canManagePost(postId)
+            || (
+              signedIn()
+              && resource.data.authorId == request.auth.uid
+            );
+        }
       }
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.recipientId == request.auth.uid);
+      allow create: if canCreateNotification(notificationId);
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && resource.data.recipientId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead'])
+        );
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.recipientId == request.auth.uid);
     }
 
     match /{document=**} {

@@ -65,6 +65,8 @@ dependencies {
     
     // JSON & Serialization
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     
     // Google Identity & Credentials
     implementation(libs.androidx.credentials)

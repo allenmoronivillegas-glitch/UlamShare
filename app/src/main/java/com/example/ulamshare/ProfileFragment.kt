@@ -1,6 +1,8 @@
 package com.example.ulamshare
 
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,8 +11,10 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
+import com.google.android.gms.tasks.Tasks
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -19,6 +23,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import java.util.Calendar
 import java.util.Locale
 
@@ -30,12 +35,15 @@ class ProfileFragment : Fragment() {
     private lateinit var tvUserName: TextView
     private lateinit var tvUserEmail: TextView
     private lateinit var ivAvatar: TextView
+    private lateinit var ivAvatarPhoto: ImageView
     private lateinit var tvTotalDonated: TextView
     private lateinit var tvDonationCount: TextView
     private lateinit var tvCampaignCount: TextView
     private lateinit var tvSubDon: TextView
     private lateinit var tvFollowingCount: TextView
     private lateinit var tvFollowersCount: TextView
+    private lateinit var cardFollowing: CardView
+    private lateinit var cardFollowers: CardView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -53,12 +61,16 @@ class ProfileFragment : Fragment() {
         tvUserName = view.findViewById(R.id.tvUserName)
         tvUserEmail = view.findViewById(R.id.tvUserEmail)
         ivAvatar = view.findViewById(R.id.ivAvatar)
+        ivAvatarPhoto = view.findViewById(R.id.ivAvatarPhoto)
+        ivAvatarPhoto.clipToOutline = true
         tvTotalDonated = view.findViewById(R.id.tvTotalDonated)
         tvDonationCount = view.findViewById(R.id.tvDonationCount)
         tvCampaignCount = view.findViewById(R.id.tvCampaignCount)
         tvSubDon = view.findViewById(R.id.tvSubDon)
         tvFollowingCount = view.findViewById(R.id.tvFollowingCount)
         tvFollowersCount = view.findViewById(R.id.tvFollowersCount)
+        cardFollowing = view.findViewById(R.id.cardFollowing)
+        cardFollowers = view.findViewById(R.id.cardFollowers)
 
         val optionLogout = view.findViewById<ConstraintLayout>(R.id.optionlogout)
         val optionPay = view.findViewById<ConstraintLayout>(R.id.optionPay)
@@ -71,15 +83,23 @@ class ProfileFragment : Fragment() {
         loadUserData()
 
         btnEditProfile.setOnClickListener {
-            if (auth.currentUser != null) {
-                startActivity(Intent(requireContext(), EditProfileActivity::class.java))
-            } else {
-                Toast.makeText(requireContext(), "Please log in to edit profile", Toast.LENGTH_SHORT).show()
-            }
+            startActivity(Intent(requireContext(), EditProfileActivity::class.java))
         }
 
         btnHeaderAddFriends.setOnClickListener {
-            startActivity(Intent(requireContext(), AddFriendsActivity::class.java))
+            if (auth.currentUser != null) {
+                startActivity(Intent(requireContext(), AddFriendsActivity::class.java))
+            } else {
+                Toast.makeText(requireContext(), R.string.login_to_follow_users, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        cardFollowing.setOnClickListener {
+            openFollowList(FollowListActivity.MODE_FOLLOWING)
+        }
+
+        cardFollowers.setOnClickListener {
+            openFollowList(FollowListActivity.MODE_FOLLOWERS)
         }
 
         optionLogout.setOnClickListener {
@@ -130,13 +150,16 @@ class ProfileFragment : Fragment() {
                     } else {
                         "User"
                     }
-
-                    val following = (document.get("following") as? List<*>)?.size ?: 0
-                    val followers = (document.get("followers") as? List<*>)?.size ?: 0
+                    val profilePhotoLocalUri = document.getString("profilePhotoLocalUri").orEmpty()
+                    val profilePhotoUrl = document.getString("profilePhotoUrl").orEmpty()
 
                     tvUserName.text = fullName
-                    tvFollowingCount.text = following.toString()
-                    tvFollowersCount.text = followers.toString()
+                    displayProfilePhoto(
+                        profilePhotoLocalUri
+                            .ifBlank { savedProfilePhotoUri(user.uid) }
+                            .ifBlank { profilePhotoUrl }
+                    )
+                    refreshFollowCounts(user.uid)
 
                     val initials = fullName.split(" ")
                         .filter { it.isNotEmpty() }
@@ -149,11 +172,14 @@ class ProfileFragment : Fragment() {
                 }
                 .addOnFailureListener { e ->
                     Log.e("ProfileFragment", "Error fetching user data", e)
+                    displayProfilePhoto(savedProfilePhotoUri(user.uid))
+                    refreshFollowCounts(user.uid)
                 }
         } else {
             tvUserName.text = "Guest User"
             tvUserEmail.text = "Not logged in"
             ivAvatar.text = "G"
+            displayProfilePhoto(savedProfilePhotoUri(GUEST_PROFILE_KEY))
             tvTotalDonated.text = "\u20B10"
             tvDonationCount.text = "0"
             tvCampaignCount.text = "0"
@@ -162,6 +188,76 @@ class ProfileFragment : Fragment() {
             tvFollowersCount.text = "0"
         }
     }
+
+    private fun displayProfilePhoto(uriString: String) {
+        if (uriString.isBlank()) {
+            ivAvatarPhoto.setImageDrawable(null)
+            ivAvatarPhoto.visibility = View.GONE
+            ivAvatar.visibility = View.VISIBLE
+            return
+        }
+
+        ivAvatarPhoto.visibility = View.VISIBLE
+        ivAvatar.visibility = View.GONE
+        if (uriString.startsWith("http://") || uriString.startsWith("https://")) {
+            CampaignImageLoader.load(ivAvatarPhoto, uriString, R.drawable.plant)
+        } else {
+            runCatching {
+                ivAvatarPhoto.setImageURI(Uri.parse(uriString))
+            }.onFailure { error ->
+                Log.w("ProfileFragment", "Unable to display saved profile photo", error)
+                ivAvatarPhoto.setImageDrawable(null)
+                ivAvatarPhoto.visibility = View.GONE
+                ivAvatar.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun refreshFollowCounts(userId: String) {
+        val followingTask = db.collection("users").document(userId)
+            .collection("following")
+            .get()
+        val followersTask = db.collection("users").document(userId)
+            .collection("followers")
+            .get()
+
+        Tasks.whenAll(followingTask, followersTask)
+            .addOnSuccessListener {
+                val followingCount = followingTask.result?.size() ?: 0
+                val followersCount = followersTask.result?.size() ?: 0
+                tvFollowingCount.text = followingCount.toString()
+                tvFollowersCount.text = followersCount.toString()
+                db.collection("users").document(userId)
+                    .set(
+                        mapOf(
+                            "followingCount" to followingCount,
+                            "followersCount" to followersCount
+                        ),
+                        SetOptions.merge()
+                    )
+            }
+            .addOnFailureListener { error ->
+                Log.e("ProfileFragment", "Unable to load follow counts", error)
+            }
+    }
+
+    private fun openFollowList(mode: String) {
+        val user = auth.currentUser
+        if (user == null) {
+            FollowListActivity.start(requireContext(), "", mode)
+            return
+        }
+
+        FollowListActivity.start(requireContext(), user.uid, mode)
+    }
+
+    private fun profilePrefs() =
+        requireContext().getSharedPreferences(PROFILE_PREFS, Context.MODE_PRIVATE)
+
+    private fun savedProfilePhotoUri(key: String): String =
+        profilePrefs().getString(profilePhotoPrefKey(key), "").orEmpty()
+
+    private fun profilePhotoPrefKey(key: String): String = "profile_photo_uri_$key"
 
     private fun loadUserDonationStats(userId: String) {
         realtimeDb.orderByChild("userId").equalTo(userId)
@@ -204,5 +300,10 @@ class ProfileFragment : Fragment() {
                     Log.e("ProfileFragment", "Donation stats load cancelled", error.toException())
                 }
             })
+    }
+
+    private companion object {
+        const val PROFILE_PREFS = "profile_preferences"
+        const val GUEST_PROFILE_KEY = "guest"
     }
 }

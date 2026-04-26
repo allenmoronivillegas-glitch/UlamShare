@@ -1,15 +1,20 @@
 package com.example.ulamshare
 
 import android.app.AlertDialog
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -35,6 +40,10 @@ class ChooseCampaignFeedController(
     private val rootView: View,
     private val lifecycleOwner: LifecycleOwner,
     private val activityResultRegistry: ActivityResultRegistry,
+    private val targetPostId: String = "",
+    private val targetCommentId: String = "",
+    private val targetReplyId: String = "",
+    private val notificationType: String = "",
     private val onBackPressed: () -> Unit,
     private val launchIntent: (Intent) -> Unit
 ) {
@@ -84,6 +93,8 @@ class ChooseCampaignFeedController(
 
     private val adapter = CampaignFeedAdapter(
         onReactClicked = ::handleReact,
+        onReactionLongPressed = ::showReactionPicker,
+        onReactionSummaryClicked = ::showReactionDetails,
         onCommentClicked = ::handleComment,
         onShareClicked = ::handleShare,
         onPostOptionsClicked = ::showPostOptions,
@@ -102,6 +113,7 @@ class ChooseCampaignFeedController(
     private var currentUserId: String? = null
     private var currentUserName: String = context.getString(R.string.guest_user)
     private var currentUserRole: String = CampaignFeedPost.ROLE_GUEST
+    private var pendingDeepLinkHandled = false
 
     private val pendingViewerActions = mutableListOf<() -> Unit>()
 
@@ -189,10 +201,14 @@ class ChooseCampaignFeedController(
             ActivityResultContracts.GetContent()
         ) { uri ->
             Log.d(TAG, "Photo picker returned uri=$uri")
-            selectedImageUri = uri
-            liveCampaignMode = false
-            renderSelectedImage()
-            syncComposerModeUi()
+            if (uri != null) {
+                selectedImageUri = uri
+                liveCampaignMode = false
+                composerImageView.setImageDrawable(null)
+                composerImageView.setImageURI(uri)
+                composerImagePreviewCard.visibility = View.VISIBLE
+                syncComposerModeUi()
+            }
         }
     }
 
@@ -211,7 +227,8 @@ class ChooseCampaignFeedController(
         liveCampaignButton.setOnClickListener { toggleLiveCampaignMode() }
         removeImageButton.setOnClickListener {
             selectedImageUri = null
-            renderSelectedImage()
+            composerImageView.setImageDrawable(null)
+            composerImagePreviewCard.visibility = View.GONE
             syncComposerModeUi()
         }
         submitPostButton.setOnClickListener { submitPost() }
@@ -333,6 +350,7 @@ class ChooseCampaignFeedController(
             onUpdate = { posts ->
                 allPosts = posts
                 applyFeedFilter()
+                handlePendingDeepLink()
             },
             onError = {
                 Toast.makeText(
@@ -344,6 +362,29 @@ class ChooseCampaignFeedController(
                 applyFeedFilter()
             }
         )
+    }
+
+    private fun handlePendingDeepLink() {
+        if (pendingDeepLinkHandled || targetPostId.isBlank()) return
+        val post = allPosts.firstOrNull { it.id == targetPostId } ?: return
+
+        pendingDeepLinkHandled = true
+        activeFilter = FeedFilter.ALL
+        syncFilterUi()
+        applyFeedFilter()
+
+        recyclerView.post {
+            val index = displayedPosts.indexOfFirst { it.id == targetPostId }
+            if (index >= 0) {
+                recyclerView.scrollToPosition(index)
+            }
+            if (targetCommentId.isNotBlank() || targetReplyId.isNotBlank()) {
+                openCommentsDialog(post)
+            } else {
+                // TODO: Temporarily highlight the exact post card when a stable item animator is in place.
+                Toast.makeText(context, R.string.choose_campaign_post_opened, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun startSettingsListener() {
@@ -564,7 +605,12 @@ class ChooseCampaignFeedController(
             return
         }
 
-        logPostingState()
+        Log.d(TAG, "Posting started")
+        logPostingState(postType = if (selectedImageUri != null) {
+            CampaignFeedPost.TYPE_PHOTO
+        } else {
+            CampaignFeedPost.TYPE_NOTE
+        })
 
         disabledPostMessageRes()?.let { messageRes ->
             Toast.makeText(context, messageRes, Toast.LENGTH_SHORT).show()
@@ -649,6 +695,12 @@ class ChooseCampaignFeedController(
             }.onFailure { error ->
                 Log.e(TAG, "Post publish failed", error)
                 Log.e(TAG, "Post publish failed details: ${firebaseErrorDetails(error)}")
+                if (error is CampaignImageUploadException) {
+                    Log.e(TAG, "Image upload failed", error.cause ?: error)
+                }
+                if (error is CampaignFirestoreSaveException) {
+                    Log.e(TAG, "Firestore post save failed", error.cause ?: error)
+                }
                 Toast.makeText(
                     context,
                     publishFailureMessage(error),
@@ -658,22 +710,28 @@ class ChooseCampaignFeedController(
         }
     }
 
-    private fun logPostingState() {
+    private fun logPostingState(postType: String) {
+        Log.d(TAG, "selectedImageUri=${selectedImageUri?.toString().orEmpty()}")
+        Log.d(TAG, "currentUserId=${currentUserId.orEmpty()}")
+        Log.d(TAG, "authorRole=$currentUserRole")
         Log.d(TAG, "allowUserPosts=${feedSettings.allowUserPosts}")
         Log.d(TAG, "allowGuestPosts=${feedSettings.allowGuestPosts}")
         Log.d(TAG, "currentUid=${currentUserId.orEmpty()}")
         Log.d(TAG, "isGuest=${currentUserRole == CampaignFeedPost.ROLE_GUEST}")
         Log.d(TAG, "userRole=$currentUserRole")
+        Log.d(TAG, "postType=$postType")
     }
 
     private fun firebaseErrorDetails(error: Throwable): String {
-        val firestoreCode = (error as? FirebaseFirestoreException)?.code?.name.orEmpty()
-        val storageCode = (error as? StorageException)?.errorCode
-        return "type=${error.javaClass.simpleName}, firestoreCode=$firestoreCode, storageCode=${storageCode ?: ""}, message=${error.message.orEmpty()}"
+        val cause = error.cause ?: error
+        val firestoreCode = (cause as? FirebaseFirestoreException)?.code?.name.orEmpty()
+        val storageCode = (cause as? StorageException)?.errorCode
+        return "type=${error.javaClass.simpleName}, causeType=${cause.javaClass.simpleName}, firestoreCode=$firestoreCode, storageCode=${storageCode ?: ""}, message=${cause.message.orEmpty()}"
     }
 
     private fun publishFailureMessage(error: Throwable): Int {
-        return when ((error as? FirebaseFirestoreException)?.code) {
+        val cause = error.cause ?: error
+        return when ((cause as? FirebaseFirestoreException)?.code) {
             FirebaseFirestoreException.Code.PERMISSION_DENIED ->
                 R.string.choose_campaign_post_permission_denied
 
@@ -683,14 +741,24 @@ class ChooseCampaignFeedController(
             FirebaseFirestoreException.Code.UNAUTHENTICATED ->
                 R.string.choose_campaign_post_unauthenticated
 
-            else -> when ((error as? StorageException)?.errorCode) {
+            else -> when ((cause as? StorageException)?.errorCode) {
                 StorageException.ERROR_NOT_AUTHORIZED ->
                     R.string.choose_campaign_post_permission_denied
+
+                StorageException.ERROR_NOT_AUTHENTICATED ->
+                    R.string.choose_campaign_post_unauthenticated
 
                 StorageException.ERROR_RETRY_LIMIT_EXCEEDED ->
                     R.string.choose_campaign_post_network_failed
 
-                else -> R.string.choose_campaign_post_create_failed
+                StorageException.ERROR_BUCKET_NOT_FOUND ->
+                    R.string.choose_campaign_photo_upload_failed
+
+                else -> if (error is CampaignImageUploadException) {
+                    R.string.choose_campaign_photo_upload_failed
+                } else {
+                    R.string.choose_campaign_post_create_failed
+                }
             }
         }
     }
@@ -719,26 +787,179 @@ class ChooseCampaignFeedController(
             return
         }
 
+        if (currentUserRole == CampaignFeedPost.ROLE_GUEST && !feedSettings.allowGuestReactions) {
+            Toast.makeText(context, R.string.choose_campaign_guest_reactions_disabled, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val reactionType = post.myReactionType.ifBlank { CampaignReactionUi.LIKE }
+        submitReaction(post, reactionType)
+    }
+
+    private fun showReactionPicker(anchor: View, post: CampaignFeedPost) {
+        val actorId = currentUserId
+        if (actorId.isNullOrBlank()) {
+            ensureViewerSession { showReactionPicker(anchor, post) }
+            return
+        }
+
+        if (currentUserRole == CampaignFeedPost.ROLE_GUEST && !feedSettings.allowGuestReactions) {
+            Toast.makeText(context, R.string.choose_campaign_guest_reactions_disabled, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(10.dp(), 8.dp(), 10.dp(), 8.dp())
+            setBackgroundResource(R.drawable.bg_support_input)
+        }
+
+        val popupWindow = PopupWindow(
+            row,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            isOutsideTouchable = true
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            elevation = 8f
+        }
+
+        CampaignReactionUi.reactionOrder.forEach { reactionType ->
+            val option = TextView(context).apply {
+                text = CampaignReactionUi.emoji(reactionType)
+                textSize = 26f
+                gravity = Gravity.CENTER
+                contentDescription = CampaignReactionUi.label(reactionType)
+                setPadding(10.dp(), 4.dp(), 10.dp(), 4.dp())
+                setOnClickListener {
+                    popupWindow.dismiss()
+                    submitReaction(post, reactionType)
+                }
+            }
+            row.addView(option)
+        }
+
+        popupWindow.showAsDropDown(anchor, 0, -anchor.height - 66.dp())
+    }
+
+    private fun showReactionDetails(post: CampaignFeedPost) {
+        val dialogView = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20.dp(), 18.dp(), 20.dp(), 18.dp())
+        }
+
+        val title = TextView(context).apply {
+            text = context.getString(R.string.choose_campaign_reactions_title)
+            setTextColor(ContextCompat.getColor(context, R.color.text_black))
+            textSize = 18f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+
+        val filterRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 12.dp(), 0, 12.dp())
+        }
+
+        val recycler = RecyclerView(context).apply {
+            layoutManager = LinearLayoutManager(context)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                320.dp()
+            )
+        }
+        val emptyView = TextView(context).apply {
+            text = context.getString(R.string.choose_campaign_reactions_empty)
+            setTextColor(ContextCompat.getColor(context, R.color.text_grey))
+            gravity = Gravity.CENTER
+            setPadding(0, 18.dp(), 0, 18.dp())
+            visibility = View.GONE
+        }
+        val reactionsAdapter = CampaignReactionAdapter()
+        recycler.adapter = reactionsAdapter
+
+        fun bindFilterChip(chip: TextView, selected: Boolean) {
+            chip.setBackgroundResource(
+                if (selected) R.drawable.bg_support_chip_active else R.drawable.bg_support_chip
+            )
+            chip.setTextColor(
+                ContextCompat.getColor(
+                    context,
+                    if (selected) android.R.color.white else R.color.primary_blue
+                )
+            )
+        }
+
+        val filterChips = mutableMapOf<String, TextView>()
+        val filters = listOf(CampaignReactionAdapter.FILTER_ALL) + CampaignReactionUi.reactionOrder
+        filters.forEach { filter ->
+            val chip = TextView(context).apply {
+                text = if (filter == CampaignReactionAdapter.FILTER_ALL) {
+                    context.getString(R.string.choose_campaign_reactions_all)
+                } else {
+                    CampaignReactionUi.emoji(filter)
+                }
+                textSize = 14f
+                gravity = Gravity.CENTER
+                setPadding(12.dp(), 7.dp(), 12.dp(), 7.dp())
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    marginEnd = 8.dp()
+                }
+                setOnClickListener {
+                    reactionsAdapter.applyFilter(filter)
+                    filterChips.forEach { (type, view) -> bindFilterChip(view, type == filter) }
+                    emptyView.visibility = if (reactionsAdapter.itemCount == 0) View.VISIBLE else View.GONE
+                }
+            }
+            filterChips[filter] = chip
+            bindFilterChip(chip, filter == CampaignReactionAdapter.FILTER_ALL)
+            filterRow.addView(chip)
+        }
+
+        dialogView.addView(title)
+        dialogView.addView(filterRow)
+        dialogView.addView(emptyView)
+        dialogView.addView(recycler)
+
+        val dialog = AlertDialog.Builder(context)
+            .setView(dialogView)
+            .create()
+
+        repository.loadReactions(post.id) { result ->
+            result.onSuccess { reactions ->
+                reactionsAdapter.submitList(reactions)
+                emptyView.visibility = if (reactions.isEmpty()) View.VISIBLE else View.GONE
+            }.onFailure {
+                emptyView.text = context.getString(R.string.choose_campaign_reactions_failed)
+                emptyView.visibility = View.VISIBLE
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun submitReaction(post: CampaignFeedPost, reactionType: String) {
+        val actorId = currentUserId.orEmpty()
+        if (actorId.isBlank()) {
+            ensureViewerSession { submitReaction(post, reactionType) }
+            return
+        }
+
         repository.toggleReaction(
+            post = post,
             postId = post.id,
             actorId = actorId,
-            actorName = currentUserName
+            actorName = currentUserName,
+            actorRole = currentUserRole,
+            reactionType = reactionType
         ) { result ->
-            result.onSuccess { reacted ->
-                allPosts = allPosts.map { current ->
-                    if (current.id != post.id) {
-                        current
-                    } else {
-                        current.copy(
-                            reactedByMe = reacted,
-                            reactCount = if (reacted) {
-                                current.reactCount + 1
-                            } else {
-                                (current.reactCount - 1).coerceAtLeast(0)
-                            }
-                        )
-                    }
-                }
+            result.onSuccess { selectedReactionType ->
+                applyLocalReactionState(post.id, selectedReactionType)
                 applyFeedFilter()
             }.onFailure {
                 Toast.makeText(
@@ -750,9 +971,40 @@ class ChooseCampaignFeedController(
         }
     }
 
+    private fun applyLocalReactionState(postId: String, selectedReactionType: String) {
+        allPosts = allPosts.map { current ->
+            if (current.id != postId) return@map current
+
+            val oldType = current.myReactionType
+            val counts = current.reactionCounts.toMutableMap()
+            var total = current.reactCount
+
+            if (oldType.isNotBlank() && oldType != selectedReactionType) {
+                counts[oldType] = ((counts[oldType] ?: 0) - 1).coerceAtLeast(0)
+                total = (total - 1).coerceAtLeast(0)
+            }
+            if (selectedReactionType.isNotBlank()) {
+                counts[selectedReactionType] = (counts[selectedReactionType] ?: 0) + 1
+                total += 1
+            }
+
+            current.copy(
+                myReactionType = selectedReactionType,
+                reactedByMe = selectedReactionType.isNotBlank(),
+                reactCount = total.coerceAtLeast(0),
+                reactionCounts = counts
+            )
+        }
+    }
+
     private fun handleComment(post: CampaignFeedPost) {
         if (currentUserId.isNullOrBlank()) {
             ensureViewerSession { handleComment(post) }
+            return
+        }
+
+        if (currentUserRole == CampaignFeedPost.ROLE_GUEST && !feedSettings.allowGuestComments) {
+            Toast.makeText(context, R.string.choose_campaign_guest_comments_disabled, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -839,7 +1091,35 @@ class ChooseCampaignFeedController(
         val commentsEmptyView = dialogView.findViewById<TextView>(R.id.tvCommentsEmpty)
         val commentInput = dialogView.findViewById<EditText>(R.id.etCommentInput)
         val sendCommentButton = dialogView.findViewById<TextView>(R.id.btnSendComment)
-        val commentsAdapter = CampaignCommentAdapter()
+        val replyModeContainer = dialogView.findViewById<View>(R.id.replyModeContainer)
+        val replyingToView = dialogView.findViewById<TextView>(R.id.tvReplyingTo)
+        val cancelReplyButton = dialogView.findViewById<TextView>(R.id.btnCancelReply)
+        var replyTarget: CampaignPostComment? = null
+        var replyToReplyTarget: CampaignPostReply? = null
+
+        fun clearReplyMode() {
+            replyTarget = null
+            replyToReplyTarget = null
+            replyModeContainer.isVisible = false
+            replyingToView.text = ""
+            sendCommentButton.text = context.getString(R.string.choose_campaign_send_comment)
+        }
+
+        val commentsAdapter = CampaignCommentAdapter { comment, reply ->
+            replyTarget = comment
+            replyToReplyTarget = reply
+            val targetName = reply?.authorName ?: comment.authorName
+            replyModeContainer.isVisible = true
+            replyingToView.text = context.getString(
+                R.string.choose_campaign_replying_to,
+                targetName
+            )
+            val mentionPrefix = "@$targetName "
+            commentInput.setText(mentionPrefix)
+            commentInput.setSelection(commentInput.text?.length ?: 0)
+            commentInput.requestFocus()
+            sendCommentButton.text = context.getString(R.string.choose_campaign_send_reply)
+        }
 
         commentsRecycler.layoutManager = LinearLayoutManager(context)
         commentsRecycler.adapter = commentsAdapter
@@ -847,6 +1127,11 @@ class ChooseCampaignFeedController(
         val dialog = AlertDialog.Builder(context)
             .setView(dialogView)
             .create()
+
+        cancelReplyButton.setOnClickListener {
+            clearReplyMode()
+            commentInput.text?.clear()
+        }
 
         sendCommentButton.setOnClickListener {
             val commentText = commentInput.text?.toString()?.trim().orEmpty()
@@ -863,24 +1148,53 @@ class ChooseCampaignFeedController(
             }
 
             sendCommentButton.isEnabled = false
-            repository.addComment(
-                postId = post.id,
-                userId = actorId,
-                userName = currentUserName,
-                userRole = currentUserRole,
-                text = commentText
-            ) { result ->
-                sendCommentButton.isEnabled = true
-                result.onSuccess {
-                    commentInput.text?.clear()
-                    Toast.makeText(context, R.string.choose_campaign_comment_sent, Toast.LENGTH_SHORT)
-                        .show()
-                }.onFailure {
-                    Toast.makeText(
-                        context,
-                        R.string.choose_campaign_comment_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
+            val activeReplyTarget = replyTarget
+            if (activeReplyTarget == null) {
+                repository.addComment(
+                    postId = post.id,
+                    userId = actorId,
+                    userName = currentUserName,
+                    userRole = currentUserRole,
+                    text = commentText
+                ) { result ->
+                    sendCommentButton.isEnabled = true
+                    result.onSuccess {
+                        commentInput.text?.clear()
+                        Toast.makeText(context, R.string.choose_campaign_comment_sent, Toast.LENGTH_SHORT)
+                            .show()
+                    }.onFailure {
+                        Toast.makeText(
+                            context,
+                            R.string.choose_campaign_comment_failed,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            } else {
+                repository.addReply(
+                    postId = post.id,
+                    parentComment = activeReplyTarget,
+                    replyingToReply = replyToReplyTarget,
+                    userId = actorId,
+                    userName = currentUserName,
+                    userRole = currentUserRole,
+                    text = commentText,
+                    mentionedUserId = replyToReplyTarget?.authorId ?: activeReplyTarget.authorId,
+                    mentionedUserName = replyToReplyTarget?.authorName ?: activeReplyTarget.authorName
+                ) { result ->
+                    sendCommentButton.isEnabled = true
+                    result.onSuccess {
+                        commentInput.text?.clear()
+                        clearReplyMode()
+                        Toast.makeText(context, R.string.choose_campaign_reply_sent, Toast.LENGTH_SHORT)
+                            .show()
+                    }.onFailure {
+                        Toast.makeText(
+                            context,
+                            R.string.choose_campaign_comment_failed,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
         }
@@ -890,8 +1204,25 @@ class ChooseCampaignFeedController(
             onUpdate = { comments ->
                 commentsAdapter.submitList(comments)
                 commentsEmptyView.isVisible = comments.isEmpty()
+                if (post.id == targetPostId && (targetCommentId.isNotBlank() || targetReplyId.isNotBlank())) {
+                    val targetIndex = comments.indexOfFirst { comment ->
+                        comment.id == targetCommentId ||
+                            comment.replies.any { reply -> reply.id == targetReplyId }
+                    }
+                    if (targetIndex >= 0) {
+                        commentsRecycler.post {
+                            commentsRecycler.scrollToPosition(targetIndex)
+                        }
+                    }
+                    // TODO: Add a brief highlight animation for the exact comment/reply row.
+                }
+                val totalCommentsAndReplies = comments.sumOf { 1 + it.replies.size }
                 allPosts = allPosts.map { current ->
-                    if (current.id == post.id) current.copy(commentCount = comments.size) else current
+                    if (current.id == post.id) {
+                        current.copy(commentCount = totalCommentsAndReplies)
+                    } else {
+                        current
+                    }
                 }
                 applyFeedFilter()
             },
@@ -1030,5 +1361,9 @@ class ChooseCampaignFeedController(
 
     private fun formatCurrency(amount: Long): String {
         return String.format(Locale.US, "\u20B1%,d", amount)
+    }
+
+    private fun Int.dp(): Int {
+        return (this * context.resources.displayMetrics.density).toInt()
     }
 }

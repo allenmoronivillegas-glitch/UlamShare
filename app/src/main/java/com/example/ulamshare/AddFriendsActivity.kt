@@ -2,6 +2,7 @@ package com.example.ulamshare
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
@@ -11,13 +12,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.gms.tasks.TaskCompletionSource
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ServerValue
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
 import java.util.Locale
 
 class AddFriendsActivity : AppCompatActivity() {
@@ -40,6 +40,10 @@ class AddFriendsActivity : AppCompatActivity() {
     private lateinit var currentUserId: String
     private var currentUserEmail: String = ""
     private var currentUserLabel: String = "User"
+    private var currentUserPhotoUrl: String = ""
+    private var currentUserPhotoLocalUri: String = ""
+    private var currentUserRole: String = ""
+    private var currentUserStatus: String = ""
 
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
     private val firebaseDb: FirebaseDatabase by lazy { FirebaseDatabase.getInstance(DATABASE_URL) }
@@ -105,6 +109,10 @@ class AddFriendsActivity : AppCompatActivity() {
                 val fullName = document.getString("fullName").orEmpty()
                 val email = document.getString("email").orEmpty()
                 val following = document.get("following") as? List<*>
+                currentUserPhotoUrl = document.getString("profilePhotoUrl").orEmpty()
+                currentUserPhotoLocalUri = document.getString("profilePhotoLocalUri").orEmpty()
+                currentUserRole = document.getString("role").orEmpty()
+                currentUserStatus = document.getString("status").orEmpty()
 
                 if (fullName.isNotBlank()) {
                     currentUserLabel = fullName
@@ -115,6 +123,27 @@ class AddFriendsActivity : AppCompatActivity() {
 
                 followingIds.clear()
                 following?.mapNotNullTo(followingIds) { it as? String }
+            }
+            .addOnCompleteListener {
+                loadFollowingIds()
+            }
+    }
+
+    private fun loadFollowingIds() {
+        firestore.collection("users")
+            .document(currentUserId)
+            .collection("following")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (!snapshot.isEmpty) {
+                    followingIds.clear()
+                    snapshot.documents.mapNotNullTo(followingIds) { document ->
+                        document.getString("userId").orEmpty().ifBlank { document.id }
+                    }
+                }
+            }
+            .addOnFailureListener { error ->
+                Log.w("AddFriendsActivity", "Unable to load following subcollection", error)
             }
             .addOnCompleteListener {
                 loadUsers()
@@ -141,6 +170,10 @@ class AddFriendsActivity : AppCompatActivity() {
                         uid = uid,
                         displayName = displayName,
                         email = email,
+                        profilePhotoUrl = document.getString("profilePhotoUrl").orEmpty(),
+                        profilePhotoLocalUri = document.getString("profilePhotoLocalUri").orEmpty(),
+                        role = document.getString("role").orEmpty(),
+                        status = document.getString("status").orEmpty(),
                         isFollowing = followingIds.contains(uid)
                     )
                 }
@@ -194,14 +227,34 @@ class AddFriendsActivity : AppCompatActivity() {
         )
 
         val chatTask = rootRef.updateChildren(updates)
-        val followingTask = firestore.collection("users")
-            .document(currentUserId)
-            .set(mapOf("following" to FieldValue.arrayUnion(user.uid)), SetOptions.merge())
-        val followerTask = firestore.collection("users")
-            .document(user.uid)
-            .set(mapOf("followers" to FieldValue.arrayUnion(currentUserId)), SetOptions.merge())
+        val followTask = TaskCompletionSource<Unit>()
+        FollowRepository.follow(
+            firestore = firestore,
+            currentUser = FollowProfile(
+                uid = currentUserId,
+                fullName = currentUserLabel,
+                email = currentUserEmail,
+                profilePhotoUrl = currentUserPhotoUrl,
+                profilePhotoLocalUri = currentUserPhotoLocalUri,
+                role = currentUserRole,
+                status = currentUserStatus
+            ),
+            targetUser = FollowProfile(
+                uid = user.uid,
+                fullName = user.displayName,
+                email = user.email,
+                profilePhotoUrl = user.profilePhotoUrl,
+                profilePhotoLocalUri = user.profilePhotoLocalUri,
+                role = user.role,
+                status = user.status
+            )
+        ) { result ->
+            result
+                .onSuccess { followTask.setResult(Unit) }
+                .onFailure { followTask.setException(it.asException()) }
+        }
 
-        Tasks.whenAll(chatTask, followingTask, followerTask)
+        Tasks.whenAll(chatTask, followTask.task)
             .addOnSuccessListener {
                 followingIds += user.uid
                 allUsers.find { it.uid == user.uid }?.isFollowing = true
@@ -210,7 +263,8 @@ class AddFriendsActivity : AppCompatActivity() {
                 Toast.makeText(this, getString(R.string.friend_added), Toast.LENGTH_SHORT).show()
                 openChat(user.copy(isFollowing = true))
             }
-            .addOnFailureListener {
+            .addOnFailureListener { error ->
+                Log.e("AddFriendsActivity", "Unable to follow user", error)
                 Toast.makeText(this, getString(R.string.friend_request_failed), Toast.LENGTH_SHORT).show()
             }
     }
@@ -227,23 +281,23 @@ class AddFriendsActivity : AppCompatActivity() {
     }
 
     private fun removeFriend(user: DiscoverUser) {
-        val followingTask = firestore.collection("users")
-            .document(currentUserId)
-            .set(mapOf("following" to FieldValue.arrayRemove(user.uid)), SetOptions.merge())
-        val followerTask = firestore.collection("users")
-            .document(user.uid)
-            .set(mapOf("followers" to FieldValue.arrayRemove(currentUserId)), SetOptions.merge())
-
-        Tasks.whenAll(followingTask, followerTask)
-            .addOnSuccessListener {
-                followingIds -= user.uid
-                allUsers.find { it.uid == user.uid }?.isFollowing = false
-                applyFilter()
-                AppNotificationManager.notifyFriendRemoved(this, user.displayName)
-                Toast.makeText(this, getString(R.string.friend_removed), Toast.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener {
-                Toast.makeText(this, getString(R.string.unfriend_failed), Toast.LENGTH_SHORT).show()
+        FollowRepository.unfollow(
+            firestore = firestore,
+            currentUserId = currentUserId,
+            targetUserId = user.uid
+        ) { result ->
+            result
+                .onSuccess {
+                    followingIds -= user.uid
+                    allUsers.find { it.uid == user.uid }?.isFollowing = false
+                    applyFilter()
+                    AppNotificationManager.notifyFriendRemoved(this, user.displayName)
+                    Toast.makeText(this, getString(R.string.friend_removed), Toast.LENGTH_SHORT).show()
+                }
+                .onFailure { error ->
+                    Log.e("AddFriendsActivity", "Unable to unfollow user", error)
+                    Toast.makeText(this, getString(R.string.unfriend_failed), Toast.LENGTH_SHORT).show()
+                }
             }
     }
 
@@ -269,5 +323,9 @@ class AddFriendsActivity : AppCompatActivity() {
         return listOf(firstUserId, secondUserId)
             .sorted()
             .joinToString("_")
+    }
+
+    private fun Throwable.asException(): Exception {
+        return this as? Exception ?: RuntimeException(this)
     }
 }

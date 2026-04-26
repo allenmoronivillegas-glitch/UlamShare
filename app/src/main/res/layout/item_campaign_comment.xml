@@ -71,6 +71,28 @@
             android:textColor="@color/text_grey"
             android:textSize="11sp"
             android:text="Just now" />
+
+        <TextView
+            android:id="@+id/btnCommentReply"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginTop="6dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:paddingEnd="12dp"
+            android:text="@string/choose_campaign_reply"
+            android:textColor="@color/primary_blue"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/repliesContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="vertical" />
     </LinearLayout>
 
 </LinearLayout>

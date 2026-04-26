@@ -12,7 +12,12 @@ data class AppNotification(
     val title: String = "",
     val message: String = "",
     val timestamp: Long = 0L,
-    val type: String = "campaign" // "campaign", "system", etc.
+    val type: String = "campaign", // "campaign", "system", etc.
+    val isRead: Boolean = false,
+    val postId: String = "",
+    val commentId: String = "",
+    val replyId: String = "",
+    val replyingToReplyId: String = ""
 ) {
     
     fun getTimeAgo(): String {

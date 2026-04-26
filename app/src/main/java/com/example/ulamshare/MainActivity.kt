@@ -14,7 +14,14 @@ class MainActivity : BaseActivity() {
 
         // Set default fragment
         if (savedInstanceState == null) {
-            replaceFragment(HomeFragment())
+            if (intent.getBooleanExtra(EXTRA_OPEN_CAMPAIGNS, false) ||
+                intent.getStringExtra(EXTRA_POST_ID).orEmpty().isNotBlank()
+            ) {
+                bottomNavigation.selectedItemId = R.id.nav_campaigns
+                replaceFragment(CampaignsFragment.newInstance(intent.extras))
+            } else {
+                replaceFragment(HomeFragment())
+            }
         }
 
         bottomNavigation.setOnItemSelectedListener { item ->
@@ -32,5 +39,13 @@ class MainActivity : BaseActivity() {
             .replace(R.id.fragment_container, fragment)
             .commit()
         return true
+    }
+
+    companion object {
+        const val EXTRA_OPEN_CAMPAIGNS = "openCampaigns"
+        const val EXTRA_POST_ID = "postId"
+        const val EXTRA_COMMENT_ID = "commentId"
+        const val EXTRA_REPLY_ID = "replyId"
+        const val EXTRA_NOTIFICATION_TYPE = "notificationType"
     }
 }
