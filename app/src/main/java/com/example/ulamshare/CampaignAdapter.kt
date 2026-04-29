@@ -6,30 +6,49 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 
 class CampaignAdapter(private var items: List<Campaign>) : RecyclerView.Adapter<CampaignAdapter.ViewHolder>() {
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val emojiView: TextView = itemView.findViewById(R.id.tvCampaignEmoji)
         private val titleView: TextView = itemView.findViewById(R.id.tvActiveCampTitle)
         private val subView: TextView = itemView.findViewById(R.id.tvActiveCampSub)
         private val progressBar: ProgressBar = itemView.findViewById(R.id.pbMiniProgress)
         private val raisedView: TextView = itemView.findViewById(R.id.tvRaisedAmount)
         private val percentView: TextView = itemView.findViewById(R.id.tvProgressPercent)
+        private val statusBadgeView: TextView = itemView.findViewById(R.id.tvCampaignStatusBadge)
 
         fun bind(campaign: Campaign) {
+            val isExpired = CampaignDisplayHelper.isExpired(campaign)
+            emojiView.text = CampaignDisplayHelper.campaignEmoji(campaign)
             titleView.text = campaign.title ?: "Untitled Campaign"
-            subView.text = campaign.description ?: "No description yet."
-            raisedView.text = "₱${campaign.raised} raised"
-            
-            val goal = campaign.goal ?: 0
-            val raised = campaign.raised ?: 0
-            val progress = if (goal > 0) (raised * 100 / goal) else 0
+            subView.text = campaign.description?.ifBlank { "No description yet." } ?: "No description yet."
+            raisedView.text = "${CampaignDisplayHelper.formatPeso(campaign.raised)} raised"
+
+            val progress = CampaignDisplayHelper.progressPercent(campaign)
             progressBar.progress = progress
             percentView.text = "$progress%"
 
-            // Make clickable and navigate to Select Amount
+            statusBadgeView.visibility = if (isExpired) View.VISIBLE else View.GONE
+            if (isExpired) {
+                statusBadgeView.text = "Expired"
+                itemView.alpha = 0.72f
+            } else {
+                itemView.alpha = 1f
+            }
+
             itemView.setOnClickListener {
+                if (!CampaignDisplayHelper.canDonate(campaign)) {
+                    Toast.makeText(
+                        itemView.context,
+                        "This campaign has expired and is no longer accepting donations.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
                 val intent = Intent(itemView.context, ActivitySelectAmount::class.java).apply {
                     putExtra("campaignId", campaign.campaignId)
                     putExtra("title", campaign.title)

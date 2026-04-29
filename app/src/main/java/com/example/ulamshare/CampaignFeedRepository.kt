@@ -2,6 +2,9 @@ package com.example.ulamshare
 
 import android.net.Uri
 import android.util.Log
+import com.cloudinary.android.MediaManager
+import com.cloudinary.android.callback.ErrorInfo
+import com.cloudinary.android.callback.UploadCallback
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
@@ -10,13 +13,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
-import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageException
 import java.util.Locale
 
 class CampaignFeedRepository(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
-    private val storage: FirebaseStorage = FirebaseStorage.getInstance()
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
     fun listenToSettings(
         onUpdate: (CampaignFeedSettings) -> Unit,
@@ -136,6 +136,11 @@ class CampaignFeedRepository(
         onComplete: (Result<Unit>) -> Unit
     ) {
         val postRef = postsCollection().document()
+        FirestoreNotificationRepository.resolveMentionedUsers(
+            firestore = firestore,
+            text = draft.text,
+            senderId = author.id
+        ) { mentionedUsers ->
         val writePost: (String) -> Unit = { imageUrl ->
             val postType = draft.resolvedPostType()
             val isLiveCampaign = postType == CampaignFeedPost.TYPE_LIVE_CAMPAIGN
@@ -163,11 +168,27 @@ class CampaignFeedRepository(
                 "shareCount" to 0,
                 "isLiveCampaign" to isLiveCampaign
             )
+            if (mentionedUsers.isNotEmpty()) {
+                payload["mentionedUsers"] = mentionedUsers.map { it.toMap() }
+            }
 
             Log.d(TAG, "Saving campaign post payload to campaign_posts/${postRef.id}: $payload")
 
             postRef.set(payload)
-                .addOnSuccessListener { onComplete(Result.success(Unit)) }
+                .addOnSuccessListener {
+                    FirestoreNotificationRepository.createMentionNotifications(
+                        firestore = firestore,
+                        mentionedUsers = mentionedUsers,
+                        senderId = author.id,
+                        senderName = author.name,
+                        senderRole = normalizeRole(author.role),
+                        type = FirestoreNotificationRepository.TYPE_MENTION_POST,
+                        title = "New mention",
+                        message = "${author.name} mentioned you in a post.",
+                        postId = postRef.id
+                    )
+                    onComplete(Result.success(Unit))
+                }
                 .addOnFailureListener { error ->
                     Log.e(TAG, "Firestore post save failed", error)
                     Log.e(TAG, "Firestore post save failed details: ${firebaseErrorDetails(error)}")
@@ -178,13 +199,13 @@ class CampaignFeedRepository(
         val imageUri = draft.imageUri
         if (imageUri == null) {
             writePost("")
-            return
+        } else {
+            uploadPostImage(postRef.id, imageUri) { result ->
+                result
+                    .onSuccess { imageUrl -> writePost(imageUrl) }
+                    .onFailure { error -> onComplete(Result.failure(error)) }
+            }
         }
-
-        uploadPostImage(postRef.id, imageUri) { result ->
-            result
-                .onSuccess { imageUrl -> writePost(imageUrl) }
-                .onFailure { error -> onComplete(Result.failure(error)) }
         }
     }
 
@@ -288,23 +309,32 @@ class CampaignFeedRepository(
         val postRef = postDocument(postId)
         val commentRef = postRef.collection(COMMENTS_COLLECTION).document()
 
+        FirestoreNotificationRepository.resolveMentionedUsers(
+            firestore = firestore,
+            text = text,
+            senderId = userId
+        ) { mentionedUsers ->
         firestore.runTransaction { transaction ->
             val postSnapshot = transaction.get(postRef)
             val currentCount = numberToInt(postSnapshot.get("commentCount"))
+            val commentPayload = hashMapOf<String, Any>(
+                "id" to commentRef.id,
+                "postId" to postId,
+                "authorId" to userId,
+                "authorName" to userName,
+                "authorRole" to normalizeRole(userRole),
+                "text" to text.trim(),
+                "createdAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to FieldValue.serverTimestamp(),
+                "replyCount" to 0
+            )
+            if (mentionedUsers.isNotEmpty()) {
+                commentPayload["mentionedUsers"] = mentionedUsers.map { it.toMap() }
+            }
 
             transaction.set(
                 commentRef,
-                hashMapOf<String, Any>(
-                    "id" to commentRef.id,
-                    "postId" to postId,
-                    "authorId" to userId,
-                    "authorName" to userName,
-                    "authorRole" to normalizeRole(userRole),
-                    "text" to text.trim(),
-                    "createdAt" to FieldValue.serverTimestamp(),
-                    "updatedAt" to FieldValue.serverTimestamp(),
-                    "replyCount" to 0
-                )
+                commentPayload
             )
             transaction.update(postRef, "commentCount", currentCount + 1)
 
@@ -314,14 +344,31 @@ class CampaignFeedRepository(
                 senderId = userId,
                 senderName = userName,
                 senderRole = normalizeRole(userRole),
-                type = "comment",
+                type = FirestoreNotificationRepository.TYPE_POST_COMMENT,
                 postId = postId,
                 commentId = commentRef.id,
                 replyId = "",
                 message = "$userName commented on your post."
             )
-        }.addOnSuccessListener { onComplete(Result.success(Unit)) }
+            postSnapshot.getString("authorId").orEmpty()
+        }.addOnSuccessListener { postAuthorId ->
+            FirestoreNotificationRepository.createMentionNotifications(
+                firestore = firestore,
+                mentionedUsers = mentionedUsers,
+                excludedRecipientIds = setOf(postAuthorId),
+                senderId = userId,
+                senderName = userName,
+                senderRole = normalizeRole(userRole),
+                type = FirestoreNotificationRepository.TYPE_MENTION_COMMENT,
+                title = "New mention",
+                message = "$userName mentioned you in a comment.",
+                postId = postId,
+                commentId = commentRef.id
+            )
+            onComplete(Result.success(Unit))
+        }
             .addOnFailureListener { error -> onComplete(Result.failure(error)) }
+        }
     }
 
     fun addReply(
@@ -356,25 +403,34 @@ class CampaignFeedRepository(
             val targetUserName = replyingToReply?.authorName?.ifBlank { mentionedUserName }
                 ?: mentionedUserName.ifBlank { parentAuthorName }
             val replyingToReplyId = replyingToReply?.id.orEmpty()
+            val replyPayload = hashMapOf<String, Any>(
+                "id" to replyRef.id,
+                "postId" to postId,
+                "parentCommentId" to parentComment.id,
+                "replyingToReplyId" to replyingToReplyId,
+                "authorId" to userId,
+                "authorName" to userName,
+                "authorRole" to normalizeRole(userRole),
+                "text" to text.trim(),
+                "mentionedUserId" to targetUserId,
+                "mentionedUserName" to targetUserName,
+                "replyingToUserId" to targetUserId,
+                "replyingToUserName" to targetUserName,
+                "createdAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            if (targetUserId.isNotBlank()) {
+                replyPayload["mentionedUsers"] = listOf(
+                    mapOf(
+                        "userId" to targetUserId,
+                        "userName" to targetUserName
+                    )
+                )
+            }
 
             transaction.set(
                 replyRef,
-                hashMapOf<String, Any>(
-                    "id" to replyRef.id,
-                    "postId" to postId,
-                    "parentCommentId" to parentComment.id,
-                    "replyingToReplyId" to replyingToReplyId,
-                    "authorId" to userId,
-                    "authorName" to userName,
-                    "authorRole" to normalizeRole(userRole),
-                    "text" to text.trim(),
-                    "mentionedUserId" to targetUserId,
-                    "mentionedUserName" to targetUserName,
-                    "replyingToUserId" to targetUserId,
-                    "replyingToUserName" to targetUserName,
-                    "createdAt" to FieldValue.serverTimestamp(),
-                    "updatedAt" to FieldValue.serverTimestamp()
-                )
+                replyPayload
             )
             transaction.update(
                 commentRef,
@@ -415,7 +471,7 @@ class CampaignFeedRepository(
                     senderId = userId,
                     senderName = userName,
                     senderRole = normalizeRole(userRole),
-                    type = "mention",
+                    type = FirestoreNotificationRepository.TYPE_MENTION_REPLY,
                     postId = postId,
                     commentId = parentComment.id,
                     replyId = replyRef.id,
@@ -424,8 +480,39 @@ class CampaignFeedRepository(
                 )
             }
 
-            parentAuthorName
-        }.addOnSuccessListener { onComplete(Result.success(Unit)) }
+            targetUserId
+        }.addOnSuccessListener { targetUserId ->
+            FirestoreNotificationRepository.resolveMentionedUsers(
+                firestore = firestore,
+                text = text,
+                senderId = userId
+            ) { mentionedUsers ->
+                val extraMentions = mentionedUsers.filterNot { it.userId == targetUserId }
+                if (extraMentions.isNotEmpty()) {
+                    replyRef.update("mentionedUsers", (
+                        listOf(MentionedUser(targetUserId, mentionedUserName.ifBlank { parentComment.authorName }))
+                            .filter { it.userId.isNotBlank() } + extraMentions
+                        ).distinctBy { it.userId }.map { it.toMap() }
+                    )
+                    FirestoreNotificationRepository.createMentionNotifications(
+                        firestore = firestore,
+                        mentionedUsers = extraMentions,
+                        excludedRecipientIds = setOf(targetUserId),
+                        senderId = userId,
+                        senderName = userName,
+                        senderRole = normalizeRole(userRole),
+                        type = FirestoreNotificationRepository.TYPE_MENTION_REPLY,
+                        title = "New mention",
+                        message = "$userName mentioned you in a reply.",
+                        postId = postId,
+                        commentId = parentComment.id,
+                        replyId = replyRef.id,
+                        replyingToReplyId = replyingToReply?.id.orEmpty()
+                    )
+                }
+            }
+            onComplete(Result.success(Unit))
+        }
             .addOnFailureListener { error -> onComplete(Result.failure(error)) }
     }
 
@@ -459,16 +546,9 @@ class CampaignFeedRepository(
                         batch.delete(postRef)
                         batch.commit()
                             .addOnSuccessListener {
-                                if (post.imageUrl.isNotBlank()) {
-                                    storage.reference
-                                        .child("campaign_posts/${post.id}/post_image.jpg")
-                                        .delete()
-                                        .addOnCompleteListener {
-                                            onComplete(Result.success(Unit))
-                                        }
-                                } else {
-                                    onComplete(Result.success(Unit))
-                                }
+                                // Cloudinary images are not deleted from the client because unsigned
+                                // uploads must not expose destructive credentials in the Android app.
+                                onComplete(Result.success(Unit))
                             }
                             .addOnFailureListener { error ->
                                 onComplete(Result.failure(error))
@@ -527,21 +607,47 @@ class CampaignFeedRepository(
         imageUri: Uri,
         onComplete: (Result<String>) -> Unit
     ) {
-        val imageRef = storage.reference.child("campaign_posts/$postId/post_image.jpg")
-        Log.d(TAG, "Uploading selected campaign post image from uri=$imageUri to ${imageRef.path}")
-        imageRef.putFile(imageUri)
-            .continueWithTask { uploadTask ->
-                if (!uploadTask.isSuccessful) {
-                    throw uploadTask.exception ?: IllegalStateException("Upload failed")
+        Log.d(TAG, "Selected image uri: $imageUri")
+        Log.d(CLOUDINARY_TAG, "Starting upload for campaign post $postId")
+
+        MediaManager.get()
+            .upload(imageUri)
+            .unsigned(CloudinaryConfig.UPLOAD_PRESET)
+            .option("folder", CloudinaryConfig.FOLDER)
+            .callback(object : UploadCallback {
+                override fun onStart(requestId: String) {
+                    Log.d(CLOUDINARY_TAG, "Upload started: $requestId")
                 }
-                imageRef.downloadUrl
-            }
-            .addOnSuccessListener { uri -> onComplete(Result.success(uri.toString())) }
-            .addOnFailureListener { error ->
-                Log.e(TAG, "Image upload failed", error)
-                Log.e(TAG, "Image upload failed details: ${firebaseErrorDetails(error)}")
-                onComplete(Result.failure(CampaignImageUploadException(error)))
-            }
+
+                override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {
+                    Log.d(CLOUDINARY_TAG, "Upload progress: $bytes/$totalBytes")
+                }
+
+                override fun onSuccess(requestId: String, resultData: Map<*, *>) {
+                    val secureUrl = resultData["secure_url"]?.toString().orEmpty()
+                    if (secureUrl.isBlank()) {
+                        val error = IllegalStateException("Cloudinary did not return secure_url")
+                        Log.e(CLOUDINARY_TAG, "Upload failed", error)
+                        onComplete(Result.failure(CampaignImageUploadException(error)))
+                        return
+                    }
+
+                    Log.d(CLOUDINARY_TAG, "Upload success imageUrl: $secureUrl")
+                    onComplete(Result.success(secureUrl))
+                }
+
+                override fun onError(requestId: String, error: ErrorInfo) {
+                    val message = error.description ?: "Unknown Cloudinary error"
+                    val exception = IllegalStateException(message)
+                    Log.e(CLOUDINARY_TAG, "Upload failed", exception)
+                    onComplete(Result.failure(CampaignImageUploadException(exception)))
+                }
+
+                override fun onReschedule(requestId: String, error: ErrorInfo) {
+                    Log.d(CLOUDINARY_TAG, "Upload rescheduled: ${error.description.orEmpty()}")
+                }
+            })
+            .dispatch()
     }
 
     private fun mapPost(snapshot: DocumentSnapshot): CampaignFeedPost {
@@ -723,8 +829,7 @@ class CampaignFeedRepository(
 
     private fun firebaseErrorDetails(error: Exception): String {
         val firestoreCode = (error as? FirebaseFirestoreException)?.code?.name
-        val storageCode = (error as? StorageException)?.errorCode
-        return "type=${error.javaClass.simpleName}, firestoreCode=${firestoreCode.orEmpty()}, storageCode=${storageCode ?: ""}, message=${error.message.orEmpty()}"
+        return "type=${error.javaClass.simpleName}, firestoreCode=${firestoreCode.orEmpty()}, message=${error.message.orEmpty()}"
     }
 
     private fun createNotificationInTransaction(
@@ -746,19 +851,37 @@ class CampaignFeedRepository(
         val payload = hashMapOf<String, Any>(
             "id" to notificationRef.id,
             "recipientId" to recipientId,
+            "recipientRole" to "",
             "senderId" to senderId,
             "senderName" to senderName,
             "senderRole" to normalizeRole(senderRole),
             "type" to type,
+            "title" to notificationTitleForType(type),
+            "relatedUserId" to senderId,
+            "campaignId" to "",
+            "campaignTitle" to "",
+            "donationId" to "",
             "postId" to postId,
+            "commentId" to commentId,
+            "replyId" to replyId,
+            "amount" to 0.0,
             "message" to message,
             "isRead" to false,
             "createdAt" to FieldValue.serverTimestamp()
         )
-        if (commentId.isNotBlank()) payload["commentId"] = commentId
-        if (replyId.isNotBlank()) payload["replyId"] = replyId
         if (replyingToReplyId.isNotBlank()) payload["replyingToReplyId"] = replyingToReplyId
         transaction.set(notificationRef, payload)
+    }
+
+    private fun notificationTitleForType(type: String): String {
+        return when (type) {
+            FirestoreNotificationRepository.TYPE_POST_COMMENT -> "New comment"
+            FirestoreNotificationRepository.TYPE_COMMENT_REPLY,
+            FirestoreNotificationRepository.TYPE_REPLY_REPLY -> "New reply"
+            FirestoreNotificationRepository.TYPE_MENTION_REPLY -> "New mention"
+            FirestoreNotificationRepository.TYPE_POST_REACTION -> "New reaction"
+            else -> "HopeGive notification"
+        }
     }
 
     companion object {
@@ -771,9 +894,10 @@ class CampaignFeedRepository(
         private const val REPLIES_COLLECTION = "replies"
         private const val NOTIFICATIONS_COLLECTION = "notifications"
         private const val DEFAULT_REACTION_TYPE = "like"
+        private const val CLOUDINARY_TAG = "Cloudinary"
     }
 }
 
-class CampaignImageUploadException(cause: Exception) : Exception("Image upload failed", cause)
+class CampaignImageUploadException(cause: Throwable) : Exception("Image upload failed", cause)
 
 class CampaignFirestoreSaveException(cause: Exception) : Exception("Firestore post save failed", cause)

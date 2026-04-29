@@ -27,11 +27,6 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
-import java.text.ParseException
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import java.util.UUID
 
 class HomeFragment : Fragment() {
@@ -43,6 +38,8 @@ class HomeFragment : Fragment() {
     private lateinit var tvUserName: TextView
     private lateinit var tvProfileInitials: TextView
     private lateinit var btnRegisterHeader: Button
+    private lateinit var btnSeeAllCampaigns: TextView
+    private lateinit var tvTrendingEmoji: TextView
     private lateinit var tvTrendingTag: TextView
     private lateinit var tvCampTitle: TextView
     private lateinit var tvRaised: TextView
@@ -59,17 +56,18 @@ class HomeFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         val view = inflater.inflate(R.layout.activity_home, container, false)
 
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
-        
         dbRef = FirebaseDatabase.getInstance().getReference("campaigns")
 
         tvUserName = view.findViewById(R.id.tvUserName)
         tvProfileInitials = view.findViewById(R.id.tvProfileInitials)
         btnRegisterHeader = view.findViewById(R.id.btnRegisterHeader)
+        btnSeeAllCampaigns = view.findViewById(R.id.btnSeeAllCampaigns)
+        tvTrendingEmoji = view.findViewById(R.id.tvTrendingEmoji)
         tvTrendingTag = view.findViewById(R.id.tvTrendingTag)
         tvCampTitle = view.findViewById(R.id.tvCampTitle)
         tvRaised = view.findViewById(R.id.tvRaised)
@@ -89,6 +87,10 @@ class HomeFragment : Fragment() {
             startActivity(Intent(requireContext(), RegisterActivity::class.java))
         }
 
+        btnSeeAllCampaigns.setOnClickListener {
+            startActivity(Intent(requireContext(), CampaignCatalogActivity::class.java))
+        }
+
         loadUserData()
         fetchRecentCampaignsRealtime()
 
@@ -104,13 +106,17 @@ class HomeFragment : Fragment() {
                     if (document != null && document.exists()) {
                         val fullName = document.getString("fullName") ?: "User"
                         val firstName = fullName.split(" ").firstOrNull() ?: "User"
-                        tvUserName.text = "$firstName ✨"
-                        val initials = fullName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
+                        tvUserName.text = "$firstName \u2728"
+                        val initials = fullName.split(" ")
+                            .mapNotNull { it.firstOrNull()?.toString() }
+                            .take(2)
+                            .joinToString("")
+                            .uppercase()
                         tvProfileInitials.text = initials
                     }
                 }
         } else {
-            tvUserName.text = "Guest ✨"
+            tvUserName.text = "Guest \u2728"
             tvProfileInitials.text = "G"
             btnRegisterHeader.visibility = View.VISIBLE
         }
@@ -122,46 +128,34 @@ class HomeFragment : Fragment() {
                 Log.d("HomeFragment", "Realtime update received for campaigns")
                 Log.d("HomeFragment", "snapshot.value=${snapshot.value}")
 
+                val allCampaigns = snapshot.children.mapNotNull { child ->
+                    CampaignDisplayHelper.parseCampaign(child)
+                }
+                val buckets = CampaignDisplayHelper.groupCampaigns(snapshot, "HomeFragment")
+                val activeCampaigns = buckets.activeCampaigns
+                val recentList = CampaignDisplayHelper.recentPreview(activeCampaigns)
+
                 campaignList.clear()
+                campaignList.addAll(activeCampaigns)
 
                 val count = snapshot.childrenCount.toInt()
-                var lastCampaign: Campaign? = null
+                val latestCampaign = allCampaigns.maxByOrNull { it.createdAt ?: 0L }
 
-                for (campaignSnapshot in snapshot.children) {
-                    val campaign = campaignSnapshot.getValue(Campaign::class.java)
-                    if (campaign != null) {
-                        if (campaign.campaignId.isNullOrBlank()) {
-                            campaign.campaignId = campaignSnapshot.key
-                        }
-
-                        campaignList.add(campaign)
-                        lastCampaign = campaign
-
-                        Log.d(
-                            "HomeFragment",
-                            "campaign title=${campaign.title}, status=${campaign.status}, hidden=${campaign.hidden}"
-                        )
-                    }
-                }
-
-                // ✅ ONLY trigger when NEW campaign is added
-                if (lastCampaignCount != 0 && count > lastCampaignCount && lastCampaign != null) {
-
-                    // 🔔 SAVE TO HISTORY
+                if (lastCampaignCount != 0 && count > lastCampaignCount && latestCampaign != null) {
                     NotificationRepository.init(requireContext())
                     val newNotif = AppNotification(
                         id = UUID.randomUUID().toString(),
-                        title = "New Campaign: ${lastCampaign.title}",
+                        title = "New Campaign: ${latestCampaign.title}",
                         message = "A new campaign has been launched. Tap to view and support!",
                         timestamp = System.currentTimeMillis(),
                         type = "campaign"
                     )
                     NotificationRepository.saveNotification(newNotif)
 
-                    // 🔔 TOAST
                     Toast.makeText(requireContext(), "New campaign added!", Toast.LENGTH_SHORT).show()
 
-                    val manager = requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    val manager = requireContext()
+                        .getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                     val channelId = "campaign_channel"
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -173,11 +167,8 @@ class HomeFragment : Fragment() {
                         manager.createNotificationChannel(channel)
                     }
 
-                    // 🔗 PART 1 — MAKE NOTIFICATION CLICKABLE & PASS DATA
-                    val intent = Intent(requireContext(), ActivitySelectAmount::class.java).apply {
-                        putExtra("campaignId", lastCampaign.campaignId)
-                        putExtra("title", lastCampaign.title)
-                        putExtra("goal", lastCampaign.goal ?: 0)
+                    val intent = Intent(requireContext(), CampaignCatalogActivity::class.java).apply {
+                        putExtra(CampaignCatalogActivity.EXTRA_INITIAL_TAB, CampaignCatalogActivity.TAB_RECENT)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     }
 
@@ -188,38 +179,36 @@ class HomeFragment : Fragment() {
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
 
-                    // 🔔 PART 3 — IMPROVE NOTIFICATION DESIGN
                     val notification = NotificationCompat.Builder(requireContext(), channelId)
                         .setSmallIcon(android.R.drawable.ic_dialog_info)
-                        .setContentTitle(lastCampaign.title)
-                        .setContentText("Tap to donate now")
+                        .setContentTitle(latestCampaign.title)
+                        .setContentText("Tap to browse campaigns")
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
-                        .setStyle(NotificationCompat.BigTextStyle().bigText(lastCampaign.title))
+                        .setStyle(NotificationCompat.BigTextStyle().bigText(latestCampaign.title))
                         .setContentIntent(pendingIntent)
                         .setAutoCancel(true)
                         .build()
 
                     manager.notify(1, notification)
-                    
                 }
 
                 lastCampaignCount = count
 
-                // ✅ NORMAL DISPLAY (UNCHANGED)
-                campaignList.sortByDescending { it.createdAt ?: 0L }
-                val recentList = if (campaignList.size > 3) campaignList.take(3) else campaignList
-
                 if (recentList.isEmpty()) {
                     rvRecentlyAdded.visibility = View.GONE
                     emptyCampaignsCard.visibility = View.VISIBLE
-                    tvEmptyCampaignsMessage.text = "No campaigns available yet."
+                    tvEmptyCampaignsMessage.text = if (buckets.expiredCampaigns.isNotEmpty()) {
+                        "Active campaigns are not available right now. You can still browse expired campaigns."
+                    } else {
+                        "No campaigns available yet."
+                    }
                 } else {
                     rvRecentlyAdded.visibility = View.VISIBLE
                     emptyCampaignsCard.visibility = View.GONE
-                    adapter.submitList(recentList.toList())
+                    adapter.submitList(recentList)
                 }
 
-                updateTrendingCampaign(campaignList)
+                updateTrendingCampaign(activeCampaigns)
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -237,76 +226,47 @@ class HomeFragment : Fragment() {
         super.onDestroyView()
     }
 
-    private fun parseCampaignDate(dateString: String?): Date? {
-        if (dateString.isNullOrBlank()) return null
-        return try {
-            SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(dateString)
-        } catch (e: ParseException) {
-            null
-        }
-    }
-
-    private fun calculateDaysLeft(campaign: Campaign): Int? {
-        val deadline = parseCampaignDate(campaign.date) ?: return null
-        val today = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.time
-        val diffMillis = deadline.time - today.time
-        return Math.ceil(diffMillis.toDouble() / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
-    }
-
     private fun calculateProgress(campaign: Campaign): Int {
-        val goal = campaign.goal ?: 0
-        val raised = campaign.raised ?: 0
-        return if (goal > 0) {
-            ((raised.toDouble() / goal.toDouble()) * 100).toInt().coerceIn(0, 100)
-        } else {
-            0
-        }
-    }
-
-    private fun formatAmount(amount: Int?): String {
-        return String.format(Locale.US, "₱%,d", amount ?: 0)
+        return CampaignDisplayHelper.progressPercent(campaign)
     }
 
     private fun selectTrendingCampaign(campaigns: List<Campaign>): Campaign? {
-        val visibleCampaigns = campaigns.filter { it.hidden != true }
-        val urgentCampaigns = visibleCampaigns.filter {
-            val daysLeft = calculateDaysLeft(it)
+        val urgentCampaigns = campaigns.filter {
+            val daysLeft = CampaignDisplayHelper.daysUntilDeadline(it)
             daysLeft != null && daysLeft <= 3
-        }.sortedWith(compareBy({ calculateDaysLeft(it) ?: Int.MAX_VALUE }, { -calculateProgress(it) }))
+        }.sortedWith(compareBy({ CampaignDisplayHelper.daysUntilDeadline(it) ?: Int.MAX_VALUE }, { -calculateProgress(it) }))
 
         if (urgentCampaigns.isNotEmpty()) return urgentCampaigns.first()
 
-        return visibleCampaigns.maxWithOrNull(compareBy({ calculateProgress(it) }, { it.createdAt ?: 0L }))
+        return campaigns.maxWithOrNull(compareBy({ calculateProgress(it) }, { it.createdAt ?: 0L }))
     }
 
     private fun updateTrendingCampaign(campaigns: List<Campaign>) {
         val trending = selectTrendingCampaign(campaigns)
         if (trending == null) {
-            tvTrendingTag.text = "🔥 TRENDING"
+            tvTrendingEmoji.text = "\uD83D\uDC99"
+            tvTrendingTag.text = "\uD83D\uDD25 TRENDING"
             tvCampTitle.text = "No highlighted campaign"
             pbCampProgress.progress = 0
             tvTrendingDetails.text = "No urgent or featured campaigns available"
             tvRaised.text = ""
+            trendingContainer.setOnClickListener(null)
             return
         }
 
         val progress = calculateProgress(trending)
-        val daysLeft = calculateDaysLeft(trending)
-        val tag = if (daysLeft != null && daysLeft <= 3) "🚨 EMERGENCY" else "🔥 TRENDING"
+        val daysLeft = CampaignDisplayHelper.daysUntilDeadline(trending)
+        val tag = if (daysLeft != null && daysLeft <= 3) "\uD83D\uDEA8 EMERGENCY" else "\uD83D\uDD25 TRENDING"
         val details = if (daysLeft != null) {
-            "$progress% • $daysLeft day${if (daysLeft == 1) "" else "s"} left"
+            "$progress% \u2022 $daysLeft day${if (daysLeft == 1) "" else "s"} left"
         } else {
-            "$progress% • No deadline"
+            "$progress% \u2022 No deadline"
         }
 
+        tvTrendingEmoji.text = CampaignDisplayHelper.campaignEmoji(trending)
         tvTrendingTag.text = tag
         tvCampTitle.text = trending.title ?: "Untitled campaign"
-        tvRaised.text = "${formatAmount(trending.raised)} raised"
+        tvRaised.text = "${CampaignDisplayHelper.formatPeso(trending.raised)} raised"
         pbCampProgress.progress = progress
         tvTrendingDetails.text = details
 

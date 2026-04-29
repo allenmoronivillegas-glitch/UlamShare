@@ -7,6 +7,7 @@ data class Campaign(
     var campaignId: String? = "",
     var title: String? = "",
     var description: String? = "",
+    var emoji: String? = "",
     var goal: Int? = 0,
     var raised: Int? = 0,
     var status: String? = "",

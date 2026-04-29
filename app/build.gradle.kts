@@ -58,10 +58,13 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.firestore)
-    implementation("com.google.firebase:firebase-storage-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.facebook.android:facebook-login:latest.release")
     implementation("androidx.recyclerview:recyclerview:1.3.1")
+    implementation("com.cloudinary:cloudinary-android:2.5.0")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    add("annotationProcessor", "com.github.bumptech.glide:compiler:4.16.0")
     
     // JSON & Serialization
     implementation("com.google.code.gson:gson:2.10.1")

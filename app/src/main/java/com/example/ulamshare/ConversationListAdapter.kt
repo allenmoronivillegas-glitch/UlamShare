@@ -61,6 +61,8 @@ class ConversationListAdapter(
         }
 
         private fun initials(value: String): String {
+            if (value.equals("HopeGive Assistant", ignoreCase = true)) return "HG"
+
             val words = value.trim().split(" ").filter { it.isNotBlank() }
             return when {
                 words.size >= 2 -> {

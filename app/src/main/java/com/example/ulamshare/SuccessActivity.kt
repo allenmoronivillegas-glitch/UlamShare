@@ -12,7 +12,7 @@ class SuccessActivity : AppCompatActivity() {
         setContentView(R.layout.activity_success)
 
         val amount = intent.getStringExtra("amount")
-        findViewById<TextView>(R.id.tvSuccessAmount)?.text = "₱${amount ?: "0.00"}"
+        findViewById<TextView>(R.id.tvSuccessAmount)?.text = "\u20B1${amount ?: "0.00"}"
 
         findViewById<Button>(R.id.btnBackHome).setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)

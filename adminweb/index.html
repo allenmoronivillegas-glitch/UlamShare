@@ -12,7 +12,7 @@
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
   import { getDatabase, ref, push, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
   import { getAuth, onAuthStateChanged, signOut, getIdTokenResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, doc, getDoc, onSnapshot, query, orderBy, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // Your web app's Firebase configuration
   const firebaseConfig = {
@@ -61,6 +61,7 @@
   window.firebaseCollection = collection;
   window.firebaseDoc = doc;
   window.firebaseGetDoc = getDoc;
+  window.firebaseGetDocs = getDocs;
   window.firebaseOnFirestoreSnapshot = onSnapshot;
   window.firebaseQuery = query;
   window.firebaseOrderBy = orderBy;
@@ -401,6 +402,23 @@
   .s-send-btn:hover{background:linear-gradient(135deg,#2d90fb 0%,var(--accent2) 100%);transform:translateY(-1px)}
   .s-send-btn:active{transform:translateY(0)}
   .s-send-btn:disabled{background:#33547e;cursor:not-allowed;transform:none}
+  .s-typing-row{
+    display:none;align-items:flex-end;gap:10px;padding:8px 16px 0;
+    background:linear-gradient(180deg,rgba(255,255,255,.02) 0%,rgba(255,255,255,0) 100%);
+  }
+  .s-typing-row.show{display:flex}
+  .s-typing-bubble{
+    display:flex;align-items:center;justify-content:center;
+    min-width:52px;min-height:34px;padding:0 8px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:8px 16px 16px 16px;
+    box-shadow:0 8px 18px rgba(0,0,0,.18);
+  }
+  .s-typing-label{
+    font-size:11px;color:#9bb0c8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:180px;
+  }
   .s-typing{display:flex;gap:3px;align-items:center;padding:8px 12px}
   .s-typing span{width:5px;height:5px;border-radius:50%;background:#7ab7ff;animation:typingDot 1.2s infinite}
   .s-typing span:nth-child(2){animation-delay:.2s}
@@ -408,6 +426,47 @@
   @keyframes typingDot{
     0%,60%,100%{transform:translateY(0);opacity:.45}
     30%{transform:translateY(-4px);opacity:1}
+  }
+  .assistant-panel{
+    margin-top:18px;border:1px solid rgba(255,255,255,.10);border-radius:18px;padding:18px;
+    background:linear-gradient(145deg,rgba(17,24,39,.96),rgba(19,32,54,.96));
+    box-shadow:0 18px 38px rgba(0,0,0,.28);
+  }
+  .assistant-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+  .assistant-title{font-size:18px;font-weight:800;color:#f7fbff}
+  .assistant-sub{font-size:13px;color:#9bb0c8;margin-top:3px}
+  .assistant-badge{
+    color:#9ed0ff;background:rgba(47,128,237,.14);border:1px solid rgba(94,168,255,.38);
+    border-radius:999px;padding:6px 10px;font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px;
+  }
+  .assistant-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.78fr);gap:14px}
+  .assistant-faq-list{display:grid;gap:10px}
+  .assistant-faq-item{
+    border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.04);
+    padding:12px;color:#dcecff;
+  }
+  .assistant-faq-q{font-weight:700;font-size:13px;margin-bottom:5px}
+  .assistant-faq-a{font-size:12px;line-height:1.45;color:#a9bfd8}
+  .assistant-tester{
+    border:1px solid rgba(94,168,255,.24);border-radius:14px;background:rgba(47,128,237,.08);padding:14px;
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .assistant-tester input{
+    height:42px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.06);
+    color:#f7fbff;padding:0 12px;outline:none;
+  }
+  .assistant-tester input::placeholder{color:#7d96b5}
+  .assistant-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .assistant-actions button{
+    border:none;border-radius:10px;background:linear-gradient(135deg,var(--s-accent,#2f80ed),#4ea7ff);
+    color:#fff;font-size:12px;font-weight:700;min-height:38px;padding:0 12px;cursor:pointer;
+  }
+  .assistant-response{
+    min-height:84px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(0,0,0,.16);
+    color:#dcecff;padding:12px;font-size:13px;line-height:1.45;
+  }
+  @media (max-width:960px){
+    .assistant-grid{grid-template-columns:1fr}
   }
   @media (max-width:1200px){
     .chat-shell{height:640px}
@@ -697,6 +756,7 @@ td.muted{color:var(--muted);font-size:12px}
         </select>
       </div>
     </div>
+      <div class="field-row"><div class="field-label">Campaign emoji</div><input class="field-input" placeholder="e.g. 🌱" id="c-emoji" maxlength="8"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-campaign')">Cancel</button>
       <button class="btn btn-primary" id="campaign-save-btn" onclick="saveCampaign()">Create Campaign →</button>
@@ -1328,11 +1388,48 @@ td.muted{color:var(--muted);font-size:12px}
             </div>
           </div>
 
+          <div class="s-typing-row" id="s-typing-row">
+            <div class="s-typing-bubble">
+              <div class="s-typing" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+            <div class="s-typing-label" id="s-typing-label">Typing...</div>
+          </div>
+
           <div class="s-input-bar">
             <div class="s-input-wrap">
-              <input id="adminMessage" placeholder="Select a conversation first..." onkeydown="if(event.key==='Enter'){event.preventDefault();sSendAdminMessage()}"/>
+              <input id="adminMessage" placeholder="Select a conversation first..." oninput="sHandleTypingInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();sSendAdminMessage()}"/>
             </div>
             <button class="s-send-btn" id="s-send-btn" onclick="sSendAdminMessage()" disabled title="Send">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="assistant-panel">
+        <div class="assistant-header">
+          <div>
+            <div class="assistant-title">HopeGive Assistant</div>
+            <div class="assistant-sub">FAQ helper for donations, campaigns, account questions, and payment methods.</div>
+          </div>
+          <div class="assistant-badge">Local FAQ Bot</div>
+        </div>
+
+        <div class="assistant-grid">
+          <div>
+            <div class="assistant-faq-list" id="assistantFaqList"></div>
+          </div>
+          <div class="assistant-tester">
+            <div class="assistant-faq-q">Test the assistant</div>
+            <input id="assistantTestInput" placeholder="Ask about donations, campaigns, or profile..." onkeydown="if(event.key==='Enter'){event.preventDefault();assistantTestQuestion()}">
+            <div class="assistant-actions">
+              <button type="button" onclick="assistantTestQuestion()">Ask Assistant</button>
+              <button type="button" onclick="assistantFillQuestion('How do payment methods work?')">Payment Methods</button>
+              <button type="button" onclick="assistantFillQuestion('How do I contact support?')">Talk to Support</button>
+            </div>
+            <div class="assistant-response" id="assistantResponse">Hi! I am HopeGive Assistant. Ask me about donations, campaigns, or your account.</div>
           </div>
         </div>
       </div>
@@ -1357,6 +1454,12 @@ let sReplyToSenderName = '';
 let sReplyToSenderRole = '';
 let sEmojiPickerTarget = null;
 let sCurrentMessages = [];
+let detachTypingListener = null;
+let sTypingStopTimer = null;
+let sTypingPresenceActive = false;
+let sTypingEntries = [];
+const S_TYPING_IDLE_MS = 2500;
+const S_TYPING_STALE_MS = 5000;
 
 // Support chat UI
 const S_COLORS = [
@@ -1387,6 +1490,43 @@ const S_CHAT_SOURCES = [
   { path:'supportChats', defaultType:'support', label:'Support' },
   { path:'userUserChats', defaultType:'user-user', label:'User-User' },
   { path:'adminTeamChats', defaultType:'admin-team', label:'Admin Team' },
+];
+const ASSISTANT_FAQS = [
+  {
+    question:'How do I donate?',
+    keywords:['donate','donation','give','payment','amount'],
+    answer:'To donate, go to Campaigns, choose a campaign, enter your donation amount, select a payment method, and confirm your donation.'
+  },
+  {
+    question:'How do I choose a campaign?',
+    keywords:['campaign','choose','fundraiser','browse','progress'],
+    answer:'Go to Campaigns and browse the available campaigns. You can view campaign details, progress, and updates before donating.'
+  },
+  {
+    question:'Where can I see my donations?',
+    keywords:['my donations','donation history','history','receipt','records'],
+    answer:'Open Profile and tap My Donations to view your donation history.'
+  },
+  {
+    question:'How do I contact support?',
+    keywords:['support','admin','contact','help','problem'],
+    answer:'Open Messenger and choose Support/Admin Team, or use HopeGive Assistant and tap Talk to Support.'
+  },
+  {
+    question:'How do I edit my profile?',
+    keywords:['profile','edit','name','phone','email','photo'],
+    answer:'Open Profile, tap the pencil/edit button, update your details, then tap Save Changes.'
+  },
+  {
+    question:'How do campaign posts work?',
+    keywords:['campaign feed','feed','post','comment','reaction','share'],
+    answer:'The Campaign Feed shows official HopeGive updates, community posts, comments, reactions, and campaign progress.'
+  },
+  {
+    question:'How do payment methods work?',
+    keywords:['payment method','payment methods','gcash','maya','card','saved method'],
+    answer:'Open Profile -> Payment Methods to add or manage GCash, Maya, or card details. Payment methods are saved for future donations.'
+  }
 ];
 let sSourceBuckets = {};
 let sSourceDetachers = [];
@@ -1471,6 +1611,53 @@ function sFormatTime(value){
 function sFormatDateLabel(value){
   if(!value) return 'Today';
   return new Date(value).toLocaleDateString([], { month:'short', day:'numeric', year:'numeric' });
+}
+
+function assistantNormalize(text){
+  return String(text || '').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function assistantAnswerFor(question){
+  const normalized = assistantNormalize(question);
+  if(!normalized) return '';
+  let best = null;
+  let bestScore = 0;
+  ASSISTANT_FAQS.forEach(item => {
+    let score = 0;
+    const q = assistantNormalize(item.question);
+    if(q && normalized.includes(q)) score += 8;
+    item.keywords.forEach(keyword => {
+      const key = assistantNormalize(keyword);
+      if(key && normalized.includes(key)) score += key.includes(' ') ? 3 : 1;
+    });
+    if(score > bestScore){ bestScore = score; best = item; }
+  });
+  return bestScore > 0 && best ? best.answer : "I'm not sure about that yet. Would you like to contact support?";
+}
+
+function renderAssistantFaqs(){
+  const list = document.getElementById('assistantFaqList');
+  if(!list) return;
+  list.innerHTML = ASSISTANT_FAQS.map(item => `
+    <div class="assistant-faq-item">
+      <div class="assistant-faq-q">${escapeHtml(item.question)}</div>
+      <div class="assistant-faq-a">${escapeHtml(item.answer)}</div>
+    </div>
+  `).join('');
+}
+
+function assistantTestQuestion(){
+  const input = document.getElementById('assistantTestInput');
+  const response = document.getElementById('assistantResponse');
+  if(!input || !response) return;
+  const question = input.value.trim();
+  response.textContent = question ? assistantAnswerFor(question) : 'Type a question first.';
+}
+
+function assistantFillQuestion(question){
+  const input = document.getElementById('assistantTestInput');
+  if(input) input.value = question;
+  assistantTestQuestion();
 }
 
 function sShortText(value,max=72){
@@ -1766,6 +1953,7 @@ function sUpdateComposerState(){
 }
 
 function sResetChatPanel(){
+  sClearLocalTypingState();
   selectedUserId = null;
   selectedUserEmail = '';
   selectedConversationType = 'support';
@@ -1773,6 +1961,8 @@ function sResetChatPanel(){
   selectedConversationKey = '';
   sCurrentMessages = [];
   if(typeof detachChatListener === 'function'){ detachChatListener(); detachChatListener = null; }
+  if(typeof detachTypingListener === 'function'){ detachTypingListener(); detachTypingListener = null; }
+  sTypingEntries = [];
   const headerAva = document.getElementById('s-header-ava');
   const headerName = document.getElementById('s-header-name');
   const headerStatus = document.getElementById('s-header-status');
@@ -1792,10 +1982,12 @@ function sResetChatPanel(){
   sClearReply();
   sCloseEmojiPicker();
   sCloseMsgMenu();
+  sHideTypingIndicator();
   sUpdateComposerState();
 }
 
 function openChat(userId, email, forcedType, sourcePath = 'supportChats') {
+  sClearLocalTypingState();
   const lookupKey = `${sourcePath}:${userId}`;
   const conversation = sAllUsers.find(item => item.conversationKey === lookupKey) ||
     sAllUsers.find(item => item.uid === userId && item.sourcePath === sourcePath);
@@ -1815,6 +2007,7 @@ function openChat(userId, email, forcedType, sourcePath = 'supportChats') {
     row.classList.remove('s-unread');
   });
   if (typeof detachChatListener === 'function') { detachChatListener(); detachChatListener = null; }
+  if (typeof detachTypingListener === 'function') { detachTypingListener(); detachTypingListener = null; }
 
   const chatRef = window.firebaseRef(window.firebaseDb, `${selectedChatSource}/${userId}/messages`);
   detachChatListener = window.firebaseOnValue(chatRef, (snapshot) => {
@@ -1936,6 +2129,16 @@ function openChat(userId, email, forcedType, sourcePath = 'supportChats') {
     box.scrollTop = box.scrollHeight;
     sCloseEmojiPicker();
     sCloseMsgMenu();
+  });
+
+  const typingRef = window.firebaseRef(window.firebaseDb, `${selectedChatSource}/${userId}/typing`);
+  detachTypingListener = window.firebaseOnValue(typingRef, (snapshot) => {
+    const raw = snapshot.val() || {};
+    sTypingEntries = Object.entries(raw).map(([key, value]) => ({
+      key,
+      ...(value || {})
+    }));
+    sRenderTypingIndicator();
   });
 }
 
@@ -2117,6 +2320,97 @@ function sCloseMsgMenu() {
   if (menu) menu.remove();
 }
 
+function sGetTypingActorKey(){
+  return window.currentUserProfile?.uid || window.firebaseAuth?.currentUser?.uid || 'admin-web';
+}
+
+function sGetTypingActorName(){
+  return window.currentUserProfile?.username || window.currentUserProfile?.email || sRoleLabel(sGetCurrentSupportRole());
+}
+
+function sWriteTypingState(isTyping){
+  if(!selectedUserId || !window.firebaseDb) return Promise.resolve();
+  const root = selectedChatSource || 'supportChats';
+  const actorKey = sGetTypingActorKey();
+  if(!actorKey) return Promise.resolve();
+  const typingRef = window.firebaseRef(window.firebaseDb, `${root}/${selectedUserId}/typing/${actorKey}`);
+  const payload = {
+    userId: actorKey,
+    userName: sGetTypingActorName(),
+    role: sGetCurrentSupportRole(),
+    isTyping: !!isTyping,
+    updatedAt: Date.now()
+  };
+  sTypingPresenceActive = !!isTyping;
+  return window.firebaseSet(typingRef, payload).catch(err => {
+    console.error('Typing state update failed:', err);
+  });
+}
+
+function sClearLocalTypingState(){
+  if(sTypingStopTimer){
+    clearTimeout(sTypingStopTimer);
+    sTypingStopTimer = null;
+  }
+  if(!sTypingPresenceActive) return;
+  sWriteTypingState(false);
+}
+
+function sHandleTypingInput(){
+  const input = document.getElementById('adminMessage');
+  if(!input || input.disabled || !sCanReplyToSupport()){
+    sClearLocalTypingState();
+    return;
+  }
+  const text = String(input.value || '').trim();
+  if(!text){
+    sClearLocalTypingState();
+    return;
+  }
+  if(!sTypingPresenceActive){
+    sWriteTypingState(true);
+  }
+  if(sTypingStopTimer){
+    clearTimeout(sTypingStopTimer);
+  }
+  sTypingStopTimer = setTimeout(() => {
+    sWriteTypingState(false);
+    sTypingStopTimer = null;
+  }, S_TYPING_IDLE_MS);
+}
+
+function sHideTypingIndicator(){
+  const row = document.getElementById('s-typing-row');
+  if(row) row.classList.remove('show');
+}
+
+function sRenderTypingIndicator(){
+  const row = document.getElementById('s-typing-row');
+  const label = document.getElementById('s-typing-label');
+  if(!row || !label){
+    return;
+  }
+  const actorKey = sGetTypingActorKey();
+  const now = Date.now();
+  const active = sTypingEntries
+    .filter(entry =>
+      entry &&
+      entry.userId &&
+      entry.userId !== actorKey &&
+      entry.isTyping === true &&
+      Number(now - Number(entry.updatedAt || 0)) <= S_TYPING_STALE_MS
+    )
+    .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0))[0];
+
+  if(!active){
+    row.classList.remove('show');
+    return;
+  }
+
+  label.textContent = `${active.userName || 'Someone'} is typing...`;
+  row.classList.add('show');
+}
+
 async function sToggleReaction(msgKey, emoji, encoded = false) {
   if (!selectedUserId) return;
   try {
@@ -2165,6 +2459,7 @@ function sSendAdminMessage() {
     payload.replySenderRole = sReplyToSenderRole;
   }
   const conversationRef = window.firebaseRef(window.firebaseDb, `${root}/${selectedUserId}`);
+  sClearLocalTypingState();
   window.firebaseSet(newMsg, payload)
     .then(() => window.firebaseUpdate(conversationRef, {
       updatedAt: payload.time,
@@ -2177,6 +2472,9 @@ function sSendAdminMessage() {
 sSetTypeFilter('all');
 sRefreshRoleBadges();
 sUpdateComposerState();
+renderAssistantFaqs();
+window.setInterval(() => sRenderTypingIndicator(), 1000);
+window.addEventListener('beforeunload', () => sClearLocalTypingState());
 
 function diagnoseCampaigns(){
   console.group('🔧 Firebase Campaign Diagnostics');
@@ -2624,6 +2922,31 @@ function renderDashboardOverview(){
 
   renderDashboardVolumeChart(donationSeries);
   syncChecklistFromData();
+}
+
+function getCampaignEmoji(campaignOrEmoji, category = '', title = '') {
+  const savedEmoji = typeof campaignOrEmoji === 'object'
+    ? String(campaignOrEmoji?.emoji || '').trim()
+    : String(campaignOrEmoji || '').trim();
+  if(savedEmoji) return savedEmoji;
+
+  const resolvedCategory = typeof campaignOrEmoji === 'object'
+    ? String(campaignOrEmoji?.cat || campaignOrEmoji?.category || '').trim()
+    : String(category || '').trim();
+  const resolvedTitle = typeof campaignOrEmoji === 'object'
+    ? String(campaignOrEmoji?.title || '').trim()
+    : String(title || '').trim();
+  const haystack = `${resolvedCategory} ${resolvedTitle}`.toLowerCase();
+
+  if(haystack.includes('hospital') || haystack.includes('health') || haystack.includes('medical')) return '🏥';
+  if(haystack.includes('school') || haystack.includes('education') || haystack.includes('supplies') || haystack.includes('student') || haystack.includes('book')) return '📚';
+  if(haystack.includes('typhoon') || haystack.includes('flood') || haystack.includes('storm') || haystack.includes('wave')) return '🌊';
+  if(haystack.includes('disaster') || haystack.includes('relief') || haystack.includes('emergency')) return '🚨';
+  if(haystack.includes('environment') || haystack.includes('tree') || haystack.includes('earth') || haystack.includes('nature')) return '🌱';
+  if(haystack.includes('food') || haystack.includes('meal') || haystack.includes('feeding') || haystack.includes('hunger')) return '🍲';
+  if(haystack.includes('animal') || haystack.includes('pet')) return '🐾';
+  if(haystack.includes('housing') || haystack.includes('shelter') || haystack.includes('home')) return '🏠';
+  return '💙';
 }
 
 function getCategoryIcon(category) {
@@ -3129,6 +3452,7 @@ function openCampaignModal(key){
   const goalField = document.getElementById('c-goal');
   const dateField = document.getElementById('c-date');
   const catField = document.getElementById('c-cat');
+  const emojiField = document.getElementById('c-emoji');
   const saveBtn = document.getElementById('campaign-save-btn');
   if(key){
     const campaign = campaigns.find(c => c.key === key);
@@ -3138,6 +3462,7 @@ function openCampaignModal(key){
       goalField.value = campaign.goal || '';
       dateField.value = campaign.date && campaign.date !== 'No end date' ? campaign.date : '';
       catField.value = campaign.cat || '';
+      if(emojiField) emojiField.value = campaign.emoji || getCampaignEmoji(campaign);
       saveBtn.textContent = 'Save Campaign';
       document.querySelector('#modal-campaign .modal-title').textContent = 'Edit campaign';
     }
@@ -3147,10 +3472,108 @@ function openCampaignModal(key){
     goalField.value = '';
     dateField.value = '';
     catField.value = '';
+    if(emojiField) emojiField.value = '';
     saveBtn.textContent = 'Create Campaign →';
     document.querySelector('#modal-campaign .modal-title').textContent = 'Create first campaign';
   }
   openModal('modal-campaign');
+}
+
+function normalizeNotificationRole(role){
+  return String(role || '').trim().toLowerCase().replace(/\s+/g, '_') || 'user';
+}
+
+function isAdminTeamNotificationRole(role){
+  return ['admin', 'super_admin', 'moderator'].includes(normalizeNotificationRole(role));
+}
+
+function notificationUserName(profile, fallback){
+  return profile?.fullName || profile?.displayName || profile?.name || profile?.email || fallback || 'HopeGive User';
+}
+
+async function loadFirestoreNotificationUsers(){
+  if(!window.firebaseFirestore || !window.firebaseCollection || !window.firebaseGetDocs) return [];
+  const snapshot = await window.firebaseGetDocs(window.firebaseCollection(window.firebaseFirestore, 'users'));
+  return snapshot.docs.map(docSnap => {
+    const data = docSnap.data() || {};
+    return {
+      id: data.uid || docSnap.id,
+      role: data.role || data.roleKey || '',
+      fullName: notificationUserName(data),
+      campaignId: data.campaign?.campaignId || data.campaignId || ''
+    };
+  }).filter(user => user.id);
+}
+
+async function createFirestoreNotification(recipient, payload){
+  const authUser = window.firebaseAuth?.currentUser;
+  if(!authUser || !window.firebaseFirestore || !window.firebaseCollection || !window.firebaseDoc || !window.firebaseSetDoc || !window.firebaseServerTimestamp) return;
+  if(!recipient?.id || recipient.id === authUser.uid) return;
+
+  const notificationRef = window.firebaseDoc(window.firebaseCollection(window.firebaseFirestore, 'notifications'));
+  const senderName = notificationUserName(window.currentUserProfile, authUser.email || 'HopeGive Admin');
+  await window.firebaseSetDoc(notificationRef, {
+    id: notificationRef.id,
+    recipientId: recipient.id,
+    recipientRole: recipient.role || '',
+    senderId: authUser.uid,
+    senderName,
+    senderRole: normalizeNotificationRole(window.currentUserProfile?.role || window.currentUserProfile?.roleKey || ''),
+    type: payload.type || 'campaign_added',
+    title: payload.title || 'HopeGive notification',
+    message: payload.message || '',
+    relatedUserId: authUser.uid,
+    campaignId: payload.campaignId || '',
+    campaignTitle: payload.campaignTitle || '',
+    donationId: payload.donationId || '',
+    postId: payload.postId || '',
+    commentId: payload.commentId || '',
+    replyId: payload.replyId || '',
+    amount: Number(payload.amount || 0),
+    isRead: false,
+    createdAt: window.firebaseServerTimestamp()
+  });
+}
+
+async function notifyCampaignSaved({campaignId, campaignTitle, isEditing}){
+  try{
+    const users = await loadFirestoreNotificationUsers();
+    const authUser = window.firebaseAuth?.currentUser;
+    if(!authUser) return;
+
+    const normalUsers = users.filter(user => !isAdminTeamNotificationRole(user.role));
+    const adminTeam = users.filter(user => isAdminTeamNotificationRole(user.role));
+    const recipients = isEditing
+      ? normalUsers.filter(user => user.campaignId === campaignId)
+      : normalUsers;
+
+    const userType = isEditing ? 'campaign_updated' : 'campaign_added';
+    const userTitle = isEditing ? 'Campaign updated' : 'New campaign';
+    const userMessage = isEditing
+      ? `${campaignTitle} was updated.`
+      : `A new campaign was added: ${campaignTitle}.`;
+
+    await Promise.all(recipients.map(user => createFirestoreNotification(user, {
+      type: userType,
+      title: userTitle,
+      message: userMessage,
+      campaignId,
+      campaignTitle
+    })));
+
+    const senderName = notificationUserName(window.currentUserProfile, authUser.email || 'An admin');
+    await Promise.all(adminTeam.map(user => createFirestoreNotification(user, {
+      type: userType,
+      title: userTitle,
+      message: isEditing
+        ? `${senderName} updated ${campaignTitle}.`
+        : `${senderName} added a new campaign.`,
+      campaignId,
+      campaignTitle
+    })));
+  }catch(error){
+    console.error('Unable to create campaign notifications', error);
+  }
 }
 
 async function saveCampaign(){
@@ -3169,6 +3592,7 @@ async function saveCampaign(){
   const goal=document.getElementById('c-goal').value;
   const date=document.getElementById('c-date').value;
   const cat=document.getElementById('c-cat').value;
+  const emojiInput=(document.getElementById('c-emoji')?.value || '').trim();
   
   console.log('📝 Campaign data:', {title, desc, goal, date, cat});
   
@@ -3204,6 +3628,7 @@ async function saveCampaign(){
     goal: Number(goal) || 0,
     date: date || 'No end date',
     cat: cat || 'General',
+    emoji: emojiInput || existingCampaign.emoji || getCampaignEmoji({ cat, title }),
     createdAt: isEditing ? existingCampaign.createdAt || Date.now() : Date.now(),
     status: 'Active',
     hidden: false,
@@ -3227,6 +3652,11 @@ async function saveCampaign(){
         createdAt: existingCampaign.createdAt || Date.now() // Preserve original creation time
       });
       console.log('✅ Campaign updated successfully');
+      await notifyCampaignSaved({
+        campaignId: existingCampaign.campaignId || editingCampaignKey,
+        campaignTitle: title,
+        isEditing: true
+      });
       showToast('Campaign "'+title+'" updated!');
       editingCampaignKey = null;
     } else {
@@ -3242,6 +3672,11 @@ async function saveCampaign(){
       });
       
       console.log('✅ Campaign created successfully:', newKey);
+      await notifyCampaignSaved({
+        campaignId: newKey,
+        campaignTitle: title,
+        isEditing: false
+      });
       setCheckState(1, 'done');
       const dotEl = document.getElementById('dot-campaign');
       if(dotEl) dotEl.classList.add('active');
@@ -3262,6 +3697,7 @@ async function saveCampaign(){
   document.getElementById('c-goal').value='';
   document.getElementById('c-date').value='';
   document.getElementById('c-cat').value='';
+  if(document.getElementById('c-emoji')) document.getElementById('c-emoji').value='';
   console.log('✓ saveCampaign() completed');
 }
 
@@ -3424,7 +3860,7 @@ function renderCampaigns(){
       const percentage = goal > 0 ? Math.round((raised / goal) * 100) : 0;
       return `
       <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border)">
-        <div style="width:38px;height:38px;border-radius:8px;background:var(--navy3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${getCategoryIcon(c.cat)}</div>
+        <div style="width:38px;height:38px;border-radius:8px;background:var(--navy3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${getCampaignEmoji(c)}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:500;margin-bottom:2px">${c.title}</div>
           <div style="font-size:12px;color:var(--muted)">${c.cat} · Goal: ₱${Number(goal).toLocaleString()||'—'} · ${c.date}</div>

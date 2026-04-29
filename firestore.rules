@@ -181,6 +181,24 @@ service cloud.firestore {
         ]);
     }
 
+    function isValidPaymentMethod(methodId) {
+      return request.resource.data.id == methodId
+        && request.resource.data.type == methodId
+        && request.resource.data.type in ['gcash', 'maya', 'card']
+        && request.resource.data.displayName is string
+        && request.resource.data.maskedNumber is string
+        && request.resource.data.isDefault is bool
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'type',
+          'displayName',
+          'maskedNumber',
+          'isDefault',
+          'createdAt',
+          'updatedAt'
+        ]);
+    }
+
     function validReactionType(type) {
       return type in ['like', 'heart', 'haha', 'sad', 'care', 'angry'];
     }
@@ -222,8 +240,31 @@ service cloud.firestore {
       return signedIn()
         && request.resource.data.id == notificationId
         && request.resource.data.senderId == request.auth.uid
-        && request.resource.data.recipientId != request.auth.uid
-        && request.resource.data.type in ['comment', 'comment_reply', 'reply_reply', 'post_reaction', 'mention']
+        && (
+          request.resource.data.recipientId != request.auth.uid
+          || request.resource.data.type == 'donation_success'
+        )
+        && request.resource.data.type in [
+          'donation_success',
+          'new_donation_admin',
+          'campaign_added',
+          'campaign_updated',
+          'friend_request',
+          'friend_added',
+          'friend_removed',
+          'followed',
+          'unfollowed',
+          'mention_post',
+          'mention_comment',
+          'mention_reply',
+          'post_comment',
+          'comment_reply',
+          'reply_reply',
+          'post_reaction',
+          'comment',
+          'mention'
+        ]
+        && request.resource.data.title is string
         && request.resource.data.message is string
         && request.resource.data.message.size() > 0
         && request.resource.data.isRead == false;
@@ -271,6 +312,14 @@ service cloud.firestore {
         allow delete: if signedIn()
           && request.auth.uid == followerUserId
           && followerUserId != userId;
+      }
+
+      match /payment_methods/{methodId} {
+        allow read: if signedIn() && request.auth.uid == userId;
+        allow create, update: if signedIn()
+          && request.auth.uid == userId
+          && isValidPaymentMethod(methodId);
+        allow delete: if signedIn() && request.auth.uid == userId;
       }
     }
 

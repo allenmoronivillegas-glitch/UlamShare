@@ -139,6 +139,7 @@ class ContactSupportActivity : AppCompatActivity() {
                 }
             }
             .addOnCompleteListener {
+                rebuildConversationList()
                 startConversationObservers()
             }
     }
@@ -206,11 +207,13 @@ class ContactSupportActivity : AppCompatActivity() {
     }
 
     private fun rebuildConversationList() {
-        val allConversations = buildList {
+        val pinnedBotConversation = buildBotConversation()
+        val activeConversations = buildList {
             add(supportConversation ?: defaultLegacyConversation(buildSupportConfig()))
             add(adminConversation ?: defaultLegacyConversation(buildAdminConfig()))
             addAll(directConversationMap.values)
         }.sortedByDescending { it.updatedAt }
+        val allConversations = listOf(pinnedBotConversation) + activeConversations
 
         val searchQuery = etConversationSearch.text?.toString()
             .orEmpty()
@@ -231,6 +234,19 @@ class ContactSupportActivity : AppCompatActivity() {
         tvConversationEmpty.visibility =
             if (filtered.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
         tvHeaderSubtitle.text = getString(R.string.messenger_header_subtitle)
+    }
+
+    private fun buildBotConversation(): MessengerConversation {
+        return MessengerConversation(
+            key = "bot:${HopeGiveAssistantBot.SENDER_ID}",
+            channel = HopeGiveAssistantBot.CHANNEL,
+            rootPath = HopeGiveAssistantBot.ROOT_PATH,
+            title = getString(R.string.messenger_bot_name),
+            typeLabel = getString(R.string.messenger_contact_type_bot),
+            preview = getString(R.string.messenger_bot_preview),
+            updatedAt = 0L,
+            chatType = HopeGiveAssistantBot.CHANNEL
+        )
     }
 
     private fun openConversation(conversation: MessengerConversation) {

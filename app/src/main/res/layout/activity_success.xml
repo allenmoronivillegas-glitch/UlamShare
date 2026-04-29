@@ -64,7 +64,7 @@
                     android:id="@+id/tvRefId"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentRight="true"
+                    android:layout_alignParentEnd="true"
                     android:text="#HG-928374"
                     android:textColor="#1A1C1E"
                     android:textStyle="bold" />
@@ -90,8 +90,8 @@
                     android:id="@+id/tvSuccessAmount"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentRight="true"
-                    android:text="â‚±300.00"
+                    android:layout_alignParentEnd="true"
+                    android:text="&#8369;300.00"
                     android:textColor="#2172E5"
                     android:textStyle="bold" />
             </RelativeLayout>
@@ -103,7 +103,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Share your impact ðŸ”—"
+            android:text="Share your impact"
             android:textAllCaps="false"
             android:textColor="#2172E5" />
 
@@ -117,7 +117,5 @@
             android:textAllCaps="false"
             android:textColor="@color/white"
             app:cornerRadius="12dp" />
-
     </LinearLayout>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

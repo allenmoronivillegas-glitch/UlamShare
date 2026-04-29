@@ -103,7 +103,7 @@ class CampaignFeedAdapter(
                 CampaignImageLoader.load(imageView, post.imageUrl, R.drawable.plant)
             } else {
                 imageContainer.visibility = View.GONE
-                imageView.setImageResource(R.drawable.plant)
+                CampaignImageLoader.load(imageView, "", R.drawable.plant)
             }
 
             if (post.hasCampaignInfo) {

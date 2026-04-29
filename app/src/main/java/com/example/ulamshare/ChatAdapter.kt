@@ -17,7 +17,8 @@ import kotlin.math.roundToInt
 class ChatAdapter(
     private val messages: MutableList<ChatMessage>,
     private val currentUserId: String,
-    private val interactionListener: MessageInteractionListener
+    private val interactionListener: MessageInteractionListener,
+    private val actionsEnabled: Boolean = true
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     interface MessageInteractionListener {
@@ -174,7 +175,7 @@ class ChatAdapter(
     }
 
     private fun bindActions(button: ImageButton, message: ChatMessage) {
-        if (message.deleted) {
+        if (!actionsEnabled || message.deleted) {
             button.visibility = View.GONE
             button.setOnClickListener(null)
             return
@@ -241,6 +242,8 @@ class ChatAdapter(
     }
 
     private fun senderInitial(name: String): String {
+        if (name.equals("HopeGive Assistant", ignoreCase = true)) return "HG"
+
         val clean = name.trim()
         if (clean.isEmpty()) return "S"
         val parts = clean.split(" ").filter { it.isNotBlank() }

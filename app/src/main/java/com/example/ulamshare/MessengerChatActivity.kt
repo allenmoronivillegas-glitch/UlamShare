@@ -1,11 +1,20 @@
 package com.example.ulamshare
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
+import android.widget.HorizontalScrollView
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -13,10 +22,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.Query
@@ -24,6 +35,8 @@ import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Locale
+import android.view.animation.LinearInterpolator
+import kotlin.math.roundToInt
 
 class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractionListener {
 
@@ -42,6 +55,10 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
         private const val SUPPORT_CHANNEL = "support"
         private const val ADMIN_CHANNEL = "admin"
         private const val DIRECT_CHANNEL = "direct"
+        private const val SUPPORT_ROOT = "supportChats"
+        private const val TYPING_IDLE_MS = 2500L
+        private const val TYPING_STALE_MS = 5000L
+        private const val TYPING_REFRESH_MS = 1000L
 
         fun createIntent(context: Context, conversation: MessengerConversation): Intent {
             return Intent(context, MessengerChatActivity::class.java).apply {
@@ -67,6 +84,10 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
     private lateinit var tvReplyPreviewSender: TextView
     private lateinit var tvReplyPreviewText: TextView
     private lateinit var btnReplyPreviewClose: ImageButton
+    private lateinit var faqQuickActionsScroll: HorizontalScrollView
+    private lateinit var faqQuickActionsContainer: LinearLayout
+    private lateinit var typingIndicatorContainer: View
+    private lateinit var typingDots: List<View>
 
     private lateinit var chatAdapter: ChatAdapter
     private val messages = mutableListOf<ChatMessage>()
@@ -74,6 +95,8 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
 
     private var activeMessagesQuery: Query? = null
     private var activeMessagesListener: ValueEventListener? = null
+    private var activeTypingRef: DatabaseReference? = null
+    private var activeTypingListener: ValueEventListener? = null
 
     private lateinit var currentUserId: String
     private var currentUserEmail: String = ""
@@ -87,10 +110,36 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
     private var participantUserId: String = ""
     private var participantEmail: String = ""
 
+    private val isBotConversation: Boolean
+        get() = conversationChannel == HopeGiveAssistantBot.CHANNEL ||
+            conversationChatType == HopeGiveAssistantBot.CHANNEL
+
     private val firebaseDb: FirebaseDatabase by lazy {
         FirebaseDatabase.getInstance(DATABASE_URL)
     }
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+    private val uiHandler = Handler(Looper.getMainLooper())
+    private val remoteTypingEntries = linkedMapOf<String, TypingPresence>()
+    private var typingAnimatorSet: AnimatorSet? = null
+    private var hasPublishedTyping = false
+    private val stopTypingRunnable = Runnable { publishTypingState(false) }
+    private val staleTypingRefreshRunnable = object : Runnable {
+        override fun run() {
+            renderTypingIndicator()
+            if (hasActiveRemoteTyping()) {
+                uiHandler.postDelayed(this, TYPING_REFRESH_MS)
+            }
+        }
+    }
+    private val typingWatcher = object : TextWatcher {
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+
+        override fun afterTextChanged(s: Editable?) {
+            handleTypingInputChanged(s?.toString().orEmpty())
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -122,8 +171,15 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
     }
 
     override fun onDestroy() {
+        clearTypingPresence()
         detachMessagesListener()
+        detachTypingListener()
         super.onDestroy()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        clearTypingPresence()
     }
 
     private fun readConversationExtras(): Boolean {
@@ -150,13 +206,26 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
         tvReplyPreviewSender = findViewById(R.id.tvReplyPreviewSender)
         tvReplyPreviewText = findViewById(R.id.tvReplyPreviewText)
         btnReplyPreviewClose = findViewById(R.id.btnReplyPreviewClose)
+        faqQuickActionsScroll = findViewById(R.id.faqQuickActionsScroll)
+        faqQuickActionsContainer = findViewById(R.id.faqQuickActionsContainer)
+        typingIndicatorContainer = findViewById(R.id.typingIndicatorContainer)
+        typingDots = listOf(
+            findViewById(R.id.typingDot1),
+            findViewById(R.id.typingDot2),
+            findViewById(R.id.typingDot3)
+        )
     }
 
     private fun setupRecyclerView() {
         val layoutManager = LinearLayoutManager(this).apply {
             stackFromEnd = true
         }
-        chatAdapter = ChatAdapter(messages, currentUserId, this)
+        chatAdapter = ChatAdapter(
+            messages = messages,
+            currentUserId = currentUserId,
+            interactionListener = this,
+            actionsEnabled = !isBotConversation
+        )
         recyclerChat.layoutManager = layoutManager
         recyclerChat.adapter = chatAdapter
     }
@@ -174,6 +243,7 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
                 false
             }
         }
+        etMessage.addTextChangedListener(typingWatcher)
     }
 
     private fun loadCurrentUserProfile() {
@@ -201,7 +271,13 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
         tvChatTitle.text = conversationTitle
         tvChatSubtitle.text = conversationTypeLabel
         tvChatAvatar.text = initials(conversationTitle)
-        etMessage.hint = getString(R.string.message_contact_hint, conversationTitle)
+        if (isBotConversation) {
+            etMessage.hint = getString(R.string.messenger_bot_input_hint)
+            bindBotQuickActions()
+        } else {
+            etMessage.hint = getString(R.string.message_contact_hint, conversationTitle)
+            faqQuickActionsScroll.visibility = View.GONE
+        }
     }
 
     private fun ensureConversationReady() {
@@ -221,6 +297,10 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
             )
 
             DIRECT_CHANNEL -> ensureDirectConversationMetadata()
+
+            HopeGiveAssistantBot.CHANNEL -> {
+                // Local FAQ assistant. Firestore/Realtime Database can be added later for editable FAQs.
+            }
         }
     }
 
@@ -286,6 +366,13 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
 
     private fun bindMessages() {
         detachMessagesListener()
+        detachTypingListener()
+
+        if (isBotConversation) {
+            updateTypingIndicatorVisibility(false)
+            bindBotMessages()
+            return
+        }
 
         val query = firebaseDb.getReference(conversationRootPath)
             .child("messages")
@@ -317,6 +404,115 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
         query.addValueEventListener(listener)
         activeMessagesQuery = query
         activeMessagesListener = listener
+        bindTypingPresence()
+    }
+
+    private fun bindBotMessages() {
+        messages.clear()
+        messages.add(
+            buildBotMessage(
+                text = getString(R.string.messenger_bot_welcome),
+                key = "bot_welcome"
+            )
+        )
+        chatAdapter.notifyDataSetChanged()
+        recyclerChat.scrollToPosition(messages.size - 1)
+        updateMessageEmptyState()
+    }
+
+    private fun bindBotQuickActions() {
+        faqQuickActionsContainer.removeAllViews()
+        HopeGiveAssistantBot.quickQuestions.forEach { question ->
+            addBotQuickAction(question) {
+                handleBotQuestion(question)
+            }
+        }
+        addBotQuickAction(getString(R.string.messenger_bot_talk_to_support)) {
+            openSupportConversation()
+        }
+        faqQuickActionsScroll.visibility = View.VISIBLE
+    }
+
+    private fun addBotQuickAction(label: String, onClick: () -> Unit) {
+        val chip = TextView(this).apply {
+            text = label
+            textSize = 12f
+            setTextColor(ContextCompat.getColor(this@MessengerChatActivity, android.R.color.white))
+            background = ContextCompat.getDrawable(this@MessengerChatActivity, R.drawable.bg_support_chip_active)
+            setPadding(dp(12), dp(7), dp(12), dp(7))
+            setOnClickListener { onClick() }
+        }
+
+        faqQuickActionsContainer.addView(
+            chip,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                marginEnd = dp(8)
+            }
+        )
+    }
+
+    private fun handleBotQuestion(question: String) {
+        val cleanQuestion = question.trim()
+        if (cleanQuestion.isBlank()) return
+
+        appendLocalMessage(buildUserMessage(cleanQuestion))
+        etMessage.setText("")
+        clearReplyTarget()
+
+        val answer = HopeGiveAssistantBot.answerFor(cleanQuestion)
+            ?: getString(R.string.messenger_bot_unknown)
+        appendLocalMessage(buildBotMessage(answer))
+    }
+
+    private fun appendLocalMessage(message: ChatMessage) {
+        messages.add(message)
+        chatAdapter.notifyItemInserted(messages.size - 1)
+        recyclerChat.scrollToPosition(messages.size - 1)
+        updateMessageEmptyState()
+    }
+
+    private fun buildUserMessage(text: String): ChatMessage {
+        return ChatMessage(
+            key = "local_user_${System.currentTimeMillis()}_${messages.size}",
+            text = text,
+            sender = "user",
+            time = System.currentTimeMillis(),
+            senderRole = "user",
+            senderName = currentUserLabel,
+            senderId = currentUserId
+        )
+    }
+
+    private fun buildBotMessage(
+        text: String,
+        key: String = "local_bot_${System.currentTimeMillis()}_${messages.size}"
+    ): ChatMessage {
+        return ChatMessage(
+            key = key,
+            text = text,
+            sender = "bot",
+            time = System.currentTimeMillis(),
+            senderRole = "support",
+            senderName = getString(R.string.messenger_bot_name),
+            senderId = HopeGiveAssistantBot.SENDER_ID
+        )
+    }
+
+    private fun openSupportConversation() {
+        val supportConversation = MessengerConversation(
+            key = "support:$currentUserId",
+            channel = SUPPORT_CHANNEL,
+            rootPath = "$SUPPORT_ROOT/$currentUserId",
+            title = getString(R.string.support_team_name),
+            typeLabel = getString(R.string.messenger_contact_type_support),
+            preview = getString(R.string.messenger_preview_support),
+            updatedAt = 0L,
+            chatType = SUPPORT_CHANNEL
+        )
+        startActivity(createIntent(this, supportConversation))
     }
 
     private fun detachMessagesListener() {
@@ -329,12 +525,186 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
         activeMessagesListener = null
     }
 
+    private fun bindTypingPresence() {
+        detachTypingListener()
+
+        val ref = firebaseDb.getReference(conversationRootPath).child("typing")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                remoteTypingEntries.clear()
+                snapshot.children.forEach { child ->
+                    val userId = child.child("userId").getValue(String::class.java).orEmpty()
+                        .ifBlank { child.key.orEmpty() }
+                    if (userId.isBlank()) return@forEach
+
+                    remoteTypingEntries[userId] = TypingPresence(
+                        userId = userId,
+                        userName = child.child("userName").getValue(String::class.java).orEmpty(),
+                        isTyping = child.child("isTyping").getValue(Boolean::class.java) ?: false,
+                        updatedAt = child.child("updatedAt").getValue(Long::class.java) ?: 0L
+                    )
+                }
+                renderTypingIndicator()
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.w("MessengerTyping", "Typing listener cancelled: ${error.message}")
+            }
+        }
+
+        ref.addValueEventListener(listener)
+        activeTypingRef = ref
+        activeTypingListener = listener
+    }
+
+    private fun detachTypingListener() {
+        val ref = activeTypingRef
+        val listener = activeTypingListener
+        if (ref != null && listener != null) {
+            ref.removeEventListener(listener)
+        }
+        activeTypingRef = null
+        activeTypingListener = null
+        remoteTypingEntries.clear()
+        uiHandler.removeCallbacks(staleTypingRefreshRunnable)
+        if (::typingIndicatorContainer.isInitialized) {
+            updateTypingIndicatorVisibility(false)
+        }
+    }
+
+    private fun handleTypingInputChanged(value: String) {
+        if (isBotConversation || conversationRootPath.isBlank()) return
+
+        val hasText = value.trim().isNotEmpty()
+        if (!hasText) {
+            clearTypingPresence()
+            return
+        }
+
+        if (!hasPublishedTyping) {
+            publishTypingState(true)
+        }
+        uiHandler.removeCallbacks(stopTypingRunnable)
+        uiHandler.postDelayed(stopTypingRunnable, TYPING_IDLE_MS)
+    }
+
+    private fun publishTypingState(isTyping: Boolean) {
+        if (isBotConversation || conversationRootPath.isBlank() || currentUserId.isBlank()) return
+        if (hasPublishedTyping == isTyping && !isTyping) return
+
+        val typingRef = firebaseDb.getReference(conversationRootPath)
+            .child("typing")
+            .child(currentUserId)
+        val payload = hashMapOf<String, Any>(
+            "userId" to currentUserId,
+            "userName" to currentUserLabel,
+            "isTyping" to isTyping,
+            "updatedAt" to System.currentTimeMillis()
+        )
+        typingRef.setValue(payload)
+            .addOnFailureListener { error ->
+                Log.w("MessengerTyping", "Failed to update typing state", error)
+            }
+        hasPublishedTyping = isTyping
+    }
+
+    private fun clearTypingPresence() {
+        uiHandler.removeCallbacks(stopTypingRunnable)
+        publishTypingState(false)
+    }
+
+    private fun renderTypingIndicator() {
+        val now = System.currentTimeMillis()
+        val activeEntry = remoteTypingEntries.values
+            .filter { entry ->
+                entry.userId != currentUserId &&
+                    entry.isTyping &&
+                    now - entry.updatedAt <= TYPING_STALE_MS
+            }
+            .maxByOrNull { it.updatedAt }
+
+        updateTypingIndicatorVisibility(activeEntry != null)
+
+        uiHandler.removeCallbacks(staleTypingRefreshRunnable)
+        if (activeEntry != null) {
+            uiHandler.postDelayed(staleTypingRefreshRunnable, TYPING_REFRESH_MS)
+        }
+    }
+
+    private fun hasActiveRemoteTyping(): Boolean {
+        val now = System.currentTimeMillis()
+        return remoteTypingEntries.values.any { entry ->
+            entry.userId != currentUserId &&
+                entry.isTyping &&
+                now - entry.updatedAt <= TYPING_STALE_MS
+        }
+    }
+
+    private fun updateTypingIndicatorVisibility(isVisible: Boolean) {
+        if (!::typingIndicatorContainer.isInitialized) return
+        typingIndicatorContainer.visibility = if (isVisible) View.VISIBLE else View.GONE
+        if (isVisible) {
+            startTypingAnimation()
+        } else {
+            stopTypingAnimation()
+        }
+    }
+
+    private fun startTypingAnimation() {
+        if (typingAnimatorSet?.isRunning == true) return
+
+        val animators = typingDots.flatMapIndexed { index, dot ->
+            listOf(
+                ObjectAnimator.ofFloat(dot, View.ALPHA, 0.35f, 1f, 0.35f).apply {
+                    duration = 900L
+                    startDelay = index * 160L
+                    repeatCount = ObjectAnimator.INFINITE
+                    interpolator = LinearInterpolator()
+                },
+                ObjectAnimator.ofFloat(dot, View.SCALE_X, 0.9f, 1.15f, 0.9f).apply {
+                    duration = 900L
+                    startDelay = index * 160L
+                    repeatCount = ObjectAnimator.INFINITE
+                    interpolator = LinearInterpolator()
+                },
+                ObjectAnimator.ofFloat(dot, View.SCALE_Y, 0.9f, 1.15f, 0.9f).apply {
+                    duration = 900L
+                    startDelay = index * 160L
+                    repeatCount = ObjectAnimator.INFINITE
+                    interpolator = LinearInterpolator()
+                }
+            )
+        }
+
+        typingAnimatorSet = AnimatorSet().apply {
+            playTogether(animators)
+            start()
+        }
+    }
+
+    private fun stopTypingAnimation() {
+        typingAnimatorSet?.cancel()
+        typingAnimatorSet = null
+        typingDots.forEach { dot ->
+            dot.alpha = 0.65f
+            dot.scaleX = 1f
+            dot.scaleY = 1f
+        }
+    }
+
     private fun sendMessage() {
         val messageText = etMessage.text.toString().trim()
         if (messageText.isEmpty()) {
             Toast.makeText(this, "Message cannot be empty", Toast.LENGTH_SHORT).show()
             return
         }
+
+        if (isBotConversation) {
+            handleBotQuestion(messageText)
+            return
+        }
+
+        clearTypingPresence()
 
         val rootRef = firebaseDb.getReference(conversationRootPath)
         val messageRef = rootRef.child("messages").push()
@@ -605,6 +975,8 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
     }
 
     private fun initials(value: String): String {
+        if (value.equals(getString(R.string.messenger_bot_name), ignoreCase = true)) return "HG"
+
         val words = value.trim().split(" ").filter { it.isNotBlank() }
         return when {
             words.size >= 2 -> "${words[0].first()}${words[1].first()}".uppercase(Locale.getDefault())
@@ -632,4 +1004,15 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
             else -> getString(R.string.friend_label)
         }
     }
+
+    private fun dp(value: Int): Int {
+        return (value * resources.displayMetrics.density).roundToInt()
+    }
+
+    private data class TypingPresence(
+        val userId: String,
+        val userName: String,
+        val isTyping: Boolean,
+        val updatedAt: Long
+    )
 }

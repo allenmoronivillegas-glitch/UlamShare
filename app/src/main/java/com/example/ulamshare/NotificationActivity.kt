@@ -6,9 +6,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.Timestamp
@@ -27,13 +29,26 @@ class NotificationAdapter(
         private val tvTitle: TextView = itemView.findViewById(R.id.tvNotifTitle)
         private val tvMessage: TextView = itemView.findViewById(R.id.tvNotifMessage)
         private val tvTime: TextView = itemView.findViewById(R.id.tvNotifTime)
+        private val icon: ImageView = itemView.findViewById(R.id.ivNotifIcon)
 
         fun bind(notification: AppNotification) {
             unreadIndicator.visibility = if (notification.isRead) View.GONE else View.VISIBLE
             tvTitle.text = notification.title
             tvMessage.text = notification.message
             tvTime.text = notification.getTimeAgo()
+            icon.setColorFilter(ContextCompat.getColor(itemView.context, iconTint(notification.type)))
             itemView.setOnClickListener { onNotificationClicked(notification) }
+        }
+
+        private fun iconTint(type: String): Int {
+            return when (type) {
+                FirestoreNotificationRepository.TYPE_DONATION_SUCCESS,
+                FirestoreNotificationRepository.TYPE_NEW_DONATION_ADMIN -> android.R.color.holo_green_dark
+                FirestoreNotificationRepository.TYPE_POST_REACTION -> android.R.color.holo_red_dark
+                FirestoreNotificationRepository.TYPE_FRIEND_ADDED,
+                FirestoreNotificationRepository.TYPE_FOLLOWED -> android.R.color.holo_blue_dark
+                else -> android.R.color.holo_blue_light
+            }
         }
     }
 
@@ -113,11 +128,20 @@ class NotificationActivity : AppCompatActivity() {
                         .map { document ->
                             AppNotification(
                                 id = document.getString("id").orEmpty().ifBlank { document.id },
-                                title = titleForType(document.getString("type").orEmpty()),
+                                title = document.getString("title").orEmpty()
+                                    .ifBlank { titleForType(document.getString("type").orEmpty()) },
                                 message = document.getString("message").orEmpty(),
                                 timestamp = timestampToMillis(document.getTimestamp("createdAt")),
                                 type = document.getString("type").orEmpty().ifBlank { "campaign" },
                                 isRead = document.getBoolean("isRead") ?: false,
+                                senderId = document.getString("senderId").orEmpty(),
+                                senderName = document.getString("senderName").orEmpty(),
+                                senderRole = document.getString("senderRole").orEmpty(),
+                                relatedUserId = document.getString("relatedUserId").orEmpty(),
+                                campaignId = document.getString("campaignId").orEmpty(),
+                                campaignTitle = document.getString("campaignTitle").orEmpty(),
+                                donationId = document.getString("donationId").orEmpty(),
+                                amount = document.getDouble("amount") ?: 0.0,
                                 postId = document.getString("postId").orEmpty(),
                                 commentId = document.getString("commentId").orEmpty(),
                                 replyId = document.getString("replyId").orEmpty(),
@@ -193,11 +217,22 @@ class NotificationActivity : AppCompatActivity() {
 
     private fun titleForType(type: String): String {
         return when (type) {
-            "comment" -> "New comment"
-            "comment_reply" -> "New reply"
-            "reply_reply" -> "New reply"
-            "post_reaction" -> "New reaction"
-            "mention" -> "New mention"
+            FirestoreNotificationRepository.TYPE_DONATION_SUCCESS -> "Donation successful"
+            FirestoreNotificationRepository.TYPE_NEW_DONATION_ADMIN -> "New donation"
+            FirestoreNotificationRepository.TYPE_CAMPAIGN_ADDED -> "New campaign"
+            FirestoreNotificationRepository.TYPE_CAMPAIGN_UPDATED -> "Campaign updated"
+            FirestoreNotificationRepository.TYPE_FRIEND_REQUEST -> "Friend request"
+            FirestoreNotificationRepository.TYPE_FRIEND_ADDED -> "New friend"
+            FirestoreNotificationRepository.TYPE_FRIEND_REMOVED -> "Friend removed"
+            FirestoreNotificationRepository.TYPE_FOLLOWED -> "New follower"
+            FirestoreNotificationRepository.TYPE_UNFOLLOWED -> "Unfollowed"
+            FirestoreNotificationRepository.TYPE_POST_COMMENT -> "New comment"
+            FirestoreNotificationRepository.TYPE_COMMENT_REPLY -> "New reply"
+            FirestoreNotificationRepository.TYPE_REPLY_REPLY -> "New reply"
+            FirestoreNotificationRepository.TYPE_POST_REACTION -> "New reaction"
+            FirestoreNotificationRepository.TYPE_MENTION_POST,
+            FirestoreNotificationRepository.TYPE_MENTION_COMMENT,
+            FirestoreNotificationRepository.TYPE_MENTION_REPLY -> "New mention"
             else -> "Campaign update"
         }
     }
@@ -207,6 +242,41 @@ class NotificationActivity : AppCompatActivity() {
     }
 
     private fun openNotificationTarget(notification: AppNotification) {
+        when (notification.type) {
+            FirestoreNotificationRepository.TYPE_DONATION_SUCCESS,
+            FirestoreNotificationRepository.TYPE_NEW_DONATION_ADMIN -> {
+                startActivity(Intent(this, ActivityHistory::class.java).apply {
+                    putExtra("notificationId", notification.id)
+                    putExtra("donationId", notification.donationId)
+                    putExtra("type", notification.type)
+                })
+                return
+            }
+            FirestoreNotificationRepository.TYPE_CAMPAIGN_ADDED,
+            FirestoreNotificationRepository.TYPE_CAMPAIGN_UPDATED -> {
+                startActivity(Intent(this, MainActivity::class.java).apply {
+                    putExtra(MainActivity.EXTRA_OPEN_CAMPAIGNS, true)
+                    putExtra(MainActivity.EXTRA_CAMPAIGN_ID, notification.campaignId)
+                    putExtra("notificationId", notification.id)
+                    putExtra("type", notification.type)
+                })
+                return
+            }
+            FirestoreNotificationRepository.TYPE_FRIEND_REQUEST,
+            FirestoreNotificationRepository.TYPE_FRIEND_ADDED,
+            FirestoreNotificationRepository.TYPE_FRIEND_REMOVED,
+            FirestoreNotificationRepository.TYPE_FOLLOWED,
+            FirestoreNotificationRepository.TYPE_UNFOLLOWED -> {
+                // TODO: Open the sender's public profile when that screen is available.
+                startActivity(Intent(this, AddFriendsActivity::class.java).apply {
+                    putExtra("notificationId", notification.id)
+                    putExtra("relatedUserId", notification.relatedUserId.ifBlank { notification.senderId })
+                    putExtra("type", notification.type)
+                })
+                return
+            }
+        }
+
         if (notification.postId.isBlank()) return
 
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -215,6 +285,7 @@ class NotificationActivity : AppCompatActivity() {
             putExtra(MainActivity.EXTRA_COMMENT_ID, notification.commentId)
             putExtra(MainActivity.EXTRA_REPLY_ID, notification.replyId)
             putExtra(MainActivity.EXTRA_NOTIFICATION_TYPE, notification.type)
+            putExtra("notificationId", notification.id)
         }
         startActivity(intent)
     }

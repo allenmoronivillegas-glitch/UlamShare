@@ -40,6 +40,7 @@ class ProfileFragment : Fragment() {
     private lateinit var tvDonationCount: TextView
     private lateinit var tvCampaignCount: TextView
     private lateinit var tvSubDon: TextView
+    private lateinit var tvSubPay: TextView
     private lateinit var tvFollowingCount: TextView
     private lateinit var tvFollowersCount: TextView
     private lateinit var cardFollowing: CardView
@@ -67,6 +68,7 @@ class ProfileFragment : Fragment() {
         tvDonationCount = view.findViewById(R.id.tvDonationCount)
         tvCampaignCount = view.findViewById(R.id.tvCampaignCount)
         tvSubDon = view.findViewById(R.id.tvSubDon)
+        tvSubPay = view.findViewById(R.id.tvSubPay)
         tvFollowingCount = view.findViewById(R.id.tvFollowingCount)
         tvFollowersCount = view.findViewById(R.id.tvFollowersCount)
         cardFollowing = view.findViewById(R.id.cardFollowing)
@@ -74,6 +76,7 @@ class ProfileFragment : Fragment() {
 
         val optionLogout = view.findViewById<ConstraintLayout>(R.id.optionlogout)
         val optionPay = view.findViewById<ConstraintLayout>(R.id.optionPay)
+        val optionImpact = view.findViewById<ConstraintLayout>(R.id.optionImpact)
         val myDonations = view.findViewById<ConstraintLayout>(R.id.mydonations)
         val optionSupport = view.findViewById<ConstraintLayout>(R.id.optionSupport)
         val optionNotifications = view.findViewById<ConstraintLayout>(R.id.optionDonations)
@@ -113,7 +116,17 @@ class ProfileFragment : Fragment() {
         }
 
         optionPay.setOnClickListener {
-            startActivity(Intent(requireContext(), PaymentMethodActivity::class.java))
+            Log.d("ProfileFragment", "Opening PaymentMethodActivity source=profile")
+            startActivity(Intent(requireContext(), PaymentMethodActivity::class.java).apply {
+                putExtra(PaymentMethodActivity.EXTRA_SOURCE, PaymentMethodActivity.SOURCE_PROFILE)
+            })
+        }
+
+        optionImpact.setOnClickListener {
+            if (auth.currentUser == null) {
+                Toast.makeText(requireContext(), "Please log in to view your impact report.", Toast.LENGTH_SHORT).show()
+            }
+            startActivity(Intent(requireContext(), ImpactReportActivity::class.java))
         }
 
         myDonations.setOnClickListener {
@@ -160,6 +173,7 @@ class ProfileFragment : Fragment() {
                             .ifBlank { profilePhotoUrl }
                     )
                     refreshFollowCounts(user.uid)
+                    refreshPaymentMethodSummary(user.uid)
 
                     val initials = fullName.split(" ")
                         .filter { it.isNotEmpty() }
@@ -174,6 +188,7 @@ class ProfileFragment : Fragment() {
                     Log.e("ProfileFragment", "Error fetching user data", e)
                     displayProfilePhoto(savedProfilePhotoUri(user.uid))
                     refreshFollowCounts(user.uid)
+                    refreshPaymentMethodSummary(user.uid)
                 }
         } else {
             tvUserName.text = "Guest User"
@@ -184,6 +199,7 @@ class ProfileFragment : Fragment() {
             tvDonationCount.text = "0"
             tvCampaignCount.text = "0"
             tvSubDon.text = "0 donations this year"
+            tvSubPay.text = "No methods linked"
             tvFollowingCount.text = "0"
             tvFollowersCount.text = "0"
         }
@@ -238,6 +254,24 @@ class ProfileFragment : Fragment() {
             }
             .addOnFailureListener { error ->
                 Log.e("ProfileFragment", "Unable to load follow counts", error)
+            }
+    }
+
+    private fun refreshPaymentMethodSummary(userId: String) {
+        db.collection("users").document(userId)
+            .collection("payment_methods")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val count = snapshot.size()
+                tvSubPay.text = if (count == 0) {
+                    "No saved payment methods yet."
+                } else {
+                    "$count saved method${if (count == 1) "" else "s"}"
+                }
+            }
+            .addOnFailureListener { error ->
+                Log.e("ProfileFragment", "Unable to load payment methods", error)
+                tvSubPay.text = "Payment methods"
             }
     }
 

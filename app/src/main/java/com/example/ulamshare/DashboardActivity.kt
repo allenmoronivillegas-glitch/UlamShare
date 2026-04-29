@@ -25,6 +25,7 @@ class DashboardActivity : BaseActivity() {
     private lateinit var tvRaised: TextView
     private lateinit var tvTrendingDetails: TextView
     private lateinit var pbCampProgress: ProgressBar
+    private lateinit var tvActiveCampaignEmoji: TextView
     private lateinit var tvActiveCampTitle: TextView
     private lateinit var tvActiveCampSub: TextView
     private lateinit var pbMiniProgress: ProgressBar
@@ -55,6 +56,7 @@ class DashboardActivity : BaseActivity() {
         tvTrendingDetails = findViewById(R.id.tvTrendingDetails)
         pbCampProgress = findViewById(R.id.pbCampProgress)
         cardTrendingCampaign = findViewById(R.id.cardTrendingCampaign)
+        tvActiveCampaignEmoji = findViewById(R.id.tvActiveCampaignEmoji)
         tvActiveCampTitle = findViewById(R.id.tvActiveCampTitle)
         tvActiveCampSub = findViewById(R.id.tvActiveCampSub)
         pbMiniProgress = findViewById(R.id.pbMiniProgress)
@@ -132,6 +134,7 @@ class DashboardActivity : BaseActivity() {
                     val activeGoal = activeCampaign.goal ?: 0
                     val activeRaised = activeCampaign.raised ?: 0
                     val progress = if (activeGoal > 0) (activeRaised * 100 / activeGoal) else 0
+                    tvActiveCampaignEmoji.text = CampaignDisplayHelper.campaignEmoji(activeCampaign)
                     tvActiveCampTitle.text = activeCampaign.title
                     tvActiveCampSub.text = activeCampaign.description
                     pbMiniProgress.progress = progress

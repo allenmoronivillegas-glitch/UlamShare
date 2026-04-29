@@ -33,7 +33,6 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.storage.StorageException
 import java.util.Locale
 
 class ChooseCampaignFeedController(
@@ -697,6 +696,7 @@ class ChooseCampaignFeedController(
                 Log.e(TAG, "Post publish failed details: ${firebaseErrorDetails(error)}")
                 if (error is CampaignImageUploadException) {
                     Log.e(TAG, "Image upload failed", error.cause ?: error)
+                    Log.e(TAG, "Cloudinary upload failed: ${(error.cause ?: error).message.orEmpty()}")
                 }
                 if (error is CampaignFirestoreSaveException) {
                     Log.e(TAG, "Firestore post save failed", error.cause ?: error)
@@ -725,8 +725,7 @@ class ChooseCampaignFeedController(
     private fun firebaseErrorDetails(error: Throwable): String {
         val cause = error.cause ?: error
         val firestoreCode = (cause as? FirebaseFirestoreException)?.code?.name.orEmpty()
-        val storageCode = (cause as? StorageException)?.errorCode
-        return "type=${error.javaClass.simpleName}, causeType=${cause.javaClass.simpleName}, firestoreCode=$firestoreCode, storageCode=${storageCode ?: ""}, message=${cause.message.orEmpty()}"
+        return "type=${error.javaClass.simpleName}, causeType=${cause.javaClass.simpleName}, firestoreCode=$firestoreCode, message=${cause.message.orEmpty()}"
     }
 
     private fun publishFailureMessage(error: Throwable): Int {
@@ -741,24 +740,10 @@ class ChooseCampaignFeedController(
             FirebaseFirestoreException.Code.UNAUTHENTICATED ->
                 R.string.choose_campaign_post_unauthenticated
 
-            else -> when ((cause as? StorageException)?.errorCode) {
-                StorageException.ERROR_NOT_AUTHORIZED ->
-                    R.string.choose_campaign_post_permission_denied
-
-                StorageException.ERROR_NOT_AUTHENTICATED ->
-                    R.string.choose_campaign_post_unauthenticated
-
-                StorageException.ERROR_RETRY_LIMIT_EXCEEDED ->
-                    R.string.choose_campaign_post_network_failed
-
-                StorageException.ERROR_BUCKET_NOT_FOUND ->
-                    R.string.choose_campaign_photo_upload_failed
-
-                else -> if (error is CampaignImageUploadException) {
-                    R.string.choose_campaign_photo_upload_failed
-                } else {
-                    R.string.choose_campaign_post_create_failed
-                }
+            else -> if (error is CampaignImageUploadException) {
+                R.string.choose_campaign_photo_upload_failed
+            } else {
+                R.string.choose_campaign_post_create_failed
             }
         }
     }
@@ -1278,9 +1263,12 @@ class ChooseCampaignFeedController(
     private fun updateSubmitButtonState() {
         submitPostButton.isEnabled = !isSubmittingPost
         submitPostButton.alpha = if (isSubmittingPost) 0.72f else 1f
-        submitPostButton.text = context.getString(
-            if (isSubmittingPost) R.string.choose_campaign_posting else R.string.choose_campaign_post
-        )
+        val labelRes = when {
+            isSubmittingPost && selectedImageUri != null -> R.string.choose_campaign_uploading_photo
+            isSubmittingPost -> R.string.choose_campaign_posting
+            else -> R.string.choose_campaign_post
+        }
+        submitPostButton.text = context.getString(labelRes)
     }
 
     private fun clearComposer() {

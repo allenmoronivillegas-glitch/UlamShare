@@ -15,10 +15,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.google.firebase.database.DatabaseReference
-import kotlin.math.roundToInt
 
 class HomeGuestActivity : BaseActivity() {
 
@@ -30,6 +29,8 @@ class HomeGuestActivity : BaseActivity() {
     private lateinit var emptyCampaignsCard: ConstraintLayout
     private lateinit var activeCampaignCard: CardView
     private lateinit var tvEmptyCampaignsMessage: TextView
+    private lateinit var btnSeeAllCampaigns: TextView
+    private lateinit var tvActiveCampaignEmoji: TextView
 
     private lateinit var tvActiveCampaignTitle: TextView
     private lateinit var tvActiveCampaignDescription: TextView
@@ -52,6 +53,8 @@ class HomeGuestActivity : BaseActivity() {
         emptyCampaignsCard = findViewById(R.id.emptyCampaignsCard)
         activeCampaignCard = findViewById(R.id.activeCampaignCard)
         tvEmptyCampaignsMessage = findViewById(R.id.tvEmptyCampaignsMessage)
+        btnSeeAllCampaigns = findViewById(R.id.btnSeeAllCampaigns)
+        tvActiveCampaignEmoji = findViewById(R.id.tvActiveCampaignEmoji)
 
         rvTrending.layoutManager = LinearLayoutManager(this)
         adapter = CampaignAdapter(campaignList)
@@ -75,11 +78,14 @@ class HomeGuestActivity : BaseActivity() {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
 
+        btnSeeAllCampaigns.setOnClickListener {
+            startActivity(Intent(this, CampaignCatalogActivity::class.java))
+        }
+
         bottomNavigation.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> true
                 R.id.nav_campaigns -> {
-                    // Navigate to guest campaigns instead of MainActivity/Login
                     startActivity(Intent(this, CampaignsGuestActivity::class.java))
                     false
                 }
@@ -98,17 +104,27 @@ class HomeGuestActivity : BaseActivity() {
         campaignsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 Log.d("HomeGuestActivity", "Realtime campaign update received")
-                val result = CampaignVisibility.filterVisibleCampaigns(snapshot, "HomeGuestActivity")
+                val buckets = CampaignDisplayHelper.groupCampaigns(snapshot, "HomeGuestActivity")
+                val recentCampaigns = CampaignDisplayHelper.recentPreview(buckets.activeCampaigns, buckets.activeCampaigns.size)
+
                 campaignList.clear()
-                campaignList.addAll(result.visibleCampaigns)
+                campaignList.addAll(recentCampaigns)
+
                 if (campaignList.isEmpty()) {
                     rvTrending.visibility = View.GONE
-                    renderEmptyState(result.totalCampaigns > 0 && result.filteredCount > 0)
+                    renderEmptyState(
+                        hasFilteredCampaigns = buckets.filteredCount > 0 || buckets.expiredCampaigns.isNotEmpty(),
+                        message = if (buckets.expiredCampaigns.isNotEmpty()) {
+                            "Active campaigns are not available right now. Browse expired campaigns from See All."
+                        } else {
+                            null
+                        }
+                    )
                 } else {
                     rvTrending.visibility = View.VISIBLE
                     emptyCampaignsCard.visibility = View.GONE
-                    adapter.notifyDataSetChanged()
-                    renderCampaign(campaignList.first())
+                    adapter.submitList(campaignList.toList())
+                    renderCampaign(CampaignDisplayHelper.recentCampaigns(buckets.activeCampaigns).first())
                 }
             }
 
@@ -124,23 +140,29 @@ class HomeGuestActivity : BaseActivity() {
     private fun renderCampaign(campaign: Campaign) {
         activeCampaignCard.visibility = View.VISIBLE
         emptyCampaignsCard.visibility = View.GONE
+        tvActiveCampaignEmoji.text = CampaignDisplayHelper.campaignEmoji(campaign)
         tvActiveCampaignTitle.text = campaign.title ?: "Untitled Campaign"
-        tvActiveCampaignDescription.text = campaign.description?.ifBlank { "No campaign description yet." } ?: "No campaign description yet."
-        val goal = campaign.goal ?: 0
-        val raised = campaign.raised ?: 0
-        val progressPercent = if (goal > 0) {
-            ((raised.toDouble() / goal.toDouble()) * 100).coerceIn(0.0, 100.0)
-        } else 0.0
-        progressBar.progress = progressPercent.roundToInt()
-        tvCampaignRaised.text = "₱${campaign.raisedAmount.roundToInt()} raised"
-        tvCampaignProgressPercent.text = "${progressPercent.roundToInt()}%"
+        tvActiveCampaignDescription.text =
+            campaign.description?.ifBlank { "No campaign description yet." } ?: "No campaign description yet."
+        val progressPercent = CampaignDisplayHelper.progressPercent(campaign)
+        progressBar.progress = progressPercent
+        tvCampaignRaised.text = "${CampaignDisplayHelper.formatPeso(campaign.raised)} raised"
+        tvCampaignProgressPercent.text = "$progressPercent%"
+        activeCampaignCard.setOnClickListener {
+            val intent = Intent(this, ActivitySelectAmount::class.java).apply {
+                putExtra("campaignId", campaign.campaignId)
+                putExtra("title", campaign.title)
+                putExtra("goal", campaign.goal ?: 0)
+            }
+            startActivity(intent)
+        }
     }
 
     private fun renderEmptyState(hasFilteredCampaigns: Boolean, message: String? = null) {
         activeCampaignCard.visibility = View.GONE
         emptyCampaignsCard.visibility = View.VISIBLE
         tvEmptyCampaignsMessage.text = message ?: if (hasFilteredCampaigns) {
-            "Campaigns exist, but none are Active and visible right now."
+            "Campaigns exist, but none are active right now."
         } else {
             "No active campaigns available yet."
         }

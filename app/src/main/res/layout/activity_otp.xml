@@ -18,27 +18,27 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:minHeight="700dp"
-            android:paddingHorizontal="26dp">
+            android:paddingHorizontal="28dp">
 
             <!-- Back Button -->
             <ImageView
                 android:id="@+id/ivBack"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:layout_marginTop="22dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="28dp"
                 android:background="@drawable/bg_back_btn_blue"
-                android:src="@drawable/back"
+                android:src="@drawable/ic_chevron_left_blue"
                 android:padding="10dp"
                 android:contentDescription="Go back"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent" />
 
-            <!-- Step label -->
+            <!-- Step Label -->
             <TextView
                 android:id="@+id/tvStep"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="26dp"
+                android:layout_marginTop="36dp"
                 android:text="Step 2 / 3"
                 android:textColor="#93C5FD"
                 android:textSize="12sp"
@@ -47,7 +47,7 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
-            <!-- Step progress dots -->
+            <!-- Progress Dots -->
             <LinearLayout
                 android:id="@+id/progressDots"
                 android:layout_width="wrap_content"
@@ -56,8 +56,7 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 app:layout_constraintTop_toBottomOf="@id/ivBack"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
+                app:layout_constraintStart_toStartOf="parent">
 
                 <View
                     android:layout_width="24dp"
@@ -78,7 +77,7 @@
 
             </LinearLayout>
 
-            <!-- Logo ring + circle -->
+            <!-- Logo Ring -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/logoArea"
                 android:layout_width="68dp"
@@ -115,7 +114,7 @@
             <!-- Title -->
             <TextView
                 android:id="@+id/tvTitle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="22dp"
                 android:gravity="center"
@@ -131,7 +130,7 @@
             <!-- Subtitle -->
             <TextView
                 android:id="@+id/tvSubtitle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:gravity="center"
@@ -143,12 +142,12 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
-            <!-- Email chip -->
+            <!-- Email Chip -->
             <TextView
                 android:id="@+id/tvEmail"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="10dp"
                 android:paddingHorizontal="14dp"
                 android:paddingVertical="5dp"
                 android:text="j*****@email.com"
@@ -163,7 +162,7 @@
             <!-- OTP Boxes -->
             <LinearLayout
                 android:id="@+id/otpContainer"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="32dp"
                 android:gravity="center"
@@ -172,14 +171,12 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
 
-                <!-- Group 1 -->
                 <EditText android:id="@+id/otp1" style="@style/OtpBoxBlue" android:layout_width="0dp" android:layout_weight="1" tools:ignore="LabelFor" />
                 <Space android:layout_width="7dp" android:layout_height="0dp" />
                 <EditText android:id="@+id/otp2" style="@style/OtpBoxBlue" android:layout_width="0dp" android:layout_weight="1" tools:ignore="LabelFor" />
                 <Space android:layout_width="7dp" android:layout_height="0dp" />
                 <EditText android:id="@+id/otp3" style="@style/OtpBoxBlue" android:layout_width="0dp" android:layout_weight="1" tools:ignore="LabelFor" />
 
-                <!-- Separator dot -->
                 <TextView
                     android:layout_width="20dp"
                     android:layout_height="wrap_content"
@@ -189,7 +186,6 @@
                     android:textSize="22sp"
                     android:layout_gravity="center_vertical" />
 
-                <!-- Group 2 -->
                 <EditText android:id="@+id/otp4" style="@style/OtpBoxBlue" android:layout_width="0dp" android:layout_weight="1" tools:ignore="LabelFor" />
                 <Space android:layout_width="7dp" android:layout_height="0dp" />
                 <EditText android:id="@+id/otp5" style="@style/OtpBoxBlue" android:layout_width="0dp" android:layout_weight="1" tools:ignore="LabelFor" />
@@ -198,7 +194,7 @@
 
             </LinearLayout>
 
-            <!-- Error message (hidden by default) -->
+            <!-- Error Message -->
             <LinearLayout
                 android:id="@+id/errorContainer"
                 android:layout_width="wrap_content"
@@ -216,7 +212,8 @@
                     android:layout_height="14dp"
                     android:src="@drawable/logo"
                     android:layout_marginEnd="5dp"
-                    app:tint="#DC2626" />
+                    app:tint="#DC2626"
+                    android:contentDescription="Error" />
 
                 <TextView
                     android:id="@+id/tvError"
@@ -228,7 +225,7 @@
 
             </LinearLayout>
 
-            <!-- Countdown Timer -->
+            <!-- Timer -->
             <TextView
                 android:id="@+id/tvTimer"
                 android:layout_width="wrap_content"
@@ -245,23 +242,24 @@
             <!-- Verify Button -->
             <Button
                 android:id="@+id/btnVerify"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
+                android:layout_width="0dp"
+                android:layout_height="54dp"
                 android:layout_marginTop="28dp"
-                android:background="@drawable/bg_btn_blue_primary"
+                android:backgroundTint="#2172E5"
                 android:text="Verify account"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF"
-                android:textSize="15sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.01"
                 android:stateListAnimator="@null"
                 android:elevation="0dp"
+                app:cornerRadius="16dp"
                 app:layout_constraintTop_toBottomOf="@id/tvTimer"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
-            <!-- Resend row -->
+            <!-- Resend Row -->
             <LinearLayout
                 android:id="@+id/resendRow"
                 android:layout_width="wrap_content"
@@ -285,7 +283,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Resend"
-                    android:textColor="#2563EB"
+                    android:textColor="#2172E5"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:background="?attr/selectableItemBackground"
@@ -296,7 +294,7 @@
             <!-- Divider -->
             <View
                 android:id="@+id/divider"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="1dp"
                 android:layout_marginTop="24dp"
                 android:background="#EFF6FF"
@@ -304,7 +302,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
-            <!-- Support row -->
+            <!-- Support Row -->
             <LinearLayout
                 android:id="@+id/supportRow"
                 android:layout_width="wrap_content"
@@ -323,7 +321,8 @@
                     android:layout_height="14dp"
                     android:src="@drawable/logo"
                     android:layout_marginEnd="5dp"
-                    android:alpha="0.45" />
+                    android:alpha="0.45"
+                    android:contentDescription="Support" />
 
                 <TextView
                     android:layout_width="wrap_content"

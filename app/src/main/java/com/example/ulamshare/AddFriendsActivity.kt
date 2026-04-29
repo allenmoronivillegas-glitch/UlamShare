@@ -247,7 +247,8 @@ class AddFriendsActivity : AppCompatActivity() {
                 profilePhotoLocalUri = user.profilePhotoLocalUri,
                 role = user.role,
                 status = user.status
-            )
+            ),
+            notificationType = FirestoreNotificationRepository.TYPE_FRIEND_ADDED
         ) { result ->
             result
                 .onSuccess { followTask.setResult(Unit) }

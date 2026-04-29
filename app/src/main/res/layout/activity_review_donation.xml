@@ -57,11 +57,13 @@
             android:layout_height="wrap_content"
             android:padding="20dp">
 
-            <ImageView
-                android:id="@+id/ivCampaignIcon"
+            <TextView
+                android:id="@+id/tvCampaignEmoji"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/wave"
+                android:gravity="center"
+                android:text="💙"
+                android:textSize="18sp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -74,10 +76,10 @@
                 android:textColor="#2172E5"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                app:layout_constraintBottom_toBottomOf="@id/ivCampaignIcon"
+                app:layout_constraintBottom_toBottomOf="@id/tvCampaignEmoji"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/ivCampaignIcon"
-                app:layout_constraintTop_toTopOf="@id/ivCampaignIcon" />
+                app:layout_constraintStart_toEndOf="@id/tvCampaignEmoji"
+                app:layout_constraintTop_toTopOf="@id/tvCampaignEmoji" />
 
             <View
                 android:id="@+id/divider"
@@ -85,7 +87,7 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="16dp"
                 android:background="#E9ECEF"
-                app:layout_constraintTop_toBottomOf="@id/ivCampaignIcon" />
+                app:layout_constraintTop_toBottomOf="@id/tvCampaignEmoji" />
 
             <TextView
                 android:id="@+id/lblCampaign"

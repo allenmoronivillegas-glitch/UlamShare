@@ -46,6 +46,7 @@ class MainActivity : BaseActivity() {
         const val EXTRA_POST_ID = "postId"
         const val EXTRA_COMMENT_ID = "commentId"
         const val EXTRA_REPLY_ID = "replyId"
+        const val EXTRA_CAMPAIGN_ID = "campaignId"
         const val EXTRA_NOTIFICATION_TYPE = "notificationType"
     }
 }
