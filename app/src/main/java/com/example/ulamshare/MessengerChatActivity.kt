@@ -154,9 +154,10 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
 
         currentUserId = user.uid
         currentUserEmail = user.email.orEmpty()
-        currentUserLabel = user.displayName?.takeIf { it.isNotBlank() }
-            ?: user.email?.substringBefore("@")
-            ?: getString(R.string.you_label)
+        currentUserLabel = PrivacyDisplayHelper.publicName(
+            user.displayName,
+            getString(R.string.hopegive_user)
+        )
 
         if (!readConversationExtras()) {
             Toast.makeText(this, "Unable to open this chat", Toast.LENGTH_SHORT).show()
@@ -250,7 +251,7 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
         firestore.collection("users").document(currentUserId)
             .get()
             .addOnSuccessListener { document ->
-                val fullName = document.getString("fullName").orEmpty()
+                val fullName = PrivacyDisplayHelper.publicName(document.getString("fullName").orEmpty(), "")
                 val email = document.getString("email").orEmpty()
 
                 if (fullName.isNotBlank()) {
@@ -784,15 +785,19 @@ class MessengerChatActivity : AppCompatActivity(), ChatAdapter.MessageInteractio
         val senderRoleRaw = snapshot.child("senderRole").getValue(String::class.java).orEmpty()
         val senderRole = if (senderRoleRaw.isNotBlank()) senderRoleRaw else fallbackRole(sender)
         val senderNameRaw = snapshot.child("senderName").getValue(String::class.java).orEmpty()
-        val senderName = if (senderNameRaw.isNotBlank()) senderNameRaw else fallbackSenderName(senderRole)
+        val senderName = PrivacyDisplayHelper.publicName(
+            senderNameRaw,
+            fallbackSenderName(senderRole)
+        )
         val senderId = snapshot.child("senderId").getValue(String::class.java).orEmpty()
         val time = snapshot.child("time").getValue(Long::class.java) ?: 0L
         val deleted = snapshot.child("deleted").getValue(Boolean::class.java) ?: false
         val replyTo = snapshot.child("replyTo").getValue(String::class.java).orEmpty()
         val replyText = snapshot.child("replyText").getValue(String::class.java)
             ?: snapshot.child("replyToText").getValue(String::class.java).orEmpty()
-        val replySenderName = snapshot.child("replySenderName").getValue(String::class.java)
+        val replySenderNameRaw = snapshot.child("replySenderName").getValue(String::class.java)
             ?: snapshot.child("replyToSenderName").getValue(String::class.java).orEmpty()
+        val replySenderName = PrivacyDisplayHelper.publicName(replySenderNameRaw, "")
         val replySenderRole = snapshot.child("replySenderRole").getValue(String::class.java)
             ?: snapshot.child("replyToSenderRole").getValue(String::class.java).orEmpty()
         val reactions = snapshot.child("reactions").children

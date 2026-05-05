@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import java.util.Locale
 
 class AddFriendsAdapter(
+    private val onUserClick: (DiscoverUser) -> Unit,
     private val onPrimaryAction: (DiscoverUser) -> Unit,
     private val onSecondaryAction: (DiscoverUser) -> Unit
 ) : RecyclerView.Adapter<AddFriendsAdapter.AddFriendViewHolder>() {
@@ -23,7 +24,7 @@ class AddFriendsAdapter(
     }
 
     override fun onBindViewHolder(holder: AddFriendViewHolder, position: Int) {
-        holder.bind(items[position], onPrimaryAction, onSecondaryAction)
+        holder.bind(items[position], onUserClick, onPrimaryAction, onSecondaryAction)
     }
 
     override fun getItemCount(): Int = items.size
@@ -37,21 +38,25 @@ class AddFriendsAdapter(
     class AddFriendViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val avatar: TextView = view.findViewById(R.id.tvDiscoverAvatar)
         private val name: TextView = view.findViewById(R.id.tvDiscoverName)
-        private val email: TextView = view.findViewById(R.id.tvDiscoverEmail)
+        private val meta: TextView = view.findViewById(R.id.tvDiscoverMeta)
         private val hint: TextView = view.findViewById(R.id.tvDiscoverHint)
         private val primaryActionButton: Button = view.findViewById(R.id.btnDiscoverPrimaryAction)
         private val secondaryActionButton: Button = view.findViewById(R.id.btnDiscoverSecondaryAction)
 
         fun bind(
             user: DiscoverUser,
+            onUserClick: (DiscoverUser) -> Unit,
             onPrimaryAction: (DiscoverUser) -> Unit,
             onSecondaryAction: (DiscoverUser) -> Unit
         ) {
             val context = itemView.context
 
-            avatar.text = initials(user.displayName)
-            name.text = user.displayName
-            email.text = user.email
+            val publicName = PrivacyDisplayHelper.publicName(user.displayName)
+            avatar.text = initials(publicName)
+            name.text = publicName
+            val publicMeta = PrivacyDisplayHelper.publicMeta(user.role, user.status)
+            meta.text = publicMeta
+            meta.visibility = if (publicMeta.isBlank()) View.GONE else View.VISIBLE
 
             if (user.isFollowing) {
                 hint.text = context.getString(R.string.message_result_hint)
@@ -62,15 +67,24 @@ class AddFriendsAdapter(
                 secondaryActionButton.text = context.getString(R.string.unfriend_action)
                 secondaryActionButton.setBackgroundResource(R.drawable.bg_friend_danger_action)
                 secondaryActionButton.setTextColor(Color.parseColor("#D23F4C"))
+                primaryActionButton.isEnabled = true
+            } else if (user.isRequested) {
+                hint.text = context.getString(R.string.friend_request_sent)
+                primaryActionButton.text = context.getString(R.string.friend_requested_action)
+                primaryActionButton.setBackgroundResource(R.drawable.bg_friend_secondary_action)
+                primaryActionButton.setTextColor(Color.parseColor("#1B5FBE"))
+                primaryActionButton.isEnabled = false
+                secondaryActionButton.visibility = View.GONE
             } else {
                 hint.text = context.getString(R.string.add_friend_result_hint)
                 primaryActionButton.text = context.getString(R.string.add_friend_action)
                 primaryActionButton.setBackgroundResource(R.drawable.bg_friend_primary_action)
                 primaryActionButton.setTextColor(context.getColor(android.R.color.white))
+                primaryActionButton.isEnabled = true
                 secondaryActionButton.visibility = View.GONE
             }
 
-            itemView.setOnClickListener { onPrimaryAction(user) }
+            itemView.setOnClickListener { onUserClick(user) }
             primaryActionButton.setOnClickListener { onPrimaryAction(user) }
             secondaryActionButton.setOnClickListener { onSecondaryAction(user) }
         }

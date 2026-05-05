@@ -3,8 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA">
+    android:background="#F0F5FF">
 
+    <!-- HEADER -->
     <LinearLayout
         android:id="@+id/headerContainer"
         android:layout_width="0dp"
@@ -12,7 +13,10 @@
         android:background="@drawable/rounded_header_bg"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="20dp"
+        android:paddingStart="16dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="20dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -23,8 +27,8 @@
             android:layout_height="40dp"
             android:background="@drawable/bg_support_header_icon"
             android:contentDescription="@string/back"
-            android:padding="9dp"
-            android:src="@drawable/back"
+            android:padding="10dp"
+            android:src="@drawable/ic_arrow_back_24"
             app:tint="#FFFFFF" />
 
         <LinearLayout
@@ -39,37 +43,40 @@
                 android:layout_height="wrap_content"
                 android:text="Impact Report"
                 android:textColor="#FFFFFF"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:letterSpacing="-0.01" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="3dp"
                 android:text="See your total impact"
-                android:textColor="#DAE8FF"
+                android:textColor="#C8DEFF"
                 android:textSize="13sp" />
         </LinearLayout>
     </LinearLayout>
 
+    <!-- LOADING -->
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:indeterminateTint="#2172E5"
+        android:indeterminateTint="#1A5FD4"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/headerContainer" />
 
+    <!-- EMPTY STATE -->
     <TextView
         android:id="@+id/tvEmptyState"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:gravity="center"
-        android:padding="24dp"
+        android:padding="28dp"
         android:text="No donations yet. Start donating to see your impact."
-        android:textColor="#64748B"
+        android:textColor="#7A9CC8"
         android:textSize="15sp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -77,12 +84,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/headerContainer" />
 
+    <!-- CONTENT -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/contentContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
-        android:padding="18dp"
+        android:padding="16dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -93,8 +101,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="24dp">
+            android:paddingBottom="28dp">
 
+            <!-- STAT CARDS ROW -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -104,40 +113,47 @@
                 <TextView
                     android:id="@+id/tvTotalDonated"
                     style="@style/ImpactStatCard"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="6dp"
                     android:layout_weight="1"
+                    android:background="@drawable/bg_impact_stat_card"
+                    android:elevation="0dp"
                     android:text="&#8369;0" />
 
                 <TextView
                     android:id="@+id/tvDonationCount"
                     style="@style/ImpactStatCard"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="6dp"
                     android:layout_weight="1"
+                    android:background="@drawable/bg_impact_stat_card"
+                    android:elevation="0dp"
                     android:text="0" />
 
                 <TextView
                     android:id="@+id/tvCampaignCount"
                     style="@style/ImpactStatCard"
                     android:layout_weight="1"
+                    android:background="@drawable/bg_impact_stat_card"
+                    android:elevation="0dp"
                     android:text="0" />
             </LinearLayout>
 
+            <!-- STAT LABELS ROW -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:orientation="horizontal"
                 android:weightSum="3">
 
                 <TextView
                     style="@style/ImpactStatLabel"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="6dp"
                     android:layout_weight="1"
                     android:text="Total Donated" />
 
                 <TextView
                     style="@style/ImpactStatLabel"
-                    android:layout_marginEnd="8dp"
+                    android:layout_marginEnd="6dp"
                     android:layout_weight="1"
                     android:text="Donations" />
 
@@ -147,48 +163,55 @@
                     android:text="Campaigns" />
             </LinearLayout>
 
+            <!-- IMPACT BANNER -->
             <TextView
                 android:id="@+id/tvEstimatedImpact"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:background="@drawable/bg_lessblue"
-                android:padding="16dp"
-                android:textColor="#1E63BF"
-                android:textSize="14sp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_impact_banner"
+                android:paddingStart="14dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="12dp"
+                android:textColor="#1A5FD4"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
+            <!-- RECENT IMPACT -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="22dp"
                 android:text="Recent Impact"
-                android:textColor="#1A1C1E"
-                android:textSize="18sp"
+                android:textColor="#0D1B3E"
+                android:textSize="17sp"
                 android:textStyle="bold" />
 
             <LinearLayout
                 android:id="@+id/recentImpactContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:orientation="vertical" />
 
+            <!-- CATEGORIES -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
+                android:layout_marginTop="20dp"
                 android:text="Categories Supported"
-                android:textColor="#1A1C1E"
-                android:textSize="18sp"
+                android:textColor="#0D1B3E"
+                android:textSize="17sp"
                 android:textStyle="bold" />
 
             <LinearLayout
                 android:id="@+id/categoriesContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:orientation="vertical" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

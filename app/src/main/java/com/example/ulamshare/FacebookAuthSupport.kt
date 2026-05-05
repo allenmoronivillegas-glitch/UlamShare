@@ -15,6 +15,7 @@ import java.util.Locale
 
 object FacebookAuthSupport {
     private const val TAG = "FacebookAuth"
+    private const val SOCIAL_TAG = "SocialAuth"
     private const val USERS_COLLECTION = "users"
 
     fun signInWithAccessToken(
@@ -37,87 +38,100 @@ object FacebookAuthSupport {
                 onSuccess(user)
             }
             .addOnFailureListener { error ->
-                Log.e(TAG, "Firebase auth with Facebook failed", error)
+                Log.e(TAG, "Firebase Facebook sign-in failed", error)
                 onError(error)
             }
     }
 
-    fun mergeFacebookUserProfile(
+    fun saveOrMergeSocialUserProfile(
         context: Context,
         user: FirebaseUser,
+        provider: String,
         onComplete: () -> Unit,
         onError: (Exception) -> Unit
     ) {
         val userRef = Firebase.firestore.collection(USERS_COLLECTION).document(user.uid)
+        Log.d(SOCIAL_TAG, "Checking users/{uid} for uid=${user.uid}")
         userRef.get()
             .addOnSuccessListener { document ->
                 val profileSeed = mutableMapOf<String, Any>(
                     "uid" to user.uid,
-                    "email" to (user.email ?: ""),
-                    "authProvider" to "facebook",
+                    "authProvider" to provider,
+                    "authProviders" to FieldValue.arrayUnion(provider),
                     "updatedAt" to FieldValue.serverTimestamp()
                 )
 
-                user.displayName?.trim()
+                user.email?.trim()
                     ?.takeIf { it.isNotBlank() }
-                    ?.let { profileSeed["fullName"] = it }
+                    ?.let { profileSeed["email"] = it }
+
+                val existingFullName = document.getString("fullName").orEmpty()
+                if (existingFullName.isBlank()) {
+                    PrivacyDisplayHelper.publicName(user.displayName, "")
+                        .takeIf { it.isNotBlank() }
+                        ?.let { profileSeed["fullName"] = it }
+                }
 
                 user.photoUrl?.toString()
                     ?.takeIf { it.isNotBlank() }
                     ?.let { profileSeed["profilePhotoUrl"] = it }
-
-                val existingPhone = document.getString("phone").orEmpty()
-                    .ifBlank { document.getString("mobile").orEmpty() }
-                if (existingPhone.isNotBlank()) {
-                    profileSeed["phone"] = existingPhone
-                    profileSeed["mobile"] = existingPhone
-                }
 
                 val existingRole = document.getString("role").orEmpty()
                     .ifBlank { document.getString("roleKey").orEmpty() }
                 if (existingRole.isBlank()) {
                     profileSeed["role"] = "user"
                 }
+
                 if (!document.exists()) {
+                    Log.d(SOCIAL_TAG, "Creating new social user profile for uid=${user.uid}")
                     profileSeed["createdAt"] = FieldValue.serverTimestamp()
+                    profileSeed["phone"] = document.getString("phone").orEmpty()
+                    profileSeed["mobile"] = document.getString("mobile").orEmpty()
+                } else {
+                    Log.d(SOCIAL_TAG, "Merging existing social user profile for uid=${user.uid}")
                 }
 
-                userRef.set(profileSeed, SetOptions.merge())
-                    .addOnSuccessListener {
-                        CampaignAssignmentManager.syncForAuthenticatedUser(
-                            context = context,
-                            user = user,
-                            profileSeed = profileSeed,
-                            onComplete = onComplete,
-                            onError = onError
-                        )
-                    }
-                    .addOnFailureListener { error ->
-                        Log.e(TAG, "Unable to merge Facebook user profile", error)
-                        onError(error)
-                    }
+                CampaignAssignmentManager.syncForAuthenticatedUser(
+                    context = context,
+                    user = user,
+                    profileSeed = profileSeed,
+                    onComplete = onComplete,
+                    onError = onError
+                )
             }
             .addOnFailureListener { error ->
-                Log.e(TAG, "Unable to load existing user profile before merge", error)
+                Log.e(SOCIAL_TAG, "Unable to load existing user profile before merge", error)
                 onError(error)
             }
     }
 
-    fun userFriendlyError(context: Context, error: Exception): String {
+    fun userFriendlyError(context: Context, error: Exception, providerLabel: String): String {
+        val normalizedProvider = providerLabel.lowercase(Locale.US)
         if (error is FirebaseAuthUserCollisionException ||
             error.message?.contains("ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL", ignoreCase = true) == true
         ) {
-            return context.getString(R.string.facebook_existing_account_error)
+            return when (normalizedProvider) {
+                "facebook" -> context.getString(R.string.facebook_existing_account_error)
+                "google" -> context.getString(R.string.google_existing_account_error)
+                else -> "An account already exists with this email. Please sign in using the original method, then link $providerLabel later."
+            }
         }
 
         val rawMessage = error.localizedMessage.orEmpty()
         val lowerMessage = rawMessage.lowercase(Locale.US)
         return when {
+            "invalid app id" in lowerMessage || "does not look like a valid app id" in lowerMessage ->
+                "Facebook App ID is invalid. Please check strings.xml."
             "key hash" in lowerMessage -> context.getString(R.string.facebook_key_hash_error)
             "network" in lowerMessage -> "Network error. Please try again."
             "invalid" in lowerMessage && "credential" in lowerMessage ->
-                "Facebook sign-in failed because the credential was invalid. Please try again."
+                "$providerLabel sign-in failed because the credential was invalid. Please try again."
+            normalizedProvider == "facebook" && lowerMessage.contains("cancel") ->
+                context.getString(R.string.facebook_sign_in_cancelled)
+            normalizedProvider == "facebook" && lowerMessage.contains("login") ->
+                "Please sign in to Facebook to continue."
             rawMessage.isNotBlank() -> rawMessage
+            normalizedProvider == "google" -> context.getString(R.string.google_sign_in_failed)
             else -> context.getString(R.string.facebook_sign_in_failed)
         }
     }

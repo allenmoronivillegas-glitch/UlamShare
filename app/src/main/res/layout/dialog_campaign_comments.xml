@@ -96,7 +96,7 @@
         android:layout_width="match_parent"
         android:layout_height="42dp"
         android:layout_marginTop="14dp"
-        android:background="@drawable/bg_support_send"
+        android:background="@drawable/bg_support_send_rounded"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center"

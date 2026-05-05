@@ -60,14 +60,19 @@ class FollowListAdapter(
             onUserClick: (FollowListUser) -> Unit,
             onUnfollowClick: (FollowListUser) -> Unit
         ) {
-            name.text = user.fullName
+            val publicName = PrivacyDisplayHelper.publicName(user.fullName)
+            name.text = publicName
             meta.text = buildMeta(user)
-            initials.text = initials(user.fullName)
+            meta.visibility = if (meta.text.isBlank()) View.GONE else View.VISIBLE
+            initials.text = initials(publicName)
             bindAvatar(user)
 
             actionButton.visibility = if (showUnfollow) View.VISIBLE else View.GONE
             actionButton.setOnClickListener { onUnfollowClick(user) }
             itemView.setOnClickListener { onUserClick(user) }
+            photo.setOnClickListener { onUserClick(user) }
+            initials.setOnClickListener { onUserClick(user) }
+            name.setOnClickListener { onUserClick(user) }
         }
 
         private fun bindAvatar(user: FollowListUser) {
@@ -101,8 +106,7 @@ class FollowListAdapter(
         }
 
         private fun buildMeta(user: FollowListUser): String {
-            val role = user.role.ifBlank { user.status }
-            return role.ifBlank { user.email }
+            return PrivacyDisplayHelper.publicMeta(user.role, user.status)
         }
 
         private fun initials(value: String): String {

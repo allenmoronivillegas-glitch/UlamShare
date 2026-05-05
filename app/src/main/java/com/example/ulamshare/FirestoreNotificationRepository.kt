@@ -29,6 +29,7 @@ object FirestoreNotificationRepository {
     const val TYPE_CAMPAIGN_ADDED = "campaign_added"
     const val TYPE_CAMPAIGN_UPDATED = "campaign_updated"
     const val TYPE_FRIEND_REQUEST = "friend_request"
+    const val TYPE_FRIEND_REQUEST_ACCEPTED = "friend_request_accepted"
     const val TYPE_FRIEND_ADDED = "friend_added"
     const val TYPE_FRIEND_REMOVED = "friend_removed"
     const val TYPE_FOLLOWED = "followed"
@@ -40,6 +41,12 @@ object FirestoreNotificationRepository {
     const val TYPE_COMMENT_REPLY = "comment_reply"
     const val TYPE_REPLY_REPLY = "reply_reply"
     const val TYPE_POST_REACTION = "post_reaction"
+    const val TYPE_POST_HIDDEN = "post_hidden"
+    const val TYPE_POST_DELETED = "post_deleted"
+    const val TYPE_COMMENT_HIDDEN = "comment_hidden"
+    const val TYPE_COMMENT_DELETED = "comment_deleted"
+    const val TYPE_REPLY_HIDDEN = "reply_hidden"
+    const val TYPE_REPLY_DELETED = "reply_deleted"
 
     fun createNotification(
         firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
@@ -175,8 +182,7 @@ object FirestoreNotificationRepository {
                     val fullName = document.getString("fullName").orEmpty()
                         .ifBlank { document.getString("displayName").orEmpty() }
                         .ifBlank { document.getString("name").orEmpty() }
-                    val emailName = document.getString("email").orEmpty().substringBefore("@")
-                    val candidates = listOf(fullName, fullName.substringBefore(" "), emailName)
+                    val candidates = listOf(fullName, fullName.substringBefore(" "))
                         .map { it.trim() }
                         .filter { it.isNotBlank() }
                         .distinct()
@@ -188,7 +194,7 @@ object FirestoreNotificationRepository {
 
                     MentionedUser(
                         userId = userId,
-                        userName = fullName.ifBlank { emailName.ifBlank { "HopeGive User" } },
+                        userName = fullName.ifBlank { "HopeGive User" },
                         userRole = document.getString("role").orEmpty()
                             .ifBlank { document.getString("roleKey").orEmpty() }
                     )

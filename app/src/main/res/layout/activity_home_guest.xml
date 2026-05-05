@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA">
+    android:background="#F0F5FF">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -16,8 +16,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:paddingStart="18dp"
+            android:paddingTop="22dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="16dp">
 
+            <!-- GREETING ROW -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
@@ -37,16 +41,17 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/welcome_to_ulamshare"
-                        android:textColor="#6C757D"
-                        android:textSize="14sp" />
+                        android:textColor="#5A7AA0"
+                        android:textSize="13sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/guest_user"
-                        android:textColor="#1A1C1E"
+                        android:textColor="#0D1B3E"
                         android:textSize="22sp"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"
+                        android:letterSpacing="-0.01" />
                 </LinearLayout>
 
                 <Button
@@ -54,11 +59,11 @@
                     style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="2dp"
                     android:minWidth="0dp"
                     android:paddingHorizontal="8dp"
                     android:text="@string/register"
-                    android:textColor="#2172E5"
+                    android:textColor="#1A5FD4"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -73,7 +78,7 @@
                     android:minWidth="0dp"
                     android:paddingHorizontal="8dp"
                     android:text="@string/sign_in"
-                    android:textColor="#2172E5"
+                    android:textColor="#1A5FD4"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -81,66 +86,72 @@
                     app:layout_constraintTop_toTopOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
+            <!-- TRACK YOUR IMPACT CARD -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="18dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="#EBF2FC"
+                    android:background="#E8F0FE"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="18dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/track_your_impact"
-                        android:textColor="#1A1C1E"
-                        android:textSize="18sp"
+                        android:textColor="#0D1B3E"
+                        android:textSize="17sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="5dp"
                         android:text="@string/sign_in_to_save_your_donation_history"
-                        android:textColor="#495057"
-                        android:textSize="14sp" />
+                        android:textColor="#3E5D86"
+                        android:textSize="13sp"
+                        android:lineSpacingMultiplier="1.4" />
 
                     <Button
                         android:id="@+id/btnCreateAccount"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:backgroundTint="#2172E5"
-                        android:paddingHorizontal="16dp"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="14dp"
+                        android:backgroundTint="#1A5FD4"
+                        android:paddingHorizontal="20dp"
                         android:text="@string/create_account"
                         android:textAllCaps="false"
                         android:textColor="@color/white"
-                        app:cornerRadius="8dp" />
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="10dp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Active Campaign Card -->
+            <!-- ACTIVE CAMPAIGN CARD -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/activeCampaignCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="16dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
+                app:cardBackgroundColor="#FFFFFF"
                 android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="#EBF2FC"
+                    android:background="#E8F0FE"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="18dp">
 
                     <androidx.constraintlayout.widget.ConstraintLayout
                         android:layout_width="match_parent"
@@ -151,7 +162,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:background="@drawable/rounded_soft_blue_rect"
-                            android:backgroundTint="#DCE8FB"
+                            android:backgroundTint="#D0E4FF"
                             android:gravity="center"
                             android:text="💙"
                             android:textSize="22sp"
@@ -164,8 +175,8 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="14dp"
                             android:text="@string/active_campaign_title"
-                            android:textColor="#1A1C1E"
-                            android:textSize="18sp"
+                            android:textColor="#0D1B3E"
+                            android:textSize="16sp"
                             android:textStyle="bold"
                             app:layout_constraintBottom_toBottomOf="@id/tvActiveCampaignEmoji"
                             app:layout_constraintEnd_toEndOf="parent"
@@ -177,20 +188,22 @@
                         android:id="@+id/tvActiveCampContent"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="6dp"
                         android:text="@string/active_campaign_description"
-                        android:textColor="#495057"
-                        android:textSize="14sp" />
+                        android:textColor="#3E5D86"
+                        android:textSize="13sp"
+                        android:lineSpacingMultiplier="1.4" />
 
                     <ProgressBar
                         android:id="@+id/progressBarCampaign"
                         style="?android:attr/progressBarStyleHorizontal"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_height="6dp"
+                        android:layout_marginTop="14dp"
                         android:max="100"
                         android:progress="0"
-                        android:progressTint="#2172E5" />
+                        android:progressTint="#1A5FD4"
+                        android:progressBackgroundTint="#C8DEFF" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -205,8 +218,8 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/amount_raised"
-                            android:textColor="#1A1C1E"
-                            android:textSize="14sp"
+                            android:textColor="#0D1B3E"
+                            android:textSize="13sp"
                             android:textStyle="bold" />
 
                         <TextView
@@ -214,24 +227,25 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/progress_percentage"
-                            android:textColor="#2172E5"
-                            android:textSize="14sp"
+                            android:textColor="#1A5FD4"
+                            android:textSize="13sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- TRENDING HEADER ROW -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="20dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/trending_campaigns"
-                    android:textColor="#1A1C1E"
-                    android:textSize="18sp"
+                    android:textColor="#0D1B3E"
+                    android:textSize="17sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
@@ -242,7 +256,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="See All"
-                    android:textColor="#2172E5"
+                    android:textColor="#1A5FD4"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
@@ -250,19 +264,21 @@
                     app:layout_constraintTop_toTopOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
+            <!-- CAMPAIGN RECYCLER -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvTrendingCampaigns"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:nestedScrollingEnabled="false"
                 tools:listitem="@layout/item_campaign" />
 
+            <!-- EMPTY CAMPAIGNS -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/emptyCampaignsCard"
                 android:layout_width="match_parent"
                 android:layout_height="120dp"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:background="@drawable/rounded_input_border"
                 android:padding="16dp"
                 android:visibility="gone">
@@ -271,13 +287,13 @@
                     android:id="@+id/ivEmptyIcon"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:alpha="0.3"
+                    android:alpha="0.35"
                     android:src="@drawable/plant"
                     android:contentDescription="@string/empty_campaigns_icon"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:tint="#6C757D" />
+                    app:tint="#7A9CC8" />
 
                 <TextView
                     android:id="@+id/tvEmptyCampaignsMessage"
@@ -285,7 +301,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:text="@string/new_campaigns_coming_soon"
-                    android:textColor="#6C757D"
+                    android:textColor="#7A9CC8"
                     android:textSize="14sp"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -296,12 +312,13 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
+    <!-- BOTTOM NAVIGATION -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
-        android:layout_height="72dp"
+        android:layout_height="68dp"
         android:background="#FFFFFF"
-        app:elevation="16dp"
+        app:elevation="12dp"
         app:itemIconTint="@color/nav_item_color"
         app:itemTextColor="@color/nav_item_color"
         app:layout_constraintBottom_toBottomOf="parent"

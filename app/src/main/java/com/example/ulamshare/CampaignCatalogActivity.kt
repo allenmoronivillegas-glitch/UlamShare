@@ -41,6 +41,7 @@ class CampaignCatalogActivity : AppCompatActivity() {
         invalidCount = 0
     )
     private var selectedTab: CampaignTab = CampaignTab.RECENT
+    private var highlightCampaignId: String = ""
     private var campaignsListener: ValueEventListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,6 +67,10 @@ class CampaignCatalogActivity : AppCompatActivity() {
             TAB_ACTIVE -> CampaignTab.ACTIVE
             TAB_EXPIRED -> CampaignTab.EXPIRED
             else -> CampaignTab.RECENT
+        }
+        highlightCampaignId = intent.getStringExtra(MainActivity.EXTRA_CAMPAIGN_ID).orEmpty()
+        if (highlightCampaignId.isNotBlank()) {
+            selectedTab = CampaignTab.ACTIVE
         }
 
         btnRecentTab.setOnClickListener {
@@ -111,6 +116,7 @@ class CampaignCatalogActivity : AppCompatActivity() {
 
         adapter.submitList(campaigns)
         updateTabStyles()
+        scrollToHighlightedCampaign(campaigns)
 
         val emptyMessage = when (selectedTab) {
             CampaignTab.RECENT -> "No recently added campaigns yet."
@@ -131,6 +137,17 @@ class CampaignCatalogActivity : AppCompatActivity() {
         } else {
             rvCampaignCatalog.visibility = View.VISIBLE
             emptyCampaignsCard.visibility = View.GONE
+        }
+    }
+
+    private fun scrollToHighlightedCampaign(campaigns: List<Campaign>) {
+        val targetId = highlightCampaignId
+        if (targetId.isBlank()) return
+        val index = campaigns.indexOfFirst { it.campaignId == targetId }
+        if (index >= 0) {
+            rvCampaignCatalog.post {
+                rvCampaignCatalog.scrollToPosition(index)
+            }
         }
     }
 

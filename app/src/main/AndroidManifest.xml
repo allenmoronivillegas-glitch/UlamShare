@@ -131,6 +131,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".PublicProfileActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MessengerChatActivity"
             android:exported="false" />
 

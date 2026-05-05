@@ -8,9 +8,14 @@ data class CampaignFeedPost(
     val authorName: String = "",
     val authorRole: String = ROLE_USER,
     val category: String = CATEGORY_COMMUNITY,
+    val postTarget: String = TARGET_COMMUNITY,
     val postType: String = TYPE_NOTE,
     val text: String = "",
     val imageUrl: String = "",
+    val linkedCampaignId: String = "",
+    val linkedCampaignTitle: String = "",
+    val linkedCampaignCategory: String = "",
+    val linkedCampaignEmoji: String = "",
     val campaignTitle: String = "",
     val campaignGoal: Long = 0L,
     val campaignRaised: Long = 0L,
@@ -22,6 +27,7 @@ data class CampaignFeedPost(
     val commentCount: Int = 0,
     val shareCount: Int = 0,
     val isLiveCampaign: Boolean = false,
+    val moderationStatus: String = MODERATION_ACTIVE,
     val myReactionType: String = "",
     val reactedByMe: Boolean = false
 ) {
@@ -34,6 +40,9 @@ data class CampaignFeedPost(
     val hasCampaignInfo: Boolean
         get() = isLiveCampaign || postType == TYPE_LIVE_CAMPAIGN
 
+    val hasLinkedCampaign: Boolean
+        get() = linkedCampaignId.isNotBlank() && linkedCampaignTitle.isNotBlank()
+
     val isOfficialPost: Boolean
         get() = category == CATEGORY_OFFICIAL ||
             authorRole == ROLE_ADMIN ||
@@ -42,6 +51,9 @@ data class CampaignFeedPost(
 
     val isCommunityPost: Boolean
         get() = !isOfficialPost || category == CATEGORY_COMMUNITY
+
+    val isVisibleAfterModeration: Boolean
+        get() = moderationStatus != MODERATION_HIDDEN && moderationStatus != MODERATION_DELETED
 
     val badgeLabel: String
         get() = if (isOfficialPost) "Official" else "Community"
@@ -58,10 +70,18 @@ data class CampaignFeedPost(
         const val ROLE_USER = "user"
         const val ROLE_ADMIN = "admin"
         const val ROLE_SUPER_ADMIN = "super_admin"
+        const val ROLE_MODERATOR = "moderator"
         const val ROLE_GUEST = "guest"
 
         const val CATEGORY_OFFICIAL = "official"
         const val CATEGORY_COMMUNITY = "community"
+
+        const val TARGET_COMMUNITY = "community"
+        const val TARGET_CAMPAIGN = "campaign"
+
+        const val MODERATION_ACTIVE = "active"
+        const val MODERATION_HIDDEN = "hidden"
+        const val MODERATION_DELETED = "deleted"
     }
 }
 
@@ -75,6 +95,7 @@ data class CampaignPostComment(
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
     val replyCount: Int = 0,
+    val moderationStatus: String = CampaignFeedPost.MODERATION_ACTIVE,
     val replies: List<CampaignPostReply> = emptyList()
 ) {
     val userId: String
@@ -85,6 +106,10 @@ data class CampaignPostComment(
 
     val userRole: String
         get() = authorRole
+
+    val isVisibleAfterModeration: Boolean
+        get() = moderationStatus != CampaignFeedPost.MODERATION_HIDDEN &&
+            moderationStatus != CampaignFeedPost.MODERATION_DELETED
 }
 
 data class CampaignPostReply(
@@ -101,8 +126,13 @@ data class CampaignPostReply(
     val replyingToUserId: String = "",
     val replyingToUserName: String = "",
     val createdAt: Long = 0L,
-    val updatedAt: Long = 0L
-)
+    val updatedAt: Long = 0L,
+    val moderationStatus: String = CampaignFeedPost.MODERATION_ACTIVE
+) {
+    val isVisibleAfterModeration: Boolean
+        get() = moderationStatus != CampaignFeedPost.MODERATION_HIDDEN &&
+            moderationStatus != CampaignFeedPost.MODERATION_DELETED
+}
 
 data class CampaignPostReaction(
     val actorId: String = "",
@@ -116,43 +146,29 @@ data class CampaignPostReaction(
 
 object CampaignReactionUi {
     const val LIKE = "like"
-    const val HEART = "heart"
-    const val HAHA = "haha"
-    const val SAD = "sad"
-    const val CARE = "care"
-    const val ANGRY = "angry"
 
-    val reactionOrder = listOf(LIKE, HEART, HAHA, SAD, CARE, ANGRY)
+    val reactionOrder = listOf(LIKE)
 
     val displayMap = linkedMapOf(
-        LIKE to "\uD83D\uDC4D",
-        HEART to "\u2764\uFE0F",
-        HAHA to "\uD83D\uDE02",
-        SAD to "\uD83D\uDE22",
-        CARE to "\uD83E\uDD17",
-        ANGRY to "\uD83D\uDE21"
+        LIKE to "Like"
     )
 
     fun emoji(type: String): String = displayMap[type] ?: displayMap.getValue(LIKE)
 
-    fun label(type: String): String {
-        return when (type) {
-            HEART -> "Heart"
-            HAHA -> "Haha"
-            SAD -> "Sad"
-            CARE -> "Care"
-            ANGRY -> "Angry"
-            else -> "Like"
-        }
-    }
+    fun label(type: String): String = "Like"
 
-    fun displayLabel(type: String): String = "${emoji(type)} ${label(type)}"
+    fun displayLabel(type: String): String = label(type)
 }
 
 data class CampaignComposerDraft(
     val text: String = "",
     val imageUri: Uri? = null,
     val category: String = CampaignFeedPost.CATEGORY_COMMUNITY,
+    val postTarget: String = CampaignFeedPost.TARGET_COMMUNITY,
+    val linkedCampaignId: String = "",
+    val linkedCampaignTitle: String = "",
+    val linkedCampaignCategory: String = "",
+    val linkedCampaignEmoji: String = "",
     val isLiveCampaign: Boolean = false,
     val campaignTitle: String = "",
     val campaignGoal: Long = 0L,

@@ -85,9 +85,10 @@ class ContactSupportActivity : AppCompatActivity() {
 
         currentUserId = user.uid
         currentUserEmail = user.email.orEmpty()
-        currentUserLabel = user.displayName?.takeIf { it.isNotBlank() }
-            ?: user.email?.substringBefore("@")
-            ?: getString(R.string.you_label)
+        currentUserLabel = PrivacyDisplayHelper.publicName(
+            user.displayName,
+            getString(R.string.hopegive_user)
+        )
 
         bindViews()
         setupRecyclerViews()
@@ -117,7 +118,7 @@ class ContactSupportActivity : AppCompatActivity() {
 
     private fun setupActions() {
         btnCompose.setOnClickListener { openAddFriendsScreen() }
-        findViewById<ImageButton>(R.id.btnMore).setOnClickListener { finish() }
+        findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
 
         etConversationSearch.doAfterTextChanged {
             rebuildConversationList()
@@ -128,7 +129,7 @@ class ContactSupportActivity : AppCompatActivity() {
         firestore.collection("users").document(currentUserId)
             .get()
             .addOnSuccessListener { document ->
-                val fullName = document.getString("fullName").orEmpty()
+                val fullName = PrivacyDisplayHelper.publicName(document.getString("fullName").orEmpty(), "")
                 val email = document.getString("email").orEmpty()
 
                 if (fullName.isNotBlank()) {
@@ -225,8 +226,7 @@ class ContactSupportActivity : AppCompatActivity() {
         } else {
             allConversations.filter { conversation ->
                 conversation.title.lowercase(Locale.getDefault()).contains(searchQuery) ||
-                    conversation.preview.lowercase(Locale.getDefault()).contains(searchQuery) ||
-                    conversation.participantEmail.lowercase(Locale.getDefault()).contains(searchQuery)
+                    conversation.preview.lowercase(Locale.getDefault()).contains(searchQuery)
             }
         }
 
@@ -345,11 +345,10 @@ class ContactSupportActivity : AppCompatActivity() {
 
         val profileSnapshot = snapshot.child("participantProfiles").child(otherUserId)
         val otherEmail = profileSnapshot.child("email").getValue(String::class.java).orEmpty()
-        val otherName = profileSnapshot.child("displayName").getValue(String::class.java)
-            .orEmpty()
-            .ifBlank {
-                otherEmail.substringBefore("@").ifBlank { getString(R.string.friend_label) }
-            }
+        val otherName = PrivacyDisplayHelper.publicName(
+            profileSnapshot.child("displayName").getValue(String::class.java),
+            getString(R.string.hopegive_user)
+        )
 
         val lastMessage = findLastMessage(snapshot)
         val updatedAt = snapshot.child("updatedAt").getValue(Long::class.java)
@@ -412,7 +411,10 @@ class ContactSupportActivity : AppCompatActivity() {
         val senderRoleRaw = snapshot.child("senderRole").getValue(String::class.java).orEmpty()
         val senderRole = if (senderRoleRaw.isNotBlank()) senderRoleRaw else fallbackRole(sender)
         val senderNameRaw = snapshot.child("senderName").getValue(String::class.java).orEmpty()
-        val senderName = if (senderNameRaw.isNotBlank()) senderNameRaw else fallbackSenderName(senderRole)
+        val senderName = PrivacyDisplayHelper.publicName(
+            senderNameRaw,
+            fallbackSenderName(senderRole)
+        )
         val senderId = snapshot.child("senderId").getValue(String::class.java).orEmpty()
         val time = snapshot.child("time").getValue(Long::class.java) ?: 0L
         val deleted = snapshot.child("deleted").getValue(Boolean::class.java) ?: false

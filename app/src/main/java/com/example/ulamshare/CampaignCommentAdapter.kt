@@ -16,7 +16,8 @@ import androidx.recyclerview.widget.RecyclerView
 import java.util.Locale
 
 class CampaignCommentAdapter(
-    private val onReplyClicked: (CampaignPostComment, CampaignPostReply?) -> Unit
+    private val onReplyClicked: (CampaignPostComment, CampaignPostReply?) -> Unit,
+    private val onUserClicked: (String) -> Unit
 ) : RecyclerView.Adapter<CampaignCommentAdapter.CommentViewHolder>() {
 
     private val items = mutableListOf<CampaignPostComment>()
@@ -49,8 +50,11 @@ class CampaignCommentAdapter(
         private val repliesContainer: LinearLayout = itemView.findViewById(R.id.repliesContainer)
 
         fun bind(comment: CampaignPostComment) {
-            avatarView.text = initials(comment.authorName)
-            authorView.text = comment.authorName
+            val publicAuthorName = PrivacyDisplayHelper.publicName(comment.authorName)
+            avatarView.text = initials(publicAuthorName)
+            authorView.text = publicAuthorName
+            avatarView.setOnClickListener { onUserClicked(comment.authorId) }
+            authorView.setOnClickListener { onUserClicked(comment.authorId) }
             roleView.text = roleLabel(comment.authorRole)
             textView.text = comment.text
             metaView.text = formatTime(comment.createdAt)
@@ -78,13 +82,14 @@ class CampaignCommentAdapter(
             }
 
             val avatar = TextView(context).apply {
-                text = initials(reply.authorName)
+                text = initials(PrivacyDisplayHelper.publicName(reply.authorName))
                 setTextColor(ContextCompat.getColor(context, android.R.color.white))
                 textSize = 11f
                 typeface = Typeface.DEFAULT_BOLD
                 gravity = android.view.Gravity.CENTER
                 setBackgroundResource(R.drawable.bg_avatar_blue)
                 layoutParams = LinearLayout.LayoutParams(30.dp(), 30.dp())
+                setOnClickListener { onUserClicked(reply.authorId) }
             }
 
             val bubble = LinearLayout(context).apply {
@@ -101,10 +106,11 @@ class CampaignCommentAdapter(
             }
 
             val author = TextView(context).apply {
-                text = reply.authorName
+                text = PrivacyDisplayHelper.publicName(reply.authorName)
                 setTextColor(ContextCompat.getColor(context, R.color.text_black))
                 textSize = 12f
                 typeface = Typeface.DEFAULT_BOLD
+                setOnClickListener { onUserClicked(reply.authorId) }
             }
 
             val body = TextView(context).apply {
@@ -190,6 +196,7 @@ class CampaignCommentAdapter(
         return when (role.trim().lowercase(Locale.getDefault())) {
             CampaignFeedPost.ROLE_SUPER_ADMIN -> "Super Admin"
             CampaignFeedPost.ROLE_ADMIN -> "Admin"
+            CampaignFeedPost.ROLE_MODERATOR -> "Moderator"
             CampaignFeedPost.ROLE_GUEST -> "Guest"
             else -> "User"
         }

@@ -69,6 +69,7 @@ class CampaignReactionAdapter : RecyclerView.Adapter<CampaignReactionAdapter.Rea
             return when (role.trim().lowercase(Locale.getDefault())) {
                 CampaignFeedPost.ROLE_SUPER_ADMIN -> "Super Admin"
                 CampaignFeedPost.ROLE_ADMIN -> "Admin"
+                CampaignFeedPost.ROLE_MODERATOR -> "Moderator"
                 CampaignFeedPost.ROLE_GUEST -> "Guest"
                 else -> "User"
             }

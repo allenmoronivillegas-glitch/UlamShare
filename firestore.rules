@@ -51,6 +51,63 @@ service cloud.firestore {
       return signedIn() && (isAdminRole(userRole()) || isAdminRole(userRoleKey()) || isAdminRole(tokenRole()));
     }
 
+    function isModeratorRole(role) {
+      return role in [
+        'Moderator',
+        'moderator',
+        'MODERATOR',
+        'mod'
+      ];
+    }
+
+    function isAdminOrModerator() {
+      return signedIn()
+        && (
+          isAdminRole(userRole())
+          || isAdminRole(userRoleKey())
+          || isAdminRole(tokenRole())
+          || isModeratorRole(userRole())
+          || isModeratorRole(userRoleKey())
+          || isModeratorRole(tokenRole())
+        );
+    }
+
+    function validCreatedModerationStatus() {
+      return !request.resource.data.keys().hasAny(['moderationStatus'])
+        || request.resource.data.moderationStatus == 'active';
+    }
+
+    function moderationFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'moderationStatus',
+        'hiddenAt',
+        'hiddenBy',
+        'deletedAt',
+        'deletedBy',
+        'updatedAt'
+      ]);
+    }
+
+    function doesNotChangeModerationFields() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'moderationStatus',
+        'hiddenAt',
+        'hiddenBy',
+        'deletedAt',
+        'deletedBy'
+      ]);
+    }
+
+    function validModerationStatusUpdate() {
+      return request.resource.data.moderationStatus in ['active', 'hidden', 'deleted'];
+    }
+
+    function canModerateContentUpdate() {
+      return isAdminOrModerator()
+        && moderationFieldsOnly()
+        && validModerationStatusUpdate();
+    }
+
     function feedSettings() {
       return get(/databases/$(database)/documents/app_settings/campaign_feed).data;
     }
@@ -105,20 +162,22 @@ service cloud.firestore {
       return validPostBase(postId)
         && request.resource.data.category == 'community'
         && request.resource.data.postType in ['note', 'photo']
-        && request.resource.data.isLiveCampaign == false;
+        && request.resource.data.isLiveCampaign == false
+        && validCreatedModerationStatus();
     }
 
     function canCreatePost(postId) {
-      return isAdmin()
+      return isAdminOrModerator()
         && validPostBase(postId)
         && (request.resource.data.category in ['community', 'official'])
         && (request.resource.data.postType in ['note', 'photo', 'live_campaign'])
+        && validCreatedModerationStatus()
         || (
           signedIn()
           && !isGuest()
           && allowUserPosts()
           && isCommunityCreate(postId)
-          && request.resource.data.authorRole == 'user'
+          && request.resource.data.authorRole in ['user', 'moderator']
         )
         || (
           isGuest()
@@ -140,11 +199,12 @@ service cloud.firestore {
         && request.resource.data.authorId == resource.data.authorId
         && request.resource.data.category == resource.data.category
         && request.resource.data.authorRole == resource.data.authorRole
-        && request.resource.data.postType == resource.data.postType;
+        && request.resource.data.postType == resource.data.postType
+        && doesNotChangeModerationFields();
     }
 
     function canManagePost(postId) {
-      return isAdmin()
+      return isAdminOrModerator()
         || (
           signedIn()
           && get(/databases/$(database)/documents/campaign_posts/$(postId)).data.authorId == request.auth.uid
@@ -166,6 +226,15 @@ service cloud.firestore {
         );
     }
 
+    function isFriendCountMirrorUpdate(userId) {
+      return signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friendsCount'])
+        && (
+          exists(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid))
+          || existsAfter(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid))
+        );
+    }
+
     function isValidFollowRecord(expectedUserId) {
       return request.resource.data.userId == expectedUserId
         && request.resource.data.keys().hasAll(['userId', 'fullName', 'followedAt'])
@@ -178,6 +247,21 @@ service cloud.firestore {
           'role',
           'status',
           'followedAt'
+        ]);
+    }
+
+    function isValidFriendRecord(expectedUserId) {
+      return request.resource.data.userId == expectedUserId
+        && request.resource.data.keys().hasAll(['userId', 'fullName', 'friendedAt'])
+        && request.resource.data.keys().hasOnly([
+          'userId',
+          'fullName',
+          'email',
+          'profilePhotoUrl',
+          'profilePhotoLocalUri',
+          'role',
+          'status',
+          'friendedAt'
         ]);
     }
 
@@ -199,6 +283,17 @@ service cloud.firestore {
         ]);
     }
 
+    function isOwnDonationWrite() {
+      return signedIn()
+        && (
+          request.resource.data.userId == request.auth.uid
+          || request.resource.data.donorId == request.auth.uid
+        )
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.campaignId is string;
+    }
+
     function validReactionType(type) {
       return type in ['like', 'heart', 'haha', 'sad', 'care', 'angry'];
     }
@@ -208,10 +303,11 @@ service cloud.firestore {
         && request.resource.data.id == commentId
         && request.resource.data.postId == postId
         && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.authorRole in ['user', 'guest', 'admin', 'super_admin']
+        && request.resource.data.authorRole in ['user', 'guest', 'admin', 'super_admin', 'moderator']
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0
         && request.resource.data.replyCount == 0
+        && validCreatedModerationStatus()
         && (!isGuest() || allowGuestComments());
     }
 
@@ -221,9 +317,10 @@ service cloud.firestore {
         && request.resource.data.postId == postId
         && request.resource.data.parentCommentId == commentId
         && request.resource.data.authorId == request.auth.uid
-        && request.resource.data.authorRole in ['user', 'guest', 'admin', 'super_admin']
+        && request.resource.data.authorRole in ['user', 'guest', 'admin', 'super_admin', 'moderator']
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0
+        && validCreatedModerationStatus()
         && (!isGuest() || allowGuestComments());
     }
 
@@ -231,7 +328,7 @@ service cloud.firestore {
       return signedIn()
         && actorId == request.auth.uid
         && request.resource.data.actorId == request.auth.uid
-        && request.resource.data.actorRole in ['user', 'guest', 'admin', 'super_admin']
+        && request.resource.data.actorRole in ['user', 'guest', 'admin', 'super_admin', 'moderator']
         && validReactionType(request.resource.data.type)
         && (!isGuest() || allowGuestReactions());
     }
@@ -250,6 +347,7 @@ service cloud.firestore {
           'campaign_added',
           'campaign_updated',
           'friend_request',
+          'friend_request_accepted',
           'friend_added',
           'friend_removed',
           'followed',
@@ -261,6 +359,12 @@ service cloud.firestore {
           'comment_reply',
           'reply_reply',
           'post_reaction',
+          'post_hidden',
+          'post_deleted',
+          'comment_hidden',
+          'comment_deleted',
+          'reply_hidden',
+          'reply_deleted',
           'comment',
           'mention'
         ]
@@ -286,6 +390,7 @@ service cloud.firestore {
       allow update: if isAdmin()
         || isSafeOwnUserUpdate(userId)
         || isFollowerCountMirrorUpdate(userId)
+        || isFriendCountMirrorUpdate(userId)
         || (
           signedIn()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers'])
@@ -314,6 +419,17 @@ service cloud.firestore {
           && followerUserId != userId;
       }
 
+      match /friends/{friendUserId} {
+        allow read: if signedIn();
+        allow create, update: if signedIn()
+          && userId != friendUserId
+          && (request.auth.uid == userId || request.auth.uid == friendUserId)
+          && isValidFriendRecord(friendUserId);
+        allow delete: if signedIn()
+          && userId != friendUserId
+          && (request.auth.uid == userId || request.auth.uid == friendUserId);
+      }
+
       match /payment_methods/{methodId} {
         allow read: if signedIn() && request.auth.uid == userId;
         allow create, update: if signedIn()
@@ -321,12 +437,56 @@ service cloud.firestore {
           && isValidPaymentMethod(methodId);
         allow delete: if signedIn() && request.auth.uid == userId;
       }
+
+      match /donated_campaigns/{campaignId} {
+        allow read: if signedIn();
+        allow create, update, delete: if signedIn() && request.auth.uid == userId;
+      }
+    }
+
+    match /donations/{donationId} {
+      allow read: if isAdminOrModerator()
+        || (
+          signedIn()
+          && (
+            resource.data.userId == request.auth.uid
+            || resource.data.donorId == request.auth.uid
+          )
+        );
+      allow create, update: if isOwnDonationWrite();
+      allow delete: if isAdminOrModerator();
+    }
+
+    match /friend_requests/{requestId} {
+      allow read: if signedIn()
+        && (
+          resource.data.fromUserId == request.auth.uid
+          || resource.data.toUserId == request.auth.uid
+          || isAdminOrModerator()
+        );
+      allow create: if signedIn()
+        && request.resource.data.id == requestId
+        && request.resource.data.fromUserId == request.auth.uid
+        && request.resource.data.toUserId != request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if signedIn()
+        && (
+          resource.data.fromUserId == request.auth.uid
+          || resource.data.toUserId == request.auth.uid
+          || isAdminOrModerator()
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && request.resource.data.status in ['pending', 'accepted', 'declined', 'cancelled'];
+      allow delete: if isAdminOrModerator();
     }
 
     match /campaign_posts/{postId} {
       allow read: if true;
       allow create: if canCreatePost(postId);
-      allow update: if isAdmin() || canUpdateOwnPost() || canUpdatePostCounters();
+      allow update: if isAdmin()
+        || canModerateContentUpdate()
+        || canUpdateOwnPost()
+        || canUpdatePostCounters();
       allow delete: if canManagePost(postId);
 
       match /reactions/{reactionId} {
@@ -340,6 +500,7 @@ service cloud.firestore {
         allow read: if true;
         allow create: if canCreateCampaignComment(postId, commentId);
         allow update: if isAdmin()
+          || canModerateContentUpdate()
           || (
             signedIn()
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount', 'updatedAt'])
@@ -357,7 +518,14 @@ service cloud.firestore {
         match /replies/{replyId} {
           allow read: if true;
           allow create: if canCreateCampaignReply(postId, commentId, replyId);
-          allow update, delete: if canManagePost(postId)
+          allow update: if isAdmin()
+            || canModerateContentUpdate()
+            || (
+              signedIn()
+              && resource.data.authorId == request.auth.uid
+              && doesNotChangeModerationFields()
+            );
+          allow delete: if canManagePost(postId)
             || (
               signedIn()
               && resource.data.authorId == request.auth.uid

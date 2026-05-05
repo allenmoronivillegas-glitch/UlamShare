@@ -12,11 +12,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.gms.tasks.TaskCompletionSource
-import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ServerValue
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Locale
 
@@ -35,7 +34,8 @@ class AddFriendsActivity : AppCompatActivity() {
     private lateinit var addFriendsAdapter: AddFriendsAdapter
 
     private val allUsers = mutableListOf<DiscoverUser>()
-    private val followingIds = mutableSetOf<String>()
+    private val friendIds = mutableSetOf<String>()
+    private val requestedIds = mutableSetOf<String>()
 
     private lateinit var currentUserId: String
     private var currentUserEmail: String = ""
@@ -61,9 +61,10 @@ class AddFriendsActivity : AppCompatActivity() {
 
         currentUserId = user.uid
         currentUserEmail = user.email.orEmpty()
-        currentUserLabel = user.displayName?.takeIf { it.isNotBlank() }
-            ?: user.email?.substringBefore("@")
-            ?: getString(R.string.you_label)
+        currentUserLabel = PrivacyDisplayHelper.publicName(
+            user.displayName,
+            getString(R.string.hopegive_user)
+        )
 
         bindViews()
         setupRecycler()
@@ -80,6 +81,9 @@ class AddFriendsActivity : AppCompatActivity() {
 
     private fun setupRecycler() {
         addFriendsAdapter = AddFriendsAdapter(
+            onUserClick = { user ->
+                PublicProfileActivity.start(this, user.uid)
+            },
             onPrimaryAction = { user ->
                 if (user.isFollowing) {
                     openChat(user)
@@ -108,42 +112,58 @@ class AddFriendsActivity : AppCompatActivity() {
             .addOnSuccessListener { document ->
                 val fullName = document.getString("fullName").orEmpty()
                 val email = document.getString("email").orEmpty()
-                val following = document.get("following") as? List<*>
                 currentUserPhotoUrl = document.getString("profilePhotoUrl").orEmpty()
                 currentUserPhotoLocalUri = document.getString("profilePhotoLocalUri").orEmpty()
                 currentUserRole = document.getString("role").orEmpty()
                 currentUserStatus = document.getString("status").orEmpty()
 
-                if (fullName.isNotBlank()) {
-                    currentUserLabel = fullName
+                val publicFullName = PrivacyDisplayHelper.publicName(fullName, "")
+                if (publicFullName.isNotBlank()) {
+                    currentUserLabel = publicFullName
                 }
                 if (email.isNotBlank()) {
                     currentUserEmail = email
                 }
-
-                followingIds.clear()
-                following?.mapNotNullTo(followingIds) { it as? String }
             }
             .addOnCompleteListener {
-                loadFollowingIds()
+                loadFriendIds()
             }
     }
 
-    private fun loadFollowingIds() {
+    private fun loadFriendIds() {
         firestore.collection("users")
             .document(currentUserId)
-            .collection("following")
+            .collection("friends")
             .get()
             .addOnSuccessListener { snapshot ->
                 if (!snapshot.isEmpty) {
-                    followingIds.clear()
-                    snapshot.documents.mapNotNullTo(followingIds) { document ->
+                    friendIds.clear()
+                    snapshot.documents.mapNotNullTo(friendIds) { document ->
                         document.getString("userId").orEmpty().ifBlank { document.id }
                     }
                 }
             }
             .addOnFailureListener { error ->
-                Log.w("AddFriendsActivity", "Unable to load following subcollection", error)
+                Log.w("AddFriendsActivity", "Unable to load friends subcollection", error)
+            }
+            .addOnCompleteListener {
+                loadPendingFriendRequests()
+            }
+    }
+
+    private fun loadPendingFriendRequests() {
+        firestore.collection("friend_requests")
+            .whereEqualTo("fromUserId", currentUserId)
+            .whereEqualTo("status", FollowRepository.FRIEND_REQUEST_PENDING)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                requestedIds.clear()
+                snapshot.documents.mapNotNullTo(requestedIds) { document ->
+                    document.getString("toUserId").orEmpty()
+                }
+            }
+            .addOnFailureListener { error ->
+                Log.w("AddFriendsActivity", "Unable to load outgoing friend requests", error)
             }
             .addOnCompleteListener {
                 loadUsers()
@@ -156,26 +176,8 @@ class AddFriendsActivity : AppCompatActivity() {
             .addOnSuccessListener { result ->
                 allUsers.clear()
 
-                result.documents.forEach { document ->
-                    val uid = document.getString("uid").orEmpty().ifBlank { document.id }
-                    if (uid == currentUserId) return@forEach
-
-                    val fullName = document.getString("fullName").orEmpty()
-                    val email = document.getString("email").orEmpty()
-                    val displayName = fullName.ifBlank {
-                        email.substringBefore("@").ifBlank { getString(R.string.friend_label) }
-                    }
-
-                    allUsers += DiscoverUser(
-                        uid = uid,
-                        displayName = displayName,
-                        email = email,
-                        profilePhotoUrl = document.getString("profilePhotoUrl").orEmpty(),
-                        profilePhotoLocalUri = document.getString("profilePhotoLocalUri").orEmpty(),
-                        role = document.getString("role").orEmpty(),
-                        status = document.getString("status").orEmpty(),
-                        isFollowing = followingIds.contains(uid)
-                    )
+                allUsers += dedupeUserDocuments(result.documents).map { document ->
+                    mapDiscoverUser(document)
                 }
 
                 allUsers.sortBy { it.displayName.lowercase(Locale.getDefault()) }
@@ -184,6 +186,72 @@ class AddFriendsActivity : AppCompatActivity() {
             .addOnFailureListener {
                 Toast.makeText(this, "Failed to load users", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun dedupeUserDocuments(documents: List<DocumentSnapshot>): List<DocumentSnapshot> {
+        val seenUids = mutableSetOf<String>()
+        val seenEmails = mutableSetOf<String>()
+        return documents
+            .filterNot { it.getBoolean("isDuplicate") == true }
+            .sortedWith(
+                compareByDescending<DocumentSnapshot> { profileScore(it) }
+                    .thenBy { publicNameFromDocument(it).lowercase(Locale.getDefault()) }
+            )
+            .mapNotNull { document ->
+                val uid = document.getString("uid").orEmpty().ifBlank { document.id }
+                val emailKey = normalizeEmail(document.getString("email"))
+                if (uid.isBlank() || uid == currentUserId) return@mapNotNull null
+                if (seenUids.contains(uid) || (emailKey.isNotBlank() && seenEmails.contains(emailKey))) {
+                    Log.d("AddFriendsActivity", "Skipping duplicate user document id=${document.id} uid=$uid")
+                    return@mapNotNull null
+                }
+                seenUids += uid
+                if (emailKey.isNotBlank()) seenEmails += emailKey
+                document
+            }
+    }
+
+    private fun mapDiscoverUser(document: DocumentSnapshot): DiscoverUser {
+        val uid = document.getString("uid").orEmpty().ifBlank { document.id }
+        return DiscoverUser(
+            uid = uid,
+            displayName = publicNameFromDocument(document),
+            email = document.getString("email").orEmpty(),
+            profilePhotoUrl = document.getString("profilePhotoUrl").orEmpty(),
+            profilePhotoLocalUri = document.getString("profilePhotoLocalUri").orEmpty(),
+            role = document.getString("role").orEmpty().ifBlank { document.getString("roleKey").orEmpty() },
+            status = document.getString("status").orEmpty(),
+            isFollowing = friendIds.contains(uid),
+            isRequested = requestedIds.contains(uid)
+        )
+    }
+
+    private fun publicNameFromDocument(document: DocumentSnapshot): String {
+        return listOf(
+            document.getString("fullName").orEmpty(),
+            document.getString("displayName").orEmpty(),
+            document.getString("name").orEmpty(),
+            getString(R.string.hopegive_user)
+        ).firstNotNullOf { candidate ->
+            PrivacyDisplayHelper.publicName(candidate, "").takeIf { it.isNotBlank() }
+        }
+    }
+
+    private fun profileScore(document: DocumentSnapshot): Int {
+        val uid = document.getString("uid").orEmpty().ifBlank { document.id }
+        val hasName = publicNameFromDocument(document) != getString(R.string.hopegive_user)
+        val hasPhoto = document.getString("profilePhotoUrl").orEmpty().isNotBlank() ||
+            document.getString("profilePhotoLocalUri").orEmpty().isNotBlank()
+        return listOf(
+            if (document.id == uid) 100 else 0,
+            if (hasName) 40 else 0,
+            if (hasPhoto) 10 else 0,
+            document.getTimestamp("updatedAt")?.toDate()?.time?.coerceAtMost(99L)?.toInt() ?: 0
+        ).sum()
+    }
+
+    private fun normalizeEmail(value: String?): String {
+        return value.orEmpty().trim().lowercase(Locale.US)
     }
 
     private fun applyFilter() {
@@ -197,7 +265,8 @@ class AddFriendsActivity : AppCompatActivity() {
         } else {
             allUsers.filter { user ->
                 user.displayName.lowercase(Locale.getDefault()).contains(query) ||
-                    user.email.lowercase(Locale.getDefault()).contains(query)
+                    user.role.lowercase(Locale.getDefault()).contains(query) ||
+                    user.status.lowercase(Locale.getDefault()).contains(query)
             }
         }
 
@@ -213,22 +282,7 @@ class AddFriendsActivity : AppCompatActivity() {
     }
 
     private fun addFriend(user: DiscoverUser) {
-        val conversationId = buildDirectConversationId(currentUserId, user.uid)
-        val rootRef = firebaseDb.getReference("directChats").child(conversationId)
-        val updates = hashMapOf<String, Any>(
-            "chatType" to "direct",
-            "updatedAt" to ServerValue.TIMESTAMP,
-            "participants/$currentUserId" to true,
-            "participants/${user.uid}" to true,
-            "participantProfiles/$currentUserId/displayName" to currentUserLabel,
-            "participantProfiles/$currentUserId/email" to currentUserEmail,
-            "participantProfiles/${user.uid}/displayName" to user.displayName,
-            "participantProfiles/${user.uid}/email" to user.email
-        )
-
-        val chatTask = rootRef.updateChildren(updates)
-        val followTask = TaskCompletionSource<Unit>()
-        FollowRepository.follow(
+        FollowRepository.sendFriendRequest(
             firestore = firestore,
             currentUser = FollowProfile(
                 uid = currentUserId,
@@ -247,27 +301,20 @@ class AddFriendsActivity : AppCompatActivity() {
                 profilePhotoLocalUri = user.profilePhotoLocalUri,
                 role = user.role,
                 status = user.status
-            ),
-            notificationType = FirestoreNotificationRepository.TYPE_FRIEND_ADDED
+            )
         ) { result ->
             result
-                .onSuccess { followTask.setResult(Unit) }
-                .onFailure { followTask.setException(it.asException()) }
+                .onSuccess {
+                    requestedIds += user.uid
+                    allUsers.find { it.uid == user.uid }?.isRequested = true
+                    applyFilter()
+                    Toast.makeText(this, getString(R.string.friend_request_sent), Toast.LENGTH_SHORT).show()
+                }
+                .onFailure { error ->
+                    Log.e("AddFriendsActivity", "Unable to send friend request", error)
+                    Toast.makeText(this, getString(R.string.friend_request_failed), Toast.LENGTH_SHORT).show()
+                }
         }
-
-        Tasks.whenAll(chatTask, followTask.task)
-            .addOnSuccessListener {
-                followingIds += user.uid
-                allUsers.find { it.uid == user.uid }?.isFollowing = true
-                applyFilter()
-                AppNotificationManager.notifyFriendAdded(this, user.displayName)
-                Toast.makeText(this, getString(R.string.friend_added), Toast.LENGTH_SHORT).show()
-                openChat(user.copy(isFollowing = true))
-            }
-            .addOnFailureListener { error ->
-                Log.e("AddFriendsActivity", "Unable to follow user", error)
-                Toast.makeText(this, getString(R.string.friend_request_failed), Toast.LENGTH_SHORT).show()
-            }
     }
 
     private fun confirmRemoveFriend(user: DiscoverUser) {
@@ -282,14 +329,14 @@ class AddFriendsActivity : AppCompatActivity() {
     }
 
     private fun removeFriend(user: DiscoverUser) {
-        FollowRepository.unfollow(
+        FollowRepository.unfriend(
             firestore = firestore,
             currentUserId = currentUserId,
             targetUserId = user.uid
         ) { result ->
             result
                 .onSuccess {
-                    followingIds -= user.uid
+                    friendIds -= user.uid
                     allUsers.find { it.uid == user.uid }?.isFollowing = false
                     applyFilter()
                     AppNotificationManager.notifyFriendRemoved(this, user.displayName)
@@ -326,7 +373,4 @@ class AddFriendsActivity : AppCompatActivity() {
             .joinToString("_")
     }
 
-    private fun Throwable.asException(): Exception {
-        return this as? Exception ?: RuntimeException(this)
-    }
 }

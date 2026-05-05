@@ -86,30 +86,45 @@
             android:layout_marginTop="30dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:weightSum="3.3"
+            android:weightSum="3"
             app:layout_constraintTop_toBottomOf="@id/tvUserEmail">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnHeaderAddFriends"
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardFriends"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_marginEnd="8dp"
-                android:layout_weight="1.3"
-                android:minWidth="0dp"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:text="@string/add_friend_action"
-                android:textAllCaps="false"
-                android:textColor="#1B5FBE"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                app:backgroundTint="#FFFFFF"
-                app:cornerRadius="18dp"
-                app:icon="@drawable/user"
-                app:iconGravity="textStart"
-                app:iconPadding="4dp"
-                app:iconSize="18dp"
-                app:iconTint="#1B5FBE" />
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="#5E98E9"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvFriendsCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/friends_label"
+                        android:textColor="#EAF2FF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardFollowing"
@@ -214,7 +229,7 @@
                         android:id="@+id/tvTotalDonated"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="â‚±0"
+                        android:text="₱0"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -356,6 +371,66 @@
                     app:layout_constraintBottom_toBottomOf="@id/ivIconDon"
                     app:layout_constraintStart_toStartOf="@id/tvTitleDon"
                     app:layout_constraintTop_toBottomOf="@id/tvTitleDon" />
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/next"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:ignore="SpeakableTextPresentCheck" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#CAC9C9" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/optionFriends"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="10dp">
+
+                <ImageView
+                    android:id="@+id/ivIconFriends"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/rounded_tip_bg"
+                    android:padding="8dp"
+                    android:src="@drawable/user"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <TextView
+                    android:id="@+id/tvTitleFriends"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:text="@string/friends_title"
+                    android:textColor="#1A1C1E"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toTopOf="@id/tvSubFriends"
+                    app:layout_constraintStart_toEndOf="@id/ivIconFriends"
+                    app:layout_constraintTop_toTopOf="@id/ivIconFriends"
+                    app:layout_constraintVertical_chainStyle="packed" />
+
+                <TextView
+                    android:id="@+id/tvSubFriends"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/friends_profile_subtitle"
+                    android:textColor="#6C757D"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="@id/ivIconFriends"
+                    app:layout_constraintStart_toStartOf="@id/tvTitleFriends"
+                    app:layout_constraintTop_toBottomOf="@id/tvTitleFriends" />
 
                 <ImageView
                     android:layout_width="16dp"

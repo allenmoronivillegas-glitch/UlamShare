@@ -47,8 +47,9 @@ class ConversationListAdapter(
             timeFormat: SimpleDateFormat,
             onConversationSelected: (MessengerConversation) -> Unit
         ) {
-            avatar.text = initials(item.title)
-            title.text = item.title
+            val publicTitle = PrivacyDisplayHelper.publicName(item.title, "HopeGive User")
+            avatar.text = initials(publicTitle)
+            title.text = publicTitle
             type.text = item.typeLabel
             preview.text = item.preview
             time.text = if (item.updatedAt > 0L) {

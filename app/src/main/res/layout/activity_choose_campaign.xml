@@ -4,39 +4,44 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_light_gray"
-    android:paddingHorizontal="24dp"
-    android:paddingTop="24dp">
+    android:background="#F0F5FF"
+    android:paddingHorizontal="18dp"
+    android:paddingTop="22dp">
 
+    <!-- TITLE -->
     <TextView
         android:id="@+id/tvMainTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:text="@string/choose_campaign_title"
-        android:textColor="@color/text_black"
-        android:textSize="26sp"
+        android:textColor="#0D1B3E"
+        android:textSize="24sp"
         android:textStyle="bold"
+        android:letterSpacing="-0.01"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- SUBTITLE -->
     <TextView
         android:id="@+id/tvSubTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:text="@string/choose_campaign_subtitle"
-        android:textColor="@color/text_grey"
-        android:textSize="16sp"
+        android:textColor="#5A7AA0"
+        android:textSize="14sp"
+        android:lineSpacingMultiplier="1.4"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvMainTitle" />
 
+    <!-- FILTER CHIPS -->
     <HorizontalScrollView
         android:id="@+id/scrollFeedFilters"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
+        android:layout_marginTop="16dp"
         android:overScrollMode="never"
         android:scrollbars="none"
         app:layout_constraintEnd_toEndOf="parent"
@@ -51,13 +56,13 @@
             <TextView
                 android:id="@+id/chipFilterAll"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
+                android:layout_height="38dp"
                 android:background="@drawable/bg_support_chip_active"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center"
-                android:minWidth="72dp"
-                android:paddingHorizontal="18dp"
+                android:minWidth="70dp"
+                android:paddingHorizontal="16dp"
                 android:text="@string/choose_campaign_filter_all"
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
@@ -66,14 +71,14 @@
             <TextView
                 android:id="@+id/chipFilterOfficial"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginStart="10dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/bg_support_chip"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center"
-                android:minWidth="84dp"
-                android:paddingHorizontal="18dp"
+                android:minWidth="82dp"
+                android:paddingHorizontal="16dp"
                 android:text="@string/choose_campaign_filter_official"
                 android:textColor="@color/primary_blue"
                 android:textSize="13sp"
@@ -82,14 +87,14 @@
             <TextView
                 android:id="@+id/chipFilterCommunity"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginStart="10dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/bg_support_chip"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center"
-                android:minWidth="98dp"
-                android:paddingHorizontal="18dp"
+                android:minWidth="96dp"
+                android:paddingHorizontal="16dp"
                 android:text="@string/choose_campaign_filter_community"
                 android:textColor="@color/primary_blue"
                 android:textSize="13sp"
@@ -98,14 +103,14 @@
             <TextView
                 android:id="@+id/chipFilterLiveCampaigns"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginStart="10dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="8dp"
                 android:background="@drawable/bg_support_chip"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center"
-                android:minWidth="126dp"
-                android:paddingHorizontal="18dp"
+                android:minWidth="120dp"
+                android:paddingHorizontal="16dp"
                 android:text="@string/choose_campaign_filter_live"
                 android:textColor="@color/primary_blue"
                 android:textSize="13sp"
@@ -113,11 +118,12 @@
         </LinearLayout>
     </HorizontalScrollView>
 
+    <!-- SCROLLABLE FEED -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollCampaignFeed"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="18dp"
         android:clipToPadding="false"
         android:fillViewport="true"
         android:overScrollMode="never"
@@ -130,8 +136,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="32dp">
+            android:paddingBottom="36dp">
 
+            <!-- COMPOSER / ADD POST -->
             <LinearLayout
                 android:id="@+id/cardAddPost"
                 android:layout_width="match_parent"
@@ -143,123 +150,305 @@
                 android:visibility="gone">
 
                 <LinearLayout
+                    android:id="@+id/composerPromptRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
                     <TextView
-                        android:id="@+id/tvComposerAvatar"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
+                        android:id="@+id/tvComposerPromptAvatar"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
                         android:background="@drawable/bg_avatar_blue"
                         android:gravity="center"
                         android:text="HG"
                         android:textColor="@android:color/white"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:textStyle="bold"
                         tools:text="JD" />
 
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/tvComposerPrompt"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="42dp"
                         android:layout_marginStart="12dp"
                         android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:background="@drawable/bg_campaign_composer_prompt"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="16dp"
+                        android:text="@string/choose_campaign_composer_prompt"
+                        android:textColor="#5A7AA0"
+                        android:textSize="14sp" />
 
-                        <TextView
-                            android:id="@+id/tvComposerName"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/text_black"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            tools:text="John Doe" />
-
-                        <TextView
-                            android:id="@+id/tvComposerRole"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:background="@drawable/bg_campaign_badge_community"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="4dp"
-                            android:text="@string/choose_campaign_user_role"
-                            android:textColor="@color/text_grey"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+                    <ImageButton
+                        android:id="@+id/btnComposerQuickPhoto"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/bg_support_chip"
+                        android:contentDescription="@string/choose_campaign_photo_video"
+                        android:padding="10dp"
+                        android:src="@drawable/ic_photo_24"
+                        app:tint="@color/primary_blue" />
                 </LinearLayout>
 
-                <EditText
-                    android:id="@+id/etComposerInput"
+                <LinearLayout
+                    android:id="@+id/createPostPanel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:background="@drawable/rounded_edittext"
-                    android:gravity="top|start"
-                    android:hint="@string/choose_campaign_add_post_hint"
-                    android:importantForAutofill="no"
-                    android:inputType="textCapSentences|textMultiLine"
-                    android:maxLines="4"
-                    android:minHeight="82dp"
-                    android:padding="14dp"
-                    android:textColor="@color/text_black"
-                    android:textColorHint="@color/text_grey"
-                    android:textSize="15sp" />
-
-                <HorizontalScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:overScrollMode="never"
-                    android:scrollbars="none">
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center_vertical"
                         android:orientation="horizontal">
 
+                        <ImageButton
+                            android:id="@+id/btnCloseCreatePost"
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
+                            android:background="@drawable/bg_support_chip"
+                            android:contentDescription="@string/choose_campaign_back"
+                            android:padding="9dp"
+                            android:src="@drawable/ic_arrow_back_24"
+                            app:tint="@color/primary_blue" />
+
                         <TextView
-                            android:id="@+id/btnComposerNote"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:text="@string/choose_campaign_create_post_title"
+                            android:textColor="#0D1B3E"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/btnSubmitPost"
                             android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:background="@drawable/bg_support_chip_active"
+                            android:layout_height="38dp"
+                            android:background="@drawable/bg_support_send"
                             android:clickable="true"
                             android:focusable="true"
                             android:gravity="center"
-                            android:minWidth="72dp"
+                            android:minWidth="76dp"
                             android:paddingHorizontal="18dp"
-                            android:text="@string/choose_campaign_note"
+                            android:text="@string/choose_campaign_post"
                             android:textColor="@android:color/white"
                             android:textSize="13sp"
                             android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="12dp"
+                        android:background="#E4ECF8" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvComposerAvatar"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_avatar_blue"
+                            android:gravity="center"
+                            android:text="HG"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            tools:text="JD" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvComposerName"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="#0D1B3E"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                tools:text="John Doe" />
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:id="@+id/tvComposerRole"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_campaign_badge_community"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="4dp"
+                                    android:text="@string/choose_campaign_user_role"
+                                    android:textColor="@color/text_grey"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:background="@drawable/bg_support_chip"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="4dp"
+                                    android:text="@string/choose_campaign_public"
+                                    android:textColor="@color/primary_blue"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/btnComposerPostTarget"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:background="@drawable/bg_support_chip"
+                                    android:clickable="true"
+                                    android:drawableEnd="@android:drawable/arrow_down_float"
+                                    android:drawablePadding="4dp"
+                                    android:drawableTint="@color/primary_blue"
+                                    android:focusable="true"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="4dp"
+                                    android:text="@string/choose_campaign_community_chip"
+                                    android:textColor="@color/primary_blue"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/btnComposerCampaignPicker"
+                        android:layout_width="match_parent"
+                        android:layout_height="46dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@drawable/bg_support_input"
+                        android:clickable="true"
+                        android:drawableEnd="@android:drawable/arrow_down_float"
+                        android:drawablePadding="8dp"
+                        android:drawableTint="@color/primary_blue"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="14dp"
+                        android:text="@string/choose_campaign_choose_campaign"
+                        android:textColor="#0D1B3E"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                    <EditText
+                        android:id="@+id/etComposerInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:background="@android:color/transparent"
+                        android:gravity="top|start"
+                        android:hint="@string/choose_campaign_add_post_hint"
+                        android:importantForAutofill="no"
+                        android:inputType="textCapSentences|textMultiLine"
+                        android:maxLines="8"
+                        android:minHeight="150dp"
+                        android:paddingVertical="8dp"
+                        android:textColor="#0D1B3E"
+                        android:textColorHint="#8FAACC"
+                        android:textSize="20sp" />
+
+                    <!-- IMAGE PREVIEW -->
+                    <FrameLayout
+                        android:id="@+id/composerImagePreviewCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="230dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_support_input"
+                        android:clipChildren="true"
+                        android:clipToOutline="true"
+                        android:clipToPadding="true"
+                        android:padding="6dp"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:id="@+id/ivComposerSelectedImage"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@android:color/transparent"
+                            android:contentDescription="@string/choose_campaign_selected_photo"
+                            android:scaleType="centerCrop" />
+
+                        <ImageButton
+                            android:id="@+id/btnRemoveSelectedImage"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_gravity="top|end"
+                            android:layout_margin="10dp"
+                            android:background="@drawable/bg_support_send"
+                            android:contentDescription="@string/choose_campaign_remove_photo"
+                            android:padding="8dp"
+                            android:src="@android:drawable/ic_menu_close_clear_cancel"
+                            android:tint="@android:color/white" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:background="@drawable/rounded_soft_blue_rect"
+                        android:orientation="vertical"
+                        android:padding="10dp">
 
                         <TextView
                             android:id="@+id/btnComposerPhoto"
-                            android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:layout_marginStart="10dp"
-                            android:background="@drawable/bg_support_chip"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:background="@drawable/bg_support_input"
                             android:clickable="true"
+                            android:drawableStart="@drawable/ic_photo_24"
+                            android:drawablePadding="12dp"
+                            android:drawableTint="@color/primary_blue"
                             android:focusable="true"
-                            android:gravity="center"
-                            android:minWidth="84dp"
-                            android:paddingHorizontal="18dp"
-                            android:text="@string/choose_campaign_photo"
-                            android:textColor="@color/primary_blue"
-                            android:textSize="13sp"
+                            android:gravity="center_vertical"
+                            android:paddingHorizontal="14dp"
+                            android:text="@string/choose_campaign_photo_video"
+                            android:textColor="#0D1B3E"
+                            android:textSize="14sp"
                             android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/btnComposerNote"
+                            android:layout_width="1dp"
+                            android:layout_height="1dp"
+                            android:text="@string/choose_campaign_note"
+                            android:visibility="gone" />
 
                         <TextView
                             android:id="@+id/btnComposerOfficial"
                             android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:layout_marginStart="10dp"
+                            android:layout_height="38dp"
+                            android:layout_marginTop="10dp"
                             android:background="@drawable/bg_support_chip_active"
                             android:gravity="center"
-                            android:minWidth="116dp"
-                            android:paddingHorizontal="18dp"
+                            android:minWidth="112dp"
+                            android:paddingHorizontal="16dp"
                             android:text="@string/choose_campaign_post_as_official"
                             android:textColor="@android:color/white"
                             android:textSize="13sp"
@@ -268,194 +457,146 @@
 
                         <TextView
                             android:id="@+id/btnComposerLiveCampaign"
-                            android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:layout_marginStart="10dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="10dp"
                             android:background="@drawable/bg_support_chip"
                             android:clickable="true"
+                            android:drawableStart="@drawable/ic_campaign_24"
+                            android:drawablePadding="12dp"
+                            android:drawableTint="@color/primary_blue"
                             android:focusable="true"
-                            android:gravity="center"
-                            android:minWidth="126dp"
-                            android:paddingHorizontal="18dp"
+                            android:gravity="center_vertical"
+                            android:minWidth="120dp"
+                            android:paddingHorizontal="14dp"
                             android:text="@string/choose_campaign_live_campaign"
-                            android:textColor="@color/primary_blue"
-                            android:textSize="13sp"
+                            android:textColor="#0D1B3E"
+                            android:textSize="14sp"
                             android:textStyle="bold"
                             android:visibility="gone" />
                     </LinearLayout>
-                </HorizontalScrollView>
 
-                <FrameLayout
-                    android:id="@+id/composerImagePreviewCard"
-                    android:layout_width="match_parent"
-                    android:layout_height="180dp"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/bg_support_input"
-                    android:clipChildren="true"
-                    android:clipToPadding="true"
-                    android:padding="8dp"
-                    android:visibility="gone">
-
-                    <ImageView
-                        android:id="@+id/ivComposerSelectedImage"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@android:color/transparent"
-                        android:contentDescription="@string/choose_campaign_selected_photo"
-                        android:scaleType="centerCrop" />
-
-                    <ImageButton
-                        android:id="@+id/btnRemoveSelectedImage"
-                        android:layout_width="34dp"
-                        android:layout_height="34dp"
-                        android:layout_gravity="top|end"
-                        android:layout_margin="10dp"
-                        android:background="@drawable/bg_support_send"
-                        android:contentDescription="@string/choose_campaign_remove_photo"
-                        android:padding="8dp"
-                        android:src="@android:drawable/ic_menu_close_clear_cancel"
-                        android:tint="@android:color/white" />
-                </FrameLayout>
-
-                <LinearLayout
-                    android:id="@+id/liveCampaignFields"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/rounded_soft_blue_rect"
-                    android:orientation="vertical"
-                    android:padding="14dp"
-                    android:visibility="gone">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/choose_campaign_live_fields_title"
-                        android:textColor="@color/text_black"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <EditText
-                        android:id="@+id/etLiveCampaignTitle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:background="@drawable/rounded_edittext"
-                        android:hint="@string/choose_campaign_live_title_hint"
-                        android:importantForAutofill="no"
-                        android:inputType="textCapWords"
-                        android:padding="14dp"
-                        android:textColor="@color/text_black"
-                        android:textColorHint="@color/text_grey"
-                        android:textSize="14sp" />
-
+                    <!-- LIVE CAMPAIGN FIELDS -->
                     <LinearLayout
+                        android:id="@+id/liveCampaignFields"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:orientation="horizontal">
+                        android:background="@drawable/rounded_soft_blue_rect"
+                        android:orientation="vertical"
+                        android:padding="14dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/choose_campaign_live_fields_title"
+                            android:textColor="#0D1B3E"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
                         <EditText
-                            android:id="@+id/etLiveCampaignGoal"
-                            android:layout_width="0dp"
+                            android:id="@+id/etLiveCampaignTitle"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
+                            android:layout_marginTop="12dp"
                             android:background="@drawable/rounded_edittext"
-                            android:hint="@string/choose_campaign_goal_hint"
+                            android:hint="@string/choose_campaign_live_title_hint"
                             android:importantForAutofill="no"
-                            android:inputType="number"
+                            android:inputType="textCapWords"
                             android:padding="14dp"
-                            android:textColor="@color/text_black"
-                            android:textColorHint="@color/text_grey"
+                            android:textColor="#0D1B3E"
+                            android:textColorHint="#8FAACC"
                             android:textSize="14sp" />
 
-                        <EditText
-                            android:id="@+id/etLiveCampaignRaised"
-                            android:layout_width="0dp"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="10dp"
-                            android:layout_weight="1"
+                            android:layout_marginTop="12dp"
+                            android:orientation="horizontal">
+
+                            <EditText
+                                android:id="@+id/etLiveCampaignGoal"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:background="@drawable/rounded_edittext"
+                                android:hint="@string/choose_campaign_goal_hint"
+                                android:importantForAutofill="no"
+                                android:inputType="number"
+                                android:padding="14dp"
+                                android:textColor="#0D1B3E"
+                                android:textColorHint="#8FAACC"
+                                android:textSize="14sp" />
+
+                            <EditText
+                                android:id="@+id/etLiveCampaignRaised"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/rounded_edittext"
+                                android:hint="@string/choose_campaign_raised_hint"
+                                android:importantForAutofill="no"
+                                android:inputType="number"
+                                android:padding="14dp"
+                                android:text="0"
+                                android:textColor="#0D1B3E"
+                                android:textColorHint="#8FAACC"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+
+                        <Spinner
+                            android:id="@+id/spinnerLiveCampaignStatus"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
                             android:background="@drawable/rounded_edittext"
-                            android:hint="@string/choose_campaign_raised_hint"
-                            android:importantForAutofill="no"
-                            android:inputType="number"
-                            android:padding="14dp"
-                            android:text="0"
-                            android:textColor="@color/text_black"
-                            android:textColorHint="@color/text_grey"
-                            android:textSize="14sp" />
+                            android:minHeight="50dp"
+                            android:paddingHorizontal="12dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:text="@string/choose_campaign_live_note_helper"
+                            android:textColor="#7A9CC8"
+                            android:textSize="12sp" />
                     </LinearLayout>
-
-                    <Spinner
-                        android:id="@+id/spinnerLiveCampaignStatus"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:background="@drawable/rounded_edittext"
-                        android:minHeight="50dp"
-                        android:paddingHorizontal="12dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="@string/choose_campaign_live_note_helper"
-                        android:textColor="@color/text_grey"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:gravity="end|center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/btnSubmitPost"
-                        android:layout_width="wrap_content"
-                        android:layout_height="40dp"
-                        android:background="@drawable/bg_support_send"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center"
-                        android:minWidth="92dp"
-                        android:paddingHorizontal="18dp"
-                        android:text="@string/choose_campaign_post"
-                        android:textColor="@android:color/white"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- FEED LABEL -->
             <TextView
                 android:id="@+id/tvFeedSectionLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="18dp"
                 android:text="@string/choose_campaign_feed_label"
-                android:textColor="@color/text_black"
-                android:textSize="18sp"
+                android:textColor="#0D1B3E"
+                android:textSize="17sp"
                 android:textStyle="bold" />
 
+            <!-- EMPTY FEED -->
             <TextView
                 android:id="@+id/tvFeedEmptyState"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:background="@drawable/bg_support_input"
                 android:gravity="center"
                 android:padding="18dp"
                 android:text="@string/choose_campaign_empty_state"
-                android:textColor="@color/text_grey"
+                android:textColor="#7A9CC8"
                 android:textSize="14sp"
                 android:visibility="gone" />
 
+            <!-- CAMPAIGN RECYCLER -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvCampaigns"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:nestedScrollingEnabled="false"
                 tools:listitem="@layout/item_campaign_feed_post" />
 

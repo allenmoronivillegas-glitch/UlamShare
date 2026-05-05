@@ -93,7 +93,7 @@ class RegisterActivity : AppCompatActivity() {
             Log.d(FACEBOOK_TAG, "Facebook login started from register")
             LoginManager.getInstance().logInWithReadPermissions(
                 this,
-                listOf("email", "public_profile")
+                listOf("public_profile")
             )
         }
 
@@ -146,12 +146,12 @@ class RegisterActivity : AppCompatActivity() {
                 selectedGoogleIdToken = token
                 etEmail.setText(email)
                 if (etFullName.text.isBlank()) {
-                    etFullName.setText(account.displayName.orEmpty().ifBlank { email.substringBefore("@") })
+                    etFullName.setText(account.displayName.orEmpty().ifBlank { getString(R.string.hopegive_user) })
                 }
                 Log.d(TAG, "Google sign up account selected. email=$email, hasIdToken=${token.isNotBlank()}")
                 Toast.makeText(this, "Google account selected. Sending email OTP to $email.", Toast.LENGTH_LONG).show()
                 checkDuplicateEmail(
-                    fullName = etFullName.text.toString().trim().ifBlank { email.substringBefore("@") },
+                    fullName = etFullName.text.toString().trim().ifBlank { getString(R.string.hopegive_user) },
                     email = email,
                     mobile = etMobile.text.toString().trim(),
                     password = "",
@@ -188,10 +188,10 @@ class RegisterActivity : AppCompatActivity() {
                 }
 
                 override fun onError(error: FacebookException) {
-                    Log.e(FACEBOOK_TAG, "Facebook login error from register", error)
+                    Log.e(FACEBOOK_TAG, "Facebook sign-in failed", error)
                     Toast.makeText(
                         this@RegisterActivity,
-                        FacebookAuthSupport.userFriendlyError(this@RegisterActivity, error),
+                        FacebookAuthSupport.userFriendlyError(this@RegisterActivity, error, "Facebook"),
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -203,9 +203,11 @@ class RegisterActivity : AppCompatActivity() {
         FacebookAuthSupport.signInWithAccessToken(
             accessToken = token,
             onSuccess = { user ->
-                FacebookAuthSupport.mergeFacebookUserProfile(
+                Log.d(FACEBOOK_TAG, "Firebase Facebook sign-in success")
+                FacebookAuthSupport.saveOrMergeSocialUserProfile(
                     context = this,
                     user = user,
+                    provider = "facebook",
                     onComplete = {
                         Toast.makeText(
                             this,
@@ -218,7 +220,7 @@ class RegisterActivity : AppCompatActivity() {
                         Log.e(FACEBOOK_TAG, "Unable to merge Facebook user profile", error)
                         Toast.makeText(
                             this,
-                            FacebookAuthSupport.userFriendlyError(this, error),
+                            FacebookAuthSupport.userFriendlyError(this, error, "Facebook"),
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -227,7 +229,7 @@ class RegisterActivity : AppCompatActivity() {
             onError = { error ->
                 Toast.makeText(
                     this,
-                    FacebookAuthSupport.userFriendlyError(this, error),
+                    FacebookAuthSupport.userFriendlyError(this, error, "Facebook"),
                     Toast.LENGTH_LONG
                 ).show()
             }

@@ -1,12 +1,11 @@
 package com.example.ulamshare
 
 import android.app.AlertDialog
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.content.Intent
 import android.net.Uri
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ArrayAdapter
@@ -14,7 +13,6 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.PopupWindow
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -23,6 +21,7 @@ import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.LifecycleOwner
@@ -30,6 +29,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
@@ -60,6 +64,7 @@ class ChooseCampaignFeedController(
     private val context = rootView.context
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
+    private val campaignsRef: DatabaseReference = FirebaseDatabase.getInstance().getReference("campaigns")
     private val repository = CampaignFeedRepository()
 
     private var backButton: ImageButton? = null
@@ -69,9 +74,17 @@ class ChooseCampaignFeedController(
     private lateinit var chipFilterLiveCampaigns: TextView
     private lateinit var scrollView: NestedScrollView
     private lateinit var cardAddPost: View
+    private lateinit var composerPromptRow: View
+    private lateinit var composerPromptAvatar: TextView
+    private lateinit var composerPrompt: TextView
+    private lateinit var composerQuickPhotoButton: ImageButton
+    private lateinit var createPostPanel: View
+    private lateinit var closeCreatePostButton: ImageButton
     private lateinit var composerAvatar: TextView
     private lateinit var composerName: TextView
     private lateinit var composerRole: TextView
+    private lateinit var postTargetButton: TextView
+    private lateinit var campaignPickerButton: TextView
     private lateinit var composerInput: EditText
     private lateinit var composerImagePreviewCard: View
     private lateinit var composerImageView: ImageView
@@ -92,10 +105,10 @@ class ChooseCampaignFeedController(
 
     private val adapter = CampaignFeedAdapter(
         onReactClicked = ::handleReact,
-        onReactionLongPressed = ::showReactionPicker,
-        onReactionSummaryClicked = ::showReactionDetails,
         onCommentClicked = ::handleComment,
         onShareClicked = ::handleShare,
+        onAuthorClicked = ::openAuthorProfile,
+        onCampaignClicked = ::openLinkedCampaign,
         onPostOptionsClicked = ::showPostOptions,
         canManagePost = ::canDeletePost
     )
@@ -103,6 +116,9 @@ class ChooseCampaignFeedController(
     private var photoPickerLauncher: ActivityResultLauncher<String>? = null
     private var selectedImageUri: Uri? = null
     private var liveCampaignMode = false
+    private var postTarget = CampaignFeedPost.TARGET_COMMUNITY
+    private var availableCampaigns: List<Campaign> = emptyList()
+    private var selectedCampaign: Campaign? = null
     private var isSubmittingPost = false
     private var isEnsuringViewerSession = false
 
@@ -119,6 +135,7 @@ class ChooseCampaignFeedController(
     private var postsRegistration: ListenerRegistration? = null
     private var commentsRegistration: ListenerRegistration? = null
     private var settingsRegistration: ListenerRegistration? = null
+    private var campaignsListener: ValueEventListener? = null
     private var feedSettings = CampaignFeedSettings()
 
     fun bind() {
@@ -130,6 +147,7 @@ class ChooseCampaignFeedController(
         setupComposer()
         updateViewerUi()
         startSettingsListener()
+        startCampaignsListener()
         ensureViewerSession()
     }
 
@@ -140,6 +158,8 @@ class ChooseCampaignFeedController(
         commentsRegistration = null
         settingsRegistration?.remove()
         settingsRegistration = null
+        campaignsListener?.let { campaignsRef.removeEventListener(it) }
+        campaignsListener = null
         photoPickerLauncher?.unregister()
         photoPickerLauncher = null
     }
@@ -152,9 +172,17 @@ class ChooseCampaignFeedController(
         chipFilterLiveCampaigns = rootView.findViewById(R.id.chipFilterLiveCampaigns)
         scrollView = rootView.findViewById(R.id.scrollCampaignFeed)
         cardAddPost = rootView.findViewById(R.id.cardAddPost)
+        composerPromptRow = rootView.findViewById(R.id.composerPromptRow)
+        composerPromptAvatar = rootView.findViewById(R.id.tvComposerPromptAvatar)
+        composerPrompt = rootView.findViewById(R.id.tvComposerPrompt)
+        composerQuickPhotoButton = rootView.findViewById(R.id.btnComposerQuickPhoto)
+        createPostPanel = rootView.findViewById(R.id.createPostPanel)
+        closeCreatePostButton = rootView.findViewById(R.id.btnCloseCreatePost)
         composerAvatar = rootView.findViewById(R.id.tvComposerAvatar)
         composerName = rootView.findViewById(R.id.tvComposerName)
         composerRole = rootView.findViewById(R.id.tvComposerRole)
+        postTargetButton = rootView.findViewById(R.id.btnComposerPostTarget)
+        campaignPickerButton = rootView.findViewById(R.id.btnComposerCampaignPicker)
         composerInput = rootView.findViewById(R.id.etComposerInput)
         composerImagePreviewCard = rootView.findViewById(R.id.composerImagePreviewCard)
         composerImageView = rootView.findViewById(R.id.ivComposerSelectedImage)
@@ -201,12 +229,14 @@ class ChooseCampaignFeedController(
         ) { uri ->
             Log.d(TAG, "Photo picker returned uri=$uri")
             if (uri != null) {
-                selectedImageUri = uri
-                liveCampaignMode = false
-                composerImageView.setImageDrawable(null)
-                composerImageView.setImageURI(uri)
-                composerImagePreviewCard.visibility = View.VISIBLE
-                syncComposerModeUi()
+                if (openCreatePostPanel(focusInput = false)) {
+                    selectedImageUri = uri
+                    liveCampaignMode = false
+                    composerImageView.setImageDrawable(null)
+                    composerImageView.setImageURI(uri)
+                    composerImagePreviewCard.visibility = View.VISIBLE
+                    syncComposerModeUi()
+                }
             }
         }
     }
@@ -221,6 +251,16 @@ class ChooseCampaignFeedController(
 
     private fun setupComposer() {
         backButton?.setOnClickListener { onBackPressed() }
+        composerPrompt.setOnClickListener { openCreatePostPanel() }
+        composerPromptAvatar.setOnClickListener { openCreatePostPanel() }
+        composerQuickPhotoButton.setOnClickListener {
+            if (openCreatePostPanel(focusInput = false)) {
+                openPhotoPicker()
+            }
+        }
+        closeCreatePostButton.setOnClickListener { collapseCreatePostPanel() }
+        postTargetButton.setOnClickListener { showPostTargetMenu() }
+        campaignPickerButton.setOnClickListener { showCampaignPickerMenu() }
         noteButton.setOnClickListener { switchToNoteMode() }
         photoButton.setOnClickListener { openPhotoPicker() }
         liveCampaignButton.setOnClickListener { toggleLiveCampaignMode() }
@@ -231,6 +271,19 @@ class ChooseCampaignFeedController(
             syncComposerModeUi()
         }
         submitPostButton.setOnClickListener { submitPost() }
+        val submitStateWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                updateSubmitButtonState()
+            }
+
+            override fun afterTextChanged(s: Editable?) = Unit
+        }
+        composerInput.addTextChangedListener(submitStateWatcher)
+        liveCampaignTitleInput.addTextChangedListener(submitStateWatcher)
+        liveCampaignGoalInput.addTextChangedListener(submitStateWatcher)
+        liveCampaignRaisedInput.addTextChangedListener(submitStateWatcher)
+        updateSubmitButtonState()
     }
 
     private fun ensureViewerSession(afterReady: (() -> Unit)? = null) {
@@ -347,7 +400,7 @@ class ChooseCampaignFeedController(
         postsRegistration = repository.listenToPosts(
             currentUserId = currentUserId,
             onUpdate = { posts ->
-                allPosts = posts
+                allPosts = visiblePostsForCurrentViewer(posts)
                 applyFeedFilter()
                 handlePendingDeepLink()
             },
@@ -365,7 +418,21 @@ class ChooseCampaignFeedController(
 
     private fun handlePendingDeepLink() {
         if (pendingDeepLinkHandled || targetPostId.isBlank()) return
-        val post = allPosts.firstOrNull { it.id == targetPostId } ?: return
+        val post = allPosts.firstOrNull { it.id == targetPostId }
+        if (post == null) {
+            if (isModerationNotificationType(notificationType)) {
+                pendingDeepLinkHandled = true
+                activeFilter = FeedFilter.ALL
+                syncFilterUi()
+                applyFeedFilter()
+                Toast.makeText(
+                    context,
+                    moderationRemovedMessage(notificationType),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            return
+        }
 
         pendingDeepLinkHandled = true
         activeFilter = FeedFilter.ALL
@@ -407,6 +474,35 @@ class ChooseCampaignFeedController(
                 updateViewerUi()
             }
         )
+    }
+
+    private fun startCampaignsListener() {
+        campaignsListener?.let { campaignsRef.removeEventListener(it) }
+        campaignsListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                availableCampaigns = snapshot.children
+                    .mapNotNull { CampaignDisplayHelper.parseCampaign(it) }
+                    .filter { CampaignDisplayHelper.canDonate(it) }
+                    .let { CampaignDisplayHelper.sortActiveCampaigns(it) }
+                if (selectedCampaign != null &&
+                    availableCampaigns.none { it.campaignId == selectedCampaign?.campaignId }
+                ) {
+                    selectedCampaign = null
+                }
+                syncPostTargetUi()
+                updateSubmitButtonState()
+                Log.d(TAG, "Available post campaigns=${availableCampaigns.size}")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Unable to load available campaigns for post selector", error.toException())
+                availableCampaigns = emptyList()
+                selectedCampaign = null
+                syncPostTargetUi()
+                updateSubmitButtonState()
+            }
+        }
+        campaignsRef.addValueEventListener(campaignsListener!!)
     }
 
     private fun setActiveFilter(filter: FeedFilter) {
@@ -469,6 +565,7 @@ class ChooseCampaignFeedController(
     }
 
     private fun updateViewerUi() {
+        composerPromptAvatar.text = buildInitials(currentUserName)
         composerAvatar.text = buildInitials(currentUserName)
         composerName.text = currentUserName
         composerRole.text = roleLabel(currentUserRole)
@@ -486,10 +583,14 @@ class ChooseCampaignFeedController(
             )
         )
 
-        cardAddPost.isVisible = canCreatePosts()
+        cardAddPost.isVisible = !currentUserId.isNullOrBlank()
+        if (!canCreatePosts() && createPostPanel.isVisible) {
+            collapseCreatePostPanel()
+        }
         officialButton.isVisible = canCreateOfficialPosts()
         liveCampaignButton.isVisible = canCreateOfficialPosts()
         syncComposerModeUi()
+        syncPostTargetUi()
         renderSelectedImage()
     }
 
@@ -513,18 +614,140 @@ class ChooseCampaignFeedController(
             )
         }
         liveCampaignFields.isVisible = liveCampaignMode && canCreateOfficialPosts()
+        updateSubmitButtonState()
+    }
+
+    private fun syncPostTargetUi() {
+        val isCampaignTarget = postTarget == CampaignFeedPost.TARGET_CAMPAIGN
+        postTargetButton.text = if (isCampaignTarget) {
+            context.getString(R.string.choose_campaign_campaigns_target)
+        } else {
+            context.getString(R.string.choose_campaign_community_chip)
+        }
+        campaignPickerButton.isVisible = isCampaignTarget && createPostPanel.isVisible
+        campaignPickerButton.text = selectedCampaign?.let { campaign ->
+            context.getString(
+                R.string.choose_campaign_selected_campaign_format,
+                CampaignDisplayHelper.campaignEmoji(campaign),
+                campaign.title.orEmpty().ifBlank { context.getString(R.string.choose_campaign_campaign_target) }
+            )
+        } ?: context.getString(R.string.choose_campaign_choose_campaign)
+    }
+
+    private fun showPostTargetMenu() {
+        if (!openCreatePostPanel(focusInput = false)) return
+        PopupMenu(context, postTargetButton).apply {
+            menu.add(0, 1, 0, context.getString(R.string.choose_campaign_community_chip))
+            menu.add(0, 2, 1, context.getString(R.string.choose_campaign_campaigns_target))
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    1 -> {
+                        postTarget = CampaignFeedPost.TARGET_COMMUNITY
+                        selectedCampaign = null
+                        syncPostTargetUi()
+                        updateSubmitButtonState()
+                        true
+                    }
+                    2 -> {
+                        postTarget = CampaignFeedPost.TARGET_CAMPAIGN
+                        syncPostTargetUi()
+                        updateSubmitButtonState()
+                        if (availableCampaigns.isEmpty()) {
+                            Toast.makeText(
+                                context,
+                                R.string.choose_campaign_no_available_campaigns,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else if (selectedCampaign == null) {
+                            showCampaignPickerMenu()
+                        }
+                        true
+                    }
+                    else -> false
+                }
+            }
+            show()
+        }
+    }
+
+    private fun showCampaignPickerMenu() {
+        if (!openCreatePostPanel(focusInput = false)) return
+        if (availableCampaigns.isEmpty()) {
+            Toast.makeText(context, R.string.choose_campaign_no_available_campaigns, Toast.LENGTH_SHORT)
+                .show()
+            return
+        }
+
+        PopupMenu(context, campaignPickerButton).apply {
+            availableCampaigns.forEachIndexed { index, campaign ->
+                val title = campaign.title.orEmpty().ifBlank {
+                    context.getString(R.string.choose_campaign_campaign_target)
+                }
+                val category = campaign.cat.orEmpty().ifBlank {
+                    context.getString(R.string.choose_campaign_community_chip)
+                }
+                menu.add(0, index + 1, index, "${CampaignDisplayHelper.campaignEmoji(campaign)} $title · $category")
+            }
+            setOnMenuItemClickListener { item ->
+                selectedCampaign = availableCampaigns.getOrNull(item.itemId - 1)
+                syncPostTargetUi()
+                updateSubmitButtonState()
+                true
+            }
+            show()
+        }
     }
 
     private fun bindComposerModeChip(chip: TextView, selected: Boolean) {
+        val color = ContextCompat.getColor(
+            context,
+            if (selected) android.R.color.white else R.color.primary_blue
+        )
         chip.setBackgroundResource(
             if (selected) R.drawable.bg_support_chip_active else R.drawable.bg_support_chip
         )
-        chip.setTextColor(
-            ContextCompat.getColor(
-                context,
-                if (selected) android.R.color.white else R.color.primary_blue
-            )
-        )
+        chip.setTextColor(color)
+        chip.compoundDrawablesRelative
+            .filterNotNull()
+            .forEach { drawable ->
+                DrawableCompat.setTint(DrawableCompat.wrap(drawable).mutate(), color)
+            }
+    }
+
+    private fun openCreatePostPanel(focusInput: Boolean = true): Boolean {
+        if (currentUserId.isNullOrBlank()) {
+            ensureViewerSession { openCreatePostPanel(focusInput) }
+            return false
+        }
+
+        disabledPostMessageRes()?.let { messageRes ->
+            Toast.makeText(context, messageRes, Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        if (!canCreatePosts()) {
+            Toast.makeText(context, R.string.choose_campaign_post_unauthenticated, Toast.LENGTH_SHORT)
+                .show()
+            return false
+        }
+
+        composerPromptRow.isVisible = false
+        createPostPanel.isVisible = true
+        syncPostTargetUi()
+        renderSelectedImage()
+        updateSubmitButtonState()
+        if (focusInput) {
+            composerInput.requestFocus()
+        }
+        return true
+    }
+
+    private fun collapseCreatePostPanel() {
+        if (isSubmittingPost) return
+        createPostPanel.isVisible = false
+        composerPromptRow.isVisible = true
+        syncPostTargetUi()
+        updateSubmitButtonState()
     }
 
     private fun canCreatePosts(): Boolean {
@@ -542,17 +765,43 @@ class ChooseCampaignFeedController(
             currentUserRole == CampaignFeedPost.ROLE_SUPER_ADMIN
     }
 
+    private fun canViewModeratedFeedContent(): Boolean {
+        return canCreateOfficialPosts() || currentUserRole == CampaignFeedPost.ROLE_MODERATOR
+    }
+
+    private fun visiblePostsForCurrentViewer(posts: List<CampaignFeedPost>): List<CampaignFeedPost> {
+        return if (canViewModeratedFeedContent()) {
+            posts
+        } else {
+            posts.filter { it.isVisibleAfterModeration }
+        }
+    }
+
+    private fun visibleCommentsForCurrentViewer(
+        comments: List<CampaignPostComment>
+    ): List<CampaignPostComment> {
+        if (canViewModeratedFeedContent()) return comments
+        return comments
+            .filter { it.isVisibleAfterModeration }
+            .map { comment ->
+                comment.copy(
+                    replies = comment.replies.filter { it.isVisibleAfterModeration }
+                )
+            }
+    }
+
     private fun canDeletePost(post: CampaignFeedPost): Boolean {
         val viewerId = currentUserId.orEmpty()
         return when {
             viewerId.isBlank() -> false
-            canCreateOfficialPosts() -> true
+            canViewModeratedFeedContent() -> true
             currentUserRole == CampaignFeedPost.ROLE_GUEST -> false
             else -> viewerId == post.authorId
         }
     }
 
     private fun switchToNoteMode() {
+        if (!openCreatePostPanel(focusInput = false)) return
         liveCampaignMode = false
         selectedImageUri = null
         clearLiveCampaignFields()
@@ -561,6 +810,7 @@ class ChooseCampaignFeedController(
     }
 
     private fun openPhotoPicker() {
+        if (!createPostPanel.isVisible && !openCreatePostPanel(focusInput = false)) return
         try {
             photoPickerLauncher?.launch("image/*")
         } catch (_: Exception) {
@@ -571,6 +821,7 @@ class ChooseCampaignFeedController(
 
     private fun toggleLiveCampaignMode() {
         if (!canCreateOfficialPosts()) return
+        if (!openCreatePostPanel(focusInput = false)) return
 
         liveCampaignMode = !liveCampaignMode
         if (!liveCampaignMode) {
@@ -578,15 +829,18 @@ class ChooseCampaignFeedController(
             Toast.makeText(context, R.string.choose_campaign_live_toggle_off, Toast.LENGTH_SHORT)
                 .show()
         } else {
+            postTarget = CampaignFeedPost.TARGET_COMMUNITY
+            selectedCampaign = null
             Toast.makeText(context, R.string.choose_campaign_live_toggle_on, Toast.LENGTH_SHORT)
                 .show()
         }
         syncComposerModeUi()
+        syncPostTargetUi()
     }
 
     private fun renderSelectedImage() {
         val hasSelectedImage = selectedImageUri != null
-        composerImagePreviewCard.isVisible = hasSelectedImage && canCreatePosts()
+        composerImagePreviewCard.isVisible = hasSelectedImage && canCreatePosts() && createPostPanel.isVisible
         if (hasSelectedImage) {
             composerImageView.setImageDrawable(null)
             composerImageView.setImageURI(selectedImageUri)
@@ -622,6 +876,7 @@ class ChooseCampaignFeedController(
         val liveGoal = liveCampaignGoalInput.text?.toString()?.trim().orEmpty().toLongOrNull() ?: 0L
         val liveRaised = liveCampaignRaisedInput.text?.toString()?.trim().orEmpty().toLongOrNull() ?: 0L
         val liveStatus = normalizeStatus(liveCampaignStatusSpinner.selectedItem?.toString())
+        val linkedCampaign = selectedCampaign
 
         if (liveCampaignMode) {
             if (liveTitle.isBlank()) {
@@ -640,6 +895,9 @@ class ChooseCampaignFeedController(
                 ).show()
                 return
             }
+        } else if (postTarget == CampaignFeedPost.TARGET_CAMPAIGN && linkedCampaign == null) {
+            Toast.makeText(context, R.string.choose_campaign_select_campaign_first, Toast.LENGTH_SHORT).show()
+            return
         } else if (selectedImageUri == null && text.isBlank()) {
             Toast.makeText(context, R.string.choose_campaign_post_empty, Toast.LENGTH_SHORT).show()
             return
@@ -655,6 +913,17 @@ class ChooseCampaignFeedController(
             text = text,
             imageUri = selectedImageUri,
             category = currentPostCategory(),
+            postTarget = if (liveCampaignMode) {
+                CampaignFeedPost.TARGET_COMMUNITY
+            } else {
+                postTarget
+            },
+            linkedCampaignId = if (liveCampaignMode) "" else linkedCampaign?.campaignId.orEmpty(),
+            linkedCampaignTitle = if (liveCampaignMode) "" else linkedCampaign?.title.orEmpty(),
+            linkedCampaignCategory = if (liveCampaignMode) "" else linkedCampaign?.cat.orEmpty(),
+            linkedCampaignEmoji = if (liveCampaignMode) "" else linkedCampaign?.let {
+                CampaignDisplayHelper.campaignEmoji(it)
+            }.orEmpty(),
             isLiveCampaign = liveCampaignMode,
             campaignTitle = liveTitle,
             campaignGoal = liveGoal,
@@ -688,6 +957,7 @@ class ChooseCampaignFeedController(
 
             result.onSuccess {
                 clearComposer()
+                collapseCreatePostPanel()
                 Toast.makeText(context, R.string.choose_campaign_post_created, Toast.LENGTH_SHORT)
                     .show()
                 scrollView.post { scrollView.smoothScrollTo(0, 0) }
@@ -777,155 +1047,7 @@ class ChooseCampaignFeedController(
             return
         }
 
-        val reactionType = post.myReactionType.ifBlank { CampaignReactionUi.LIKE }
-        submitReaction(post, reactionType)
-    }
-
-    private fun showReactionPicker(anchor: View, post: CampaignFeedPost) {
-        val actorId = currentUserId
-        if (actorId.isNullOrBlank()) {
-            ensureViewerSession { showReactionPicker(anchor, post) }
-            return
-        }
-
-        if (currentUserRole == CampaignFeedPost.ROLE_GUEST && !feedSettings.allowGuestReactions) {
-            Toast.makeText(context, R.string.choose_campaign_guest_reactions_disabled, Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val row = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(10.dp(), 8.dp(), 10.dp(), 8.dp())
-            setBackgroundResource(R.drawable.bg_support_input)
-        }
-
-        val popupWindow = PopupWindow(
-            row,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            true
-        ).apply {
-            isOutsideTouchable = true
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            elevation = 8f
-        }
-
-        CampaignReactionUi.reactionOrder.forEach { reactionType ->
-            val option = TextView(context).apply {
-                text = CampaignReactionUi.emoji(reactionType)
-                textSize = 26f
-                gravity = Gravity.CENTER
-                contentDescription = CampaignReactionUi.label(reactionType)
-                setPadding(10.dp(), 4.dp(), 10.dp(), 4.dp())
-                setOnClickListener {
-                    popupWindow.dismiss()
-                    submitReaction(post, reactionType)
-                }
-            }
-            row.addView(option)
-        }
-
-        popupWindow.showAsDropDown(anchor, 0, -anchor.height - 66.dp())
-    }
-
-    private fun showReactionDetails(post: CampaignFeedPost) {
-        val dialogView = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(20.dp(), 18.dp(), 20.dp(), 18.dp())
-        }
-
-        val title = TextView(context).apply {
-            text = context.getString(R.string.choose_campaign_reactions_title)
-            setTextColor(ContextCompat.getColor(context, R.color.text_black))
-            textSize = 18f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-        }
-
-        val filterRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 12.dp(), 0, 12.dp())
-        }
-
-        val recycler = RecyclerView(context).apply {
-            layoutManager = LinearLayoutManager(context)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                320.dp()
-            )
-        }
-        val emptyView = TextView(context).apply {
-            text = context.getString(R.string.choose_campaign_reactions_empty)
-            setTextColor(ContextCompat.getColor(context, R.color.text_grey))
-            gravity = Gravity.CENTER
-            setPadding(0, 18.dp(), 0, 18.dp())
-            visibility = View.GONE
-        }
-        val reactionsAdapter = CampaignReactionAdapter()
-        recycler.adapter = reactionsAdapter
-
-        fun bindFilterChip(chip: TextView, selected: Boolean) {
-            chip.setBackgroundResource(
-                if (selected) R.drawable.bg_support_chip_active else R.drawable.bg_support_chip
-            )
-            chip.setTextColor(
-                ContextCompat.getColor(
-                    context,
-                    if (selected) android.R.color.white else R.color.primary_blue
-                )
-            )
-        }
-
-        val filterChips = mutableMapOf<String, TextView>()
-        val filters = listOf(CampaignReactionAdapter.FILTER_ALL) + CampaignReactionUi.reactionOrder
-        filters.forEach { filter ->
-            val chip = TextView(context).apply {
-                text = if (filter == CampaignReactionAdapter.FILTER_ALL) {
-                    context.getString(R.string.choose_campaign_reactions_all)
-                } else {
-                    CampaignReactionUi.emoji(filter)
-                }
-                textSize = 14f
-                gravity = Gravity.CENTER
-                setPadding(12.dp(), 7.dp(), 12.dp(), 7.dp())
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    marginEnd = 8.dp()
-                }
-                setOnClickListener {
-                    reactionsAdapter.applyFilter(filter)
-                    filterChips.forEach { (type, view) -> bindFilterChip(view, type == filter) }
-                    emptyView.visibility = if (reactionsAdapter.itemCount == 0) View.VISIBLE else View.GONE
-                }
-            }
-            filterChips[filter] = chip
-            bindFilterChip(chip, filter == CampaignReactionAdapter.FILTER_ALL)
-            filterRow.addView(chip)
-        }
-
-        dialogView.addView(title)
-        dialogView.addView(filterRow)
-        dialogView.addView(emptyView)
-        dialogView.addView(recycler)
-
-        val dialog = AlertDialog.Builder(context)
-            .setView(dialogView)
-            .create()
-
-        repository.loadReactions(post.id) { result ->
-            result.onSuccess { reactions ->
-                reactionsAdapter.submitList(reactions)
-                emptyView.visibility = if (reactions.isEmpty()) View.VISIBLE else View.GONE
-            }.onFailure {
-                emptyView.text = context.getString(R.string.choose_campaign_reactions_failed)
-                emptyView.visibility = View.VISIBLE
-            }
-        }
-
-        dialog.show()
+        submitReaction(post, CampaignReactionUi.LIKE)
     }
 
     private fun submitReaction(post: CampaignFeedPost, reactionType: String) {
@@ -1012,12 +1134,29 @@ class ChooseCampaignFeedController(
                 context.getString(R.string.choose_campaign_share_chooser)
             )
         )
+    }
 
-        repository.incrementShare(post.id)
-        allPosts = allPosts.map { current ->
-            if (current.id == post.id) current.copy(shareCount = current.shareCount + 1) else current
+    private fun openAuthorProfile(post: CampaignFeedPost) {
+        if (post.authorId.isBlank()) return
+        if (post.authorId == currentUserId) {
+            launchIntent(Intent(context, MainActivity::class.java).apply {
+                putExtra(MainActivity.EXTRA_OPEN_PROFILE, true)
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            })
+        } else {
+            launchIntent(Intent(context, PublicProfileActivity::class.java).apply {
+                putExtra("targetUserId", post.authorId)
+            })
         }
-        applyFeedFilter()
+    }
+
+    private fun openLinkedCampaign(post: CampaignFeedPost) {
+        if (!post.hasLinkedCampaign) return
+        launchIntent(Intent(context, CampaignCatalogActivity::class.java).apply {
+            putExtra(CampaignCatalogActivity.EXTRA_INITIAL_TAB, CampaignCatalogActivity.TAB_ACTIVE)
+            putExtra(MainActivity.EXTRA_CAMPAIGN_ID, post.linkedCampaignId)
+            putExtra("openCampaign", true)
+        })
     }
 
     private fun showPostOptions(anchor: View, post: CampaignFeedPost) {
@@ -1090,21 +1229,28 @@ class ChooseCampaignFeedController(
             sendCommentButton.text = context.getString(R.string.choose_campaign_send_comment)
         }
 
-        val commentsAdapter = CampaignCommentAdapter { comment, reply ->
-            replyTarget = comment
-            replyToReplyTarget = reply
-            val targetName = reply?.authorName ?: comment.authorName
-            replyModeContainer.isVisible = true
-            replyingToView.text = context.getString(
-                R.string.choose_campaign_replying_to,
-                targetName
-            )
-            val mentionPrefix = "@$targetName "
-            commentInput.setText(mentionPrefix)
-            commentInput.setSelection(commentInput.text?.length ?: 0)
-            commentInput.requestFocus()
-            sendCommentButton.text = context.getString(R.string.choose_campaign_send_reply)
-        }
+        val commentsAdapter = CampaignCommentAdapter(
+            onReplyClicked = { comment, reply ->
+                replyTarget = comment
+                replyToReplyTarget = reply
+                val targetName = reply?.authorName ?: comment.authorName
+                replyModeContainer.isVisible = true
+                replyingToView.text = context.getString(
+                    R.string.choose_campaign_replying_to,
+                    targetName
+                )
+                val mentionPrefix = "@$targetName "
+                commentInput.setText(mentionPrefix)
+                commentInput.setSelection(commentInput.text?.length ?: 0)
+                commentInput.requestFocus()
+                sendCommentButton.text = context.getString(R.string.choose_campaign_send_reply)
+            },
+            onUserClicked = { userId ->
+                if (userId.isNotBlank()) {
+                    PublicProfileActivity.start(context, userId)
+                }
+            }
+        )
 
         commentsRecycler.layoutManager = LinearLayoutManager(context)
         commentsRecycler.adapter = commentsAdapter
@@ -1187,10 +1333,11 @@ class ChooseCampaignFeedController(
         commentsRegistration = repository.listenToComments(
             postId = post.id,
             onUpdate = { comments ->
-                commentsAdapter.submitList(comments)
-                commentsEmptyView.isVisible = comments.isEmpty()
+                val visibleComments = visibleCommentsForCurrentViewer(comments)
+                commentsAdapter.submitList(visibleComments)
+                commentsEmptyView.isVisible = visibleComments.isEmpty()
                 if (post.id == targetPostId && (targetCommentId.isNotBlank() || targetReplyId.isNotBlank())) {
-                    val targetIndex = comments.indexOfFirst { comment ->
+                    val targetIndex = visibleComments.indexOfFirst { comment ->
                         comment.id == targetCommentId ||
                             comment.replies.any { reply -> reply.id == targetReplyId }
                     }
@@ -1198,6 +1345,12 @@ class ChooseCampaignFeedController(
                         commentsRecycler.post {
                             commentsRecycler.scrollToPosition(targetIndex)
                         }
+                    } else if (isModerationNotificationType(notificationType)) {
+                        Toast.makeText(
+                            context,
+                            moderationRemovedMessage(notificationType),
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                     // TODO: Add a brief highlight animation for the exact comment/reply row.
                 }
@@ -1225,6 +1378,28 @@ class ChooseCampaignFeedController(
             commentsRegistration = null
         }
         dialog.show()
+    }
+
+    private fun isModerationNotificationType(type: String): Boolean {
+        return when (type) {
+            FirestoreNotificationRepository.TYPE_POST_HIDDEN,
+            FirestoreNotificationRepository.TYPE_POST_DELETED,
+            FirestoreNotificationRepository.TYPE_COMMENT_HIDDEN,
+            FirestoreNotificationRepository.TYPE_COMMENT_DELETED,
+            FirestoreNotificationRepository.TYPE_REPLY_HIDDEN,
+            FirestoreNotificationRepository.TYPE_REPLY_DELETED -> true
+            else -> false
+        }
+    }
+
+    private fun moderationRemovedMessage(type: String): String {
+        return when (type) {
+            FirestoreNotificationRepository.TYPE_COMMENT_HIDDEN,
+            FirestoreNotificationRepository.TYPE_COMMENT_DELETED -> "This comment was removed by moderation."
+            FirestoreNotificationRepository.TYPE_REPLY_HIDDEN,
+            FirestoreNotificationRepository.TYPE_REPLY_DELETED -> "This reply was removed by moderation."
+            else -> "This post was removed by moderation."
+        }
     }
 
     private fun buildShareText(post: CampaignFeedPost): String {
@@ -1261,8 +1436,13 @@ class ChooseCampaignFeedController(
     }
 
     private fun updateSubmitButtonState() {
-        submitPostButton.isEnabled = !isSubmittingPost
-        submitPostButton.alpha = if (isSubmittingPost) 0.72f else 1f
+        val canSubmit = !isSubmittingPost && hasSubmitReadyDraft()
+        submitPostButton.isEnabled = canSubmit
+        submitPostButton.alpha = when {
+            isSubmittingPost -> 0.72f
+            canSubmit -> 1f
+            else -> 0.48f
+        }
         val labelRes = when {
             isSubmittingPost && selectedImageUri != null -> R.string.choose_campaign_uploading_photo
             isSubmittingPost -> R.string.choose_campaign_posting
@@ -1271,13 +1451,33 @@ class ChooseCampaignFeedController(
         submitPostButton.text = context.getString(labelRes)
     }
 
+    private fun hasSubmitReadyDraft(): Boolean {
+        if (!createPostPanel.isVisible || !canCreatePosts()) return false
+        val text = composerInput.text?.toString()?.trim().orEmpty()
+        if (!liveCampaignMode &&
+            postTarget == CampaignFeedPost.TARGET_CAMPAIGN &&
+            selectedCampaign == null
+        ) {
+            return false
+        }
+        if (selectedImageUri != null || text.isNotBlank()) return true
+
+        if (!liveCampaignMode || !canCreateOfficialPosts()) return false
+        val liveTitle = liveCampaignTitleInput.text?.toString()?.trim().orEmpty()
+        val liveGoal = liveCampaignGoalInput.text?.toString()?.trim().orEmpty().toLongOrNull() ?: 0L
+        return liveTitle.isNotBlank() && liveGoal > 0L
+    }
+
     private fun clearComposer() {
         composerInput.text?.clear()
         selectedImageUri = null
         liveCampaignMode = false
+        postTarget = CampaignFeedPost.TARGET_COMMUNITY
+        selectedCampaign = null
         clearLiveCampaignFields()
         renderSelectedImage()
         syncComposerModeUi()
+        syncPostTargetUi()
     }
 
     private fun clearLiveCampaignFields() {
@@ -1290,8 +1490,7 @@ class ChooseCampaignFeedController(
     private fun resolveFallbackUserName(user: FirebaseUser): String {
         return when {
             !user.displayName.isNullOrBlank() -> user.displayName!!.trim()
-            !user.email.isNullOrBlank() -> user.email!!.substringBefore("@")
-            else -> context.getString(R.string.choose_campaign_you)
+            else -> context.getString(R.string.hopegive_user)
         }
     }
 
@@ -1313,6 +1512,7 @@ class ChooseCampaignFeedController(
         return when (raw.orEmpty().trim().lowercase(Locale.getDefault())) {
             "super admin", "super_admin", "superadmin" -> CampaignFeedPost.ROLE_SUPER_ADMIN
             "admin" -> CampaignFeedPost.ROLE_ADMIN
+            "moderator", "mod" -> CampaignFeedPost.ROLE_MODERATOR
             "guest" -> CampaignFeedPost.ROLE_GUEST
             else -> CampaignFeedPost.ROLE_USER
         }
@@ -1334,6 +1534,7 @@ class ChooseCampaignFeedController(
         return when (role) {
             CampaignFeedPost.ROLE_SUPER_ADMIN -> context.getString(R.string.choose_campaign_super_admin_role)
             CampaignFeedPost.ROLE_ADMIN -> context.getString(R.string.choose_campaign_admin_role)
+            CampaignFeedPost.ROLE_MODERATOR -> "Moderator"
             CampaignFeedPost.ROLE_GUEST -> context.getString(R.string.choose_campaign_guest_role)
             else -> context.getString(R.string.choose_campaign_user_role)
         }

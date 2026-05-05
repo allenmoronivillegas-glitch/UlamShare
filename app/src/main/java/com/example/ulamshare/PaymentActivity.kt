@@ -4,12 +4,15 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 
 class PaymentActivity : AppCompatActivity() {
 
@@ -31,6 +34,7 @@ class PaymentActivity : AppCompatActivity() {
     private lateinit var btnPay: Button
     private lateinit var btnApplyCode: Button
     private lateinit var tvPromoStatus: TextView
+    private lateinit var campaignsRef: DatabaseReference
 
     // Valid promo codes map: code -> discount label
     private val validPromoCodes = mapOf(
@@ -47,6 +51,7 @@ class PaymentActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_payment_creditcard)
+        campaignsRef = FirebaseDatabase.getInstance().getReference("campaigns")
 
         // Get campaign data from intent
         val campaignId = intent.getStringExtra("campaignId")
@@ -174,20 +179,60 @@ class PaymentActivity : AppCompatActivity() {
         btnPay.setOnClickListener {
             if (!validateFields()) return@setOnClickListener
 
-            btnPay.text = "Processing..."
-            btnPay.isEnabled = false
+            validateDonationCampaign(campaignId) { isAvailable ->
+                if (!isAvailable) {
+                    showExpiredCampaignMessage()
+                    return@validateDonationCampaign
+                }
 
-            // Navigate to review donation screen with credit card method
-            val intent = Intent(this, ReviewDonationActivity::class.java).apply {
-                putExtra("campaignId", campaignId)
-                putExtra("title", title)
-                putExtra("amount", amount)
-                putExtra("paymentMethod", "Credit / Debit Card")
-                putExtra("donateType", "One-Time")
+                btnPay.text = "Processing..."
+                btnPay.isEnabled = false
+
+                val intent = Intent(this, ReviewDonationActivity::class.java).apply {
+                    putExtra("campaignId", campaignId)
+                    putExtra("title", title)
+                    putExtra("amount", amount)
+                    putExtra("paymentMethod", "Credit / Debit Card")
+                    putExtra("donateType", "One-Time")
+                }
+                startActivity(intent)
+                finish()
             }
-            startActivity(intent)
-            finish()
         }
+    }
+
+    private fun validateDonationCampaign(campaignId: String?, onResult: (Boolean) -> Unit) {
+        val id = campaignId.orEmpty()
+        if (id.isBlank()) {
+            Log.e("PaymentActivity", "Missing campaignId while validating card donation flow")
+            Toast.makeText(this, "This campaign is unavailable right now.", Toast.LENGTH_SHORT).show()
+            onResult(false)
+            return
+        }
+
+        campaignsRef.child(id).get()
+            .addOnSuccessListener { snapshot ->
+                val campaign = CampaignDisplayHelper.parseCampaign(snapshot)
+                val canDonate = campaign != null && CampaignDisplayHelper.canDonate(campaign)
+                Log.d(
+                    "PaymentActivity",
+                    "Campaign validation before card review. campaignId=$id canDonate=$canDonate status=${campaign?.status} date=${campaign?.date}"
+                )
+                onResult(canDonate)
+            }
+            .addOnFailureListener { error ->
+                Log.e("PaymentActivity", "Unable to validate campaign before card review", error)
+                Toast.makeText(this, "Unable to verify this campaign right now.", Toast.LENGTH_SHORT).show()
+                onResult(false)
+            }
+    }
+
+    private fun showExpiredCampaignMessage() {
+        Toast.makeText(
+            this,
+            "This campaign has expired and is no longer accepting donations.",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun validateFields(): Boolean {

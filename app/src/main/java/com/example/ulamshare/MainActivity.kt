@@ -19,6 +19,9 @@ class MainActivity : BaseActivity() {
             ) {
                 bottomNavigation.selectedItemId = R.id.nav_campaigns
                 replaceFragment(CampaignsFragment.newInstance(intent.extras))
+            } else if (intent.getBooleanExtra(EXTRA_OPEN_PROFILE, false)) {
+                bottomNavigation.selectedItemId = R.id.nav_profile
+                replaceFragment(ProfileFragment())
             } else {
                 replaceFragment(HomeFragment())
             }
@@ -48,5 +51,6 @@ class MainActivity : BaseActivity() {
         const val EXTRA_REPLY_ID = "replyId"
         const val EXTRA_CAMPAIGN_ID = "campaignId"
         const val EXTRA_NOTIFICATION_TYPE = "notificationType"
+        const val EXTRA_OPEN_PROFILE = "openProfile"
     }
 }

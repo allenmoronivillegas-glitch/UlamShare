@@ -21,7 +21,7 @@
             android:contentDescription="Go back"
             android:padding="10dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/back"
+            android:src="@drawable/ic_arrow_back_24"
             app:tint="#2172E5"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -248,14 +248,46 @@
         </LinearLayout>
 
         <!-- Google Sign-In Button -->
-        <com.google.android.gms.common.SignInButton
+        <LinearLayout
             android:id="@+id/btnGoogleSignIn"
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_marginTop="20dp"
+            android:background="@drawable/bg_google_signup_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/dividerContainer" />
+            app:layout_constraintTop_toBottomOf="@id/dividerContainer">
+
+            <TextView
+                android:layout_width="24dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="G"
+                android:textColor="#4285F4"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/continue_with_google"
+                android:textColor="#3C4043"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <Space
+                android:layout_width="24dp"
+                android:layout_height="match_parent" />
+
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/btnFacebookSignIn"

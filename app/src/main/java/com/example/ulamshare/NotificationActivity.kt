@@ -33,11 +33,15 @@ class NotificationAdapter(
 
         fun bind(notification: AppNotification) {
             unreadIndicator.visibility = if (notification.isRead) View.GONE else View.VISIBLE
-            tvTitle.text = notification.title
-            tvMessage.text = notification.message
+            tvTitle.text = sanitizePrivateEmail(notification.title)
+            tvMessage.text = sanitizePrivateEmail(notification.message)
             tvTime.text = notification.getTimeAgo()
             icon.setColorFilter(ContextCompat.getColor(itemView.context, iconTint(notification.type)))
             itemView.setOnClickListener { onNotificationClicked(notification) }
+        }
+
+        private fun sanitizePrivateEmail(value: String): String {
+            return PrivacyDisplayHelper.removeEmailAddresses(value)
         }
 
         private fun iconTint(type: String): Int {
@@ -45,6 +49,14 @@ class NotificationAdapter(
                 FirestoreNotificationRepository.TYPE_DONATION_SUCCESS,
                 FirestoreNotificationRepository.TYPE_NEW_DONATION_ADMIN -> android.R.color.holo_green_dark
                 FirestoreNotificationRepository.TYPE_POST_REACTION -> android.R.color.holo_red_dark
+                FirestoreNotificationRepository.TYPE_POST_HIDDEN,
+                FirestoreNotificationRepository.TYPE_POST_DELETED,
+                FirestoreNotificationRepository.TYPE_COMMENT_HIDDEN,
+                FirestoreNotificationRepository.TYPE_COMMENT_DELETED,
+                FirestoreNotificationRepository.TYPE_REPLY_HIDDEN,
+                FirestoreNotificationRepository.TYPE_REPLY_DELETED -> android.R.color.holo_orange_dark
+                FirestoreNotificationRepository.TYPE_FRIEND_REQUEST,
+                FirestoreNotificationRepository.TYPE_FRIEND_REQUEST_ACCEPTED,
                 FirestoreNotificationRepository.TYPE_FRIEND_ADDED,
                 FirestoreNotificationRepository.TYPE_FOLLOWED -> android.R.color.holo_blue_dark
                 else -> android.R.color.holo_blue_light
@@ -222,6 +234,7 @@ class NotificationActivity : AppCompatActivity() {
             FirestoreNotificationRepository.TYPE_CAMPAIGN_ADDED -> "New campaign"
             FirestoreNotificationRepository.TYPE_CAMPAIGN_UPDATED -> "Campaign updated"
             FirestoreNotificationRepository.TYPE_FRIEND_REQUEST -> "Friend request"
+            FirestoreNotificationRepository.TYPE_FRIEND_REQUEST_ACCEPTED -> "Friend request accepted"
             FirestoreNotificationRepository.TYPE_FRIEND_ADDED -> "New friend"
             FirestoreNotificationRepository.TYPE_FRIEND_REMOVED -> "Friend removed"
             FirestoreNotificationRepository.TYPE_FOLLOWED -> "New follower"
@@ -230,6 +243,12 @@ class NotificationActivity : AppCompatActivity() {
             FirestoreNotificationRepository.TYPE_COMMENT_REPLY -> "New reply"
             FirestoreNotificationRepository.TYPE_REPLY_REPLY -> "New reply"
             FirestoreNotificationRepository.TYPE_POST_REACTION -> "New reaction"
+            FirestoreNotificationRepository.TYPE_POST_HIDDEN -> "Post hidden"
+            FirestoreNotificationRepository.TYPE_POST_DELETED -> "Post deleted"
+            FirestoreNotificationRepository.TYPE_COMMENT_HIDDEN -> "Comment hidden"
+            FirestoreNotificationRepository.TYPE_COMMENT_DELETED -> "Comment deleted"
+            FirestoreNotificationRepository.TYPE_REPLY_HIDDEN -> "Reply hidden"
+            FirestoreNotificationRepository.TYPE_REPLY_DELETED -> "Reply deleted"
             FirestoreNotificationRepository.TYPE_MENTION_POST,
             FirestoreNotificationRepository.TYPE_MENTION_COMMENT,
             FirestoreNotificationRepository.TYPE_MENTION_REPLY -> "New mention"
@@ -263,16 +282,15 @@ class NotificationActivity : AppCompatActivity() {
                 return
             }
             FirestoreNotificationRepository.TYPE_FRIEND_REQUEST,
+            FirestoreNotificationRepository.TYPE_FRIEND_REQUEST_ACCEPTED,
             FirestoreNotificationRepository.TYPE_FRIEND_ADDED,
             FirestoreNotificationRepository.TYPE_FRIEND_REMOVED,
             FirestoreNotificationRepository.TYPE_FOLLOWED,
             FirestoreNotificationRepository.TYPE_UNFOLLOWED -> {
-                // TODO: Open the sender's public profile when that screen is available.
-                startActivity(Intent(this, AddFriendsActivity::class.java).apply {
-                    putExtra("notificationId", notification.id)
-                    putExtra("relatedUserId", notification.relatedUserId.ifBlank { notification.senderId })
-                    putExtra("type", notification.type)
-                })
+                PublicProfileActivity.start(
+                    this,
+                    notification.relatedUserId.ifBlank { notification.senderId }
+                )
                 return
             }
         }

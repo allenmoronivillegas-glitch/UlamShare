@@ -9,10 +9,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -31,12 +27,7 @@ class ImpactReportActivity : AppCompatActivity() {
     private lateinit var categoriesContainer: LinearLayout
 
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
-    private val donationsRef by lazy {
-        FirebaseDatabase
-            .getInstance("https://ulamshare-4f2b9-default-rtdb.asia-southeast1.firebasedatabase.app")
-            .reference
-            .child("donations")
-    }
+    private var impactLoadRequestId = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +51,7 @@ class ImpactReportActivity : AppCompatActivity() {
     }
 
     private fun loadImpactReport() {
+        val requestId = ++impactLoadRequestId
         val user = auth.currentUser
         if (user == null) {
             showEmpty("Please log in to view your impact report.")
@@ -67,44 +59,42 @@ class ImpactReportActivity : AppCompatActivity() {
         }
 
         showLoading()
-        donationsRef.orderByChild("userId").equalTo(user.uid)
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val donations = snapshot.children.map { parseDonation(it) }
-                        .filter { it.amount > 0 }
-                        .sortedByDescending { it.timestamp }
+        progressBar.postDelayed({
+            if (requestId == impactLoadRequestId && progressBar.visibility == View.VISIBLE) {
+                Log.w(TAG, "Impact report load timed out; showing empty state")
+                showEmpty("No donations yet. Start donating to see your impact.")
+            }
+        }, IMPACT_LOAD_TIMEOUT_MS)
 
-                    if (donations.isEmpty()) {
+        UserDonationStatsRepository.loadUserDonationStats(user.uid) { result ->
+            if (requestId != impactLoadRequestId) return@loadUserDonationStats
+            result
+                .onSuccess { stats ->
+                    if (stats.donationsCount == 0) {
                         showEmpty("No donations yet. Start donating to see your impact.")
-                        return
+                        return@onSuccess
                     }
 
-                    bindImpact(donations)
+                    bindImpact(stats)
                 }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "Impact report load failed", error.toException())
-                    showEmpty("Unable to load your impact report right now.")
+                .onFailure { error ->
+                    Log.e(TAG, "Impact report load failed", error)
+                    showEmpty("No donations yet. Start donating to see your impact.")
                 }
-            })
+        }
     }
 
-    private fun bindImpact(donations: List<ImpactDonation>) {
-        val total = donations.sumOf { it.amount }
-        val campaignCount = donations.map { it.campaignId.ifBlank { it.campaignTitle } }
-            .filter { it.isNotBlank() }
-            .toSet()
-            .size
-        val categoryCounts = donations.groupingBy {
-            it.category.ifBlank { "General Campaigns" }
-        }.eachCount()
+    private fun bindImpact(stats: UserDonationStats) {
+        val donations = stats.donations
+        val campaignCount = stats.campaignsDonatedCount
+        val categoryCounts = stats.categoryCounts
 
         progressBar.visibility = View.GONE
         tvEmptyState.visibility = View.GONE
         contentContainer.visibility = View.VISIBLE
 
-        tvTotalDonated.text = formatPeso(total)
-        tvDonationCount.text = donations.size.toString()
+        tvTotalDonated.text = formatPeso(stats.totalDonated)
+        tvDonationCount.text = stats.donationsCount.toString()
         tvCampaignCount.text = campaignCount.toString()
         tvEstimatedImpact.text = "Your giving has supported $campaignCount campaign${if (campaignCount == 1) "" else "s"} across ${categoryCounts.size} impact area${if (categoryCounts.size == 1) "" else "s"}."
 
@@ -163,26 +153,6 @@ class ImpactReportActivity : AppCompatActivity() {
         return row
     }
 
-    private fun parseDonation(snapshot: DataSnapshot): ImpactDonation {
-        val amount = snapshot.child("amount").getValue(Int::class.java)
-            ?: snapshot.child("amount").getValue(Long::class.java)?.toInt()
-            ?: snapshot.child("amount").getValue(Double::class.java)?.toInt()
-            ?: snapshot.child("amount").getValue(String::class.java)?.replace(",", "")?.toIntOrNull()
-            ?: 0
-        return ImpactDonation(
-            amount = amount,
-            campaignId = snapshot.child("campaignId").getValue(String::class.java).orEmpty(),
-            campaignTitle = snapshot.child("campaignTitle").getValue(String::class.java).orEmpty(),
-            category = snapshot.child("category").getValue(String::class.java)
-                ?: snapshot.child("campaignCategory").getValue(String::class.java)
-                ?: "",
-            status = snapshot.child("status").getValue(String::class.java).orEmpty()
-                .ifBlank { snapshot.child("verificationStatus").getValue(String::class.java).orEmpty() },
-            timestamp = snapshot.child("timestamp").getValue(Long::class.java) ?: 0L,
-            dateString = snapshot.child("dateString").getValue(String::class.java).orEmpty()
-        )
-    }
-
     private fun showLoading() {
         progressBar.visibility = View.VISIBLE
         tvEmptyState.visibility = View.GONE
@@ -199,7 +169,7 @@ class ImpactReportActivity : AppCompatActivity() {
         }
     }
 
-    private fun formatPeso(amount: Int): String {
+    private fun formatPeso(amount: Long): String {
         val formatter = NumberFormat.getNumberInstance(Locale.US)
         return "\u20B1${formatter.format(amount)}"
     }
@@ -213,17 +183,8 @@ class ImpactReportActivity : AppCompatActivity() {
         return (value * resources.displayMetrics.density).toInt()
     }
 
-    private data class ImpactDonation(
-        val amount: Int,
-        val campaignId: String,
-        val campaignTitle: String,
-        val category: String,
-        val status: String,
-        val timestamp: Long,
-        val dateString: String
-    )
-
     companion object {
         private const val TAG = "ImpactReport"
+        private const val IMPACT_LOAD_TIMEOUT_MS = 12000L
     }
 }

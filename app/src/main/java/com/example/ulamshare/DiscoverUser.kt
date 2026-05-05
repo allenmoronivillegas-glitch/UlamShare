@@ -8,5 +8,6 @@ data class DiscoverUser(
     val profilePhotoLocalUri: String = "",
     val role: String = "",
     val status: String = "",
-    var isFollowing: Boolean = false
+    var isFollowing: Boolean = false,
+    var isRequested: Boolean = false
 )

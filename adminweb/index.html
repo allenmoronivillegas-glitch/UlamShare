@@ -707,14 +707,34 @@ td.muted{color:var(--muted);font-size:12px}
 .campaign-tab-pane.active{display:block}
 .feed-settings-card{max-width:760px}
 .feed-settings-note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:14px}
+.feed-moderation-toolbar{display:grid;grid-template-columns:180px minmax(0,1fr);gap:12px;padding:16px 20px;border-bottom:1px solid var(--border)}
 .feed-post-list{display:flex;flex-direction:column}
 .feed-post-row{display:flex;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border)}
+.feed-post-row.highlight{background:rgba(47,128,237,.12)}
 .feed-post-row:last-child{border-bottom:none}
 .feed-post-avatar{width:34px;height:34px;border-radius:50%;background:var(--navy3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--accent);flex-shrink:0}
 .feed-post-content{flex:1;min-width:0}
-.feed-post-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
+.feed-post-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
 .feed-post-meta{font-size:11px;color:var(--muted);margin-bottom:8px}
 .feed-post-text{font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap}
+.feed-post-image{margin-top:12px;max-width:420px;border-radius:10px;border:1px solid var(--border);overflow:hidden;background:var(--navy3)}
+.feed-post-image img{display:block;width:100%;max-height:260px;object-fit:cover}
+.feed-post-image-fallback{display:none;padding:18px;color:var(--muted);font-size:12px;text-align:center}
+.feed-linked-campaign{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:8px 10px;border:1px solid rgba(47,128,237,.35);border-radius:10px;background:rgba(47,128,237,.08);color:var(--text);font-size:12px}
+.feed-linked-campaign strong{font-size:12px;color:#dceafe}
+.feed-linked-campaign span{color:var(--muted);font-size:11px}
+.feed-post-stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}
+.feed-post-actions{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-left:auto}
+.feed-action-btn{border:1px solid var(--border);background:var(--navy3);color:var(--text);border-radius:8px;padding:7px 10px;font-size:11px;cursor:pointer;font-family:var(--font-sans)}
+.feed-action-btn:hover{border-color:var(--accent);color:var(--accent)}
+.feed-action-btn.danger:hover{border-color:var(--red);color:var(--red)}
+.feed-status{font-size:10px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--muted);text-transform:capitalize}
+.feed-status.active{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.1);color:#8ee6c2}
+.feed-status.hidden{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.1);color:#f8c574}
+.feed-status.deleted{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.1);color:#fca5a5}
+.feed-comment-kind{font-size:10px;padding:2px 8px;border-radius:999px;background:rgba(47,128,237,.12);color:#93c5fd;text-transform:capitalize}
+.feed-parent-preview{font-size:11px;color:var(--muted);line-height:1.5;margin:8px 0;padding-left:10px;border-left:2px solid var(--border)}
+@media(max-width:720px){.feed-moderation-toolbar{grid-template-columns:1fr}.feed-post-row{flex-wrap:wrap}.feed-post-actions{width:100%;margin-left:46px}}
  
 /* role pill */
 .role-pill{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(47,128,237,.15);color:#60a5fa;font-weight:500}
@@ -999,11 +1019,17 @@ td.muted{color:var(--muted);font-size:12px}
         <div class="tab active" data-campaign-tab="campaigns" onclick="switchCampaignsTab('campaigns')">Campaigns</div>
         <div class="tab" data-campaign-tab="official" onclick="switchCampaignsTab('official')">Official Posts</div>
         <div class="tab" data-campaign-tab="community" onclick="switchCampaignsTab('community')">Community Posts</div>
+        <div class="tab" data-campaign-tab="comments" onclick="switchCampaignsTab('comments')">Comments</div>
         <div class="tab" data-campaign-tab="settings" onclick="switchCampaignsTab('settings')">Feed Settings</div>
       </div>
 
       <div class="campaign-tab-pane active" id="campaigns-tab-campaigns">
- 
+      <div class="tab-row" style="margin-bottom:16px">
+        <div class="tab active" data-campaign-list-filter="active" onclick="switchCampaignListFilter('active')">Active Campaigns</div>
+        <div class="tab" data-campaign-list-filter="expired" onclick="switchCampaignListFilter('expired')">Expired Campaigns</div>
+        <div class="tab" data-campaign-list-filter="all" onclick="switchCampaignListFilter('all')">All Campaigns</div>
+      </div>
+
       <!-- empty state -->
       <div id="campaigns-empty" class="card">
         <div class="empty">
@@ -1043,8 +1069,39 @@ td.muted{color:var(--muted);font-size:12px}
       <div class="campaign-tab-pane" id="campaigns-tab-community">
         <div class="card">
           <div class="card-header"><div class="card-title">Community posts</div></div>
+          <div class="feed-moderation-toolbar">
+            <select id="community-post-status-filter" class="field-input" onchange="setCampaignFeedPostFilter(this.value)">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="hidden">Hidden</option>
+              <option value="deleted">Deleted</option>
+              <option value="photo">Photo Posts</option>
+              <option value="note">Note Posts</option>
+            </select>
+            <input id="community-post-search" class="field-input" type="search" placeholder="Search author or post text" oninput="setCampaignFeedPostSearch(this.value)">
+          </div>
           <div id="community-posts-body" class="feed-post-list">
             <div style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No community posts yet</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="campaign-tab-pane" id="campaigns-tab-comments">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Campaign feed comments</div></div>
+          <div class="feed-moderation-toolbar">
+            <select id="campaign-comment-status-filter" class="field-input" onchange="setCampaignFeedCommentFilter(this.value)">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="hidden">Hidden</option>
+              <option value="deleted">Deleted</option>
+              <option value="comment">Comments</option>
+              <option value="reply">Replies</option>
+            </select>
+            <input id="campaign-comment-search" class="field-input" type="search" placeholder="Search author or comment text" oninput="setCampaignFeedCommentSearch(this.value)">
+          </div>
+          <div id="campaign-comments-body" class="feed-post-list">
+            <div style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No comments yet</div>
           </div>
         </div>
       </div>
@@ -2552,6 +2609,11 @@ const campaignFeedSettingsDefaults = {
 let campaignFeedSettings = {...campaignFeedSettingsDefaults};
 let campaignFeedSettingsExists = false;
 let campaignFeedPosts = [];
+let campaignFeedComments = [];
+let campaignFeedPostFilter = 'all';
+let campaignFeedPostSearch = '';
+let campaignFeedCommentFilter = 'all';
+let campaignFeedCommentSearch = '';
  
 function nav(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -2631,6 +2693,8 @@ function updateCheckProgress(){
 let editingCampaignKey = null;
 let donations = [];
 let donationStats = {};
+let selectedCampaignListFilter = 'active';
+const expiredCampaignStatusSyncKeys = new Set();
 const DASHBOARD_CHART_PLACEHOLDER = [24, 40, 31, 56, 44, 68];
 
 function formatCurrency(value){
@@ -2654,11 +2718,133 @@ function getAccessibleCampaigns(){
   return canManageCampaigns() ? campaigns : campaigns.filter(c => !c.hidden);
 }
 
+function normalizeCampaignStatus(status){
+  return String(status || '').trim().toLowerCase();
+}
+
+function getCampaignEndDateValue(campaign){
+  return campaign?.endDate || campaign?.deadline || campaign?.date || campaign?.campaignDate || campaign?.expiresAt || campaign?.targetDate || '';
+}
+
+function parseCampaignEndDate(value){
+  if(value === null || value === undefined) return null;
+  if(typeof value === 'number'){
+    const numericDate = new Date(value);
+    return Number.isNaN(numericDate.getTime()) ? null : numericDate;
+  }
+
+  const raw = String(value).trim();
+  if(!raw || raw.toLowerCase() === 'no end date') return null;
+
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00` : raw;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isCampaignExpired(campaign){
+  if(!campaign) return false;
+  const normalizedStatus = normalizeCampaignStatus(campaign.status);
+  if(normalizedStatus === 'expired' || normalizedStatus === 'completed') return true;
+
+  const endDate = parseCampaignEndDate(getCampaignEndDateValue(campaign));
+  if(!endDate) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  endDate.setHours(0, 0, 0, 0);
+  return endDate < today;
+}
+
+function isCampaignCurrentlyActive(campaign){
+  const normalizedStatus = normalizeCampaignStatus(campaign?.status);
+  return !isCampaignExpired(campaign) && (normalizedStatus === '' || normalizedStatus === 'active');
+}
+
+function getCampaignDisplayStatus(campaign){
+  if(isCampaignExpired(campaign)) return 'Expired';
+  const normalizedStatus = normalizeCampaignStatus(campaign?.status);
+  if(!normalizedStatus) return 'Active';
+  return String(campaign.status).trim();
+}
+
+function getCampaignCreatedSortValue(campaign){
+  const numeric = Number(campaign?.createdAt || campaign?.updatedAt || 0);
+  if(Number.isFinite(numeric) && numeric > 0) return numeric;
+  const parsedEndDate = parseCampaignEndDate(getCampaignEndDateValue(campaign));
+  return parsedEndDate ? parsedEndDate.getTime() : 0;
+}
+
+function getCampaignExpirySortValue(campaign){
+  const parsedEndDate = parseCampaignEndDate(getCampaignEndDateValue(campaign));
+  return parsedEndDate ? parsedEndDate.getTime() : getCampaignCreatedSortValue(campaign);
+}
+
+function getCampaignDaysLeft(campaign) {
+  const target = parseCampaignEndDate(getCampaignEndDateValue(campaign));
+  if(!target) return null;
+  const today = new Date();
+  const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const deadlineDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  const diff = deadlineDay.getTime() - currentDay.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+function sortActiveCampaigns(list){
+  return [...list].sort((a, b) => {
+    const aDays = getCampaignDaysLeft(a);
+    const bDays = getCampaignDaysLeft(b);
+    const normalizedADays = aDays === null ? Number.MAX_SAFE_INTEGER : aDays;
+    const normalizedBDays = bDays === null ? Number.MAX_SAFE_INTEGER : bDays;
+    if(normalizedADays !== normalizedBDays) return normalizedADays - normalizedBDays;
+    return getCampaignCreatedSortValue(b) - getCampaignCreatedSortValue(a);
+  });
+}
+
+function sortExpiredCampaigns(list){
+  return [...list].sort((a, b) => getCampaignExpirySortValue(b) - getCampaignExpirySortValue(a));
+}
+
+function getCampaignManagementBuckets(){
+  const visibleCampaigns = getAccessibleCampaigns();
+  return {
+    all: [...visibleCampaigns].sort((a, b) => getCampaignCreatedSortValue(b) - getCampaignCreatedSortValue(a)),
+    active: sortActiveCampaigns(visibleCampaigns.filter(c => isCampaignCurrentlyActive(c))),
+    expired: sortExpiredCampaigns(visibleCampaigns.filter(c => isCampaignExpired(c)))
+  };
+}
+
+function getSelectedCampaignList(){
+  const buckets = getCampaignManagementBuckets();
+  if(selectedCampaignListFilter === 'expired') return buckets.expired;
+  if(selectedCampaignListFilter === 'all') return buckets.all;
+  return buckets.active;
+}
+
+function getCampaignListTitle(){
+  if(selectedCampaignListFilter === 'expired') return 'Expired campaigns';
+  if(selectedCampaignListFilter === 'all') return 'All campaigns';
+  return 'Active campaigns';
+}
+
+function getCampaignListEmptyMessage(){
+  if(selectedCampaignListFilter === 'expired') return 'No expired campaigns yet';
+  if(selectedCampaignListFilter === 'all') return campaigns.length === 0 ? 'No campaigns yet' : 'No visible campaigns';
+  return 'No active campaigns right now';
+}
+
+function getCampaignListSummaryText(){
+  const count = getSelectedCampaignList().length;
+  if(selectedCampaignListFilter === 'expired'){
+    return count === 0 ? 'No expired campaigns yet' : `${count} expired campaign${count === 1 ? '' : 's'}`;
+  }
+  if(selectedCampaignListFilter === 'all'){
+    return count === 0 ? (campaigns.length === 0 ? 'No campaigns yet' : 'No visible campaigns') : `${count} campaign${count === 1 ? '' : 's'}`;
+  }
+  return count === 0 ? 'No active campaigns right now' : `${count} active campaign${count === 1 ? '' : 's'}`;
+}
+
 function getActiveCampaignCount(){
-  return getAccessibleCampaigns().filter(c => {
-    const status = String(c?.status || 'Active').trim().toLowerCase();
-    return !c?.hidden && status === 'active';
-  }).length;
+  return getAccessibleCampaigns().filter(c => !c?.hidden && isCampaignCurrentlyActive(c)).length;
 }
 
 function getDonorKey(donation){
@@ -2961,17 +3147,6 @@ function getCategoryIcon(category) {
   return icons[category] || '🌊'; // Default to wave icon if category not found
 }
 
-function getCampaignDaysLeft(campaign) {
-  if(!campaign || !campaign.date) return null;
-  const target = new Date(campaign.date);
-  if(Number.isNaN(target.getTime())) return null;
-  const today = new Date();
-  const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const deadlineDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-  const diff = deadlineDay.getTime() - currentDay.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
 function getCampaignProgress(campaign) {
   const goal = Number(campaign?.goal || 0);
   const raised = Number(donationStats[campaign?.key]?.total || 0);
@@ -2980,7 +3155,7 @@ function getCampaignProgress(campaign) {
 }
 
 function selectEmergencyOrFeaturedCampaign() {
-  const visibleCampaigns = campaigns.filter(c => c && !c.hidden);
+  const visibleCampaigns = campaigns.filter(c => c && !c.hidden && isCampaignCurrentlyActive(c));
   const enriched = visibleCampaigns.map(c => ({
     ...c,
     deadlineDays: getCampaignDaysLeft(c),
@@ -3080,6 +3255,10 @@ function canInviteUsers(){
 
 function canManageFeedSettings(){
   return ['Super Admin','Admin'].includes(currentRole());
+}
+
+function canModerateCampaignFeed(){
+  return ['Super Admin','Admin','Moderator'].includes(currentRole());
 }
 
 function isAdminRoleForFirestore(role){
@@ -3190,13 +3369,23 @@ function switchCampaignsTab(tab){
     } else if(tab === 'community'){
       const count = campaignFeedPosts.filter(post => !isOfficialFeedPost(post)).length;
       sub.textContent = `${count} community post${count === 1 ? '' : 's'}`;
+    } else if(tab === 'comments'){
+      const count = campaignFeedComments.length;
+      sub.textContent = `${count} campaign feed comment${count === 1 ? '' : 's'} and repl${count === 1 ? 'y' : 'ies'}`;
+      loadCampaignFeedComments();
     } else {
-      const visibleCampaigns = getAccessibleCampaigns();
-      sub.textContent = visibleCampaigns.length === 0
-        ? (campaigns.length === 0 ? 'No campaigns yet' : 'No visible campaigns')
-        : visibleCampaigns.length+' campaign'+(visibleCampaigns.length>1?'s':'');
+      sub.textContent = getCampaignListSummaryText();
+      renderCampaigns();
     }
   }
+}
+
+function switchCampaignListFilter(filter){
+  selectedCampaignListFilter = filter;
+  document.querySelectorAll('[data-campaign-list-filter]').forEach(el => {
+    el.classList.toggle('active', el.dataset.campaignListFilter === filter);
+  });
+  renderCampaigns();
 }
 
 function normalizeCampaignFeedSettings(data){
@@ -3361,6 +3550,10 @@ function feedPostTimestamp(value){
     return value.toDate().getTime();
   }
   if(typeof value === 'number') return value;
+  if(typeof value === 'string'){
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
   return 0;
 }
 
@@ -3383,7 +3576,101 @@ function escapeHtml(value){
     .replace(/'/g, '&#039;');
 }
 
-function renderCampaignFeedPostList(targetId, posts, emptyText){
+function escapeJsString(value){
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\r/g, '')
+    .replace(/\n/g, '\\n');
+}
+
+function normalizeModerationStatus(value){
+  const status = String(value || 'active').trim().toLowerCase();
+  if(status === 'hidden' || status === 'deleted') return status;
+  return 'active';
+}
+
+function feedModerationBadge(value){
+  const status = normalizeModerationStatus(value);
+  return `<span class="feed-status ${status}">${escapeHtml(status)}</span>`;
+}
+
+function feedPostSearchText(post){
+  return [
+    post.id,
+    post.authorName,
+    post.authorRole,
+    post.category,
+    post.postType,
+    post.text,
+    post.campaignTitle,
+    post.linkedCampaignTitle,
+    post.linkedCampaignCategory
+  ].join(' ').toLowerCase();
+}
+
+function filterCampaignFeedPosts(posts, targetId){
+  if(targetId !== 'community-posts-body') return posts;
+  const search = campaignFeedPostSearch.trim().toLowerCase();
+  return posts.filter(post => {
+    const status = normalizeModerationStatus(post.moderationStatus);
+    const type = String(post.postType || 'note').toLowerCase();
+    if(campaignFeedPostFilter === 'active' && status !== 'active') return false;
+    if(campaignFeedPostFilter === 'hidden' && status !== 'hidden') return false;
+    if(campaignFeedPostFilter === 'deleted' && status !== 'deleted') return false;
+    if(campaignFeedPostFilter === 'photo' && type !== 'photo') return false;
+    if(campaignFeedPostFilter === 'note' && type !== 'note') return false;
+    if(search && !feedPostSearchText(post).includes(search)) return false;
+    return true;
+  });
+}
+
+function buildFeedImageHtml(post){
+  const imageUrl = String(post?.imageUrl || '').trim();
+  if(!imageUrl) return '';
+  return `
+    <div class="feed-post-image">
+      <img src="${escapeHtml(imageUrl)}" alt="Post image" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+      <div class="feed-post-image-fallback">Image unavailable.</div>
+    </div>`;
+}
+
+function buildLinkedCampaignHtml(post){
+  const campaignId = String(post?.linkedCampaignId || '').trim();
+  const title = String(post?.linkedCampaignTitle || '').trim();
+  if(!campaignId || !title) return '';
+  const emoji = String(post?.linkedCampaignEmoji || '💙').trim() || '💙';
+  const category = String(post?.linkedCampaignCategory || 'Campaign').trim() || 'Campaign';
+  return `
+    <div class="feed-linked-campaign" title="Linked campaign: ${escapeHtml(title)}">
+      <div>${escapeHtml(emoji)}</div>
+      <div>
+        <strong>${escapeHtml(title)}</strong><br>
+        <span>${escapeHtml(category)} · ${escapeHtml(campaignId)}</span>
+      </div>
+    </div>`;
+}
+
+function buildFeedPostActions(post){
+  if(!canModerateCampaignFeed()) return '';
+  const status = normalizeModerationStatus(post.moderationStatus);
+  const postId = escapeJsString(post.id);
+  const controls = [
+    `<button class="feed-action-btn" onclick="viewCampaignFeedPost('${postId}')">View</button>`
+  ];
+  if(status === 'active'){
+    controls.push(`<button class="feed-action-btn" onclick="moderateCampaignFeedPost('${postId}','hidden')">Hide</button>`);
+    controls.push(`<button class="feed-action-btn danger" onclick="moderateCampaignFeedPost('${postId}','deleted')">Delete</button>`);
+  } else {
+    controls.push(`<button class="feed-action-btn" onclick="moderateCampaignFeedPost('${postId}','active')">Restore</button>`);
+    if(status !== 'deleted'){
+      controls.push(`<button class="feed-action-btn danger" onclick="moderateCampaignFeedPost('${postId}','deleted')">Delete</button>`);
+    }
+  }
+  return `<div class="feed-post-actions">${controls.join('')}</div>`;
+}
+
+function renderCampaignFeedPostListLegacy(targetId, posts, emptyText){
   const target = document.getElementById(targetId);
   if(!target) return;
   if(posts.length === 0){
@@ -3408,16 +3695,475 @@ function renderCampaignFeedPostList(targetId, posts, emptyText){
   }).join('');
 }
 
+function renderCampaignFeedPostList(targetId, posts, emptyText){
+  const target = document.getElementById(targetId);
+  if(!target) return;
+  const filteredPosts = filterCampaignFeedPosts(posts, targetId);
+  if(filteredPosts.length === 0){
+    target.innerHTML = `<div style="text-align:center;padding:28px;color:var(--hint);font-size:13px">${emptyText}</div>`;
+    return;
+  }
+
+  target.innerHTML = filteredPosts.map(post => {
+    const author = post.authorName || 'HopeGive';
+    const createdAt = feedPostTimestamp(post.createdAt);
+    const dateText = createdAt ? new Date(createdAt).toLocaleString() : 'Recently';
+    const text = post.text || (post.postType === 'live_campaign' ? post.campaignTitle || 'Live campaign update' : 'Photo update');
+    const type = post.postType || 'note';
+    const commentCount = Number(post.commentCount || 0);
+    const reactionCount = Number(post.reactCount || 0);
+    return `
+      <div class="feed-post-row" data-post-id="${escapeHtml(post.id)}">
+        <div class="feed-post-avatar">${escapeHtml(feedPostInitials(author))}</div>
+        <div class="feed-post-content">
+          <div class="feed-post-title">
+            <span>${escapeHtml(author)}</span>
+            ${feedModerationBadge(post.moderationStatus)}
+            <span class="feed-comment-kind">${escapeHtml(type)}</span>
+          </div>
+          <div class="feed-post-meta">${escapeHtml(post.authorRole || 'user')} - ${escapeHtml(post.category || 'community')} - ${escapeHtml(dateText)}</div>
+          <div class="feed-post-text">${escapeHtml(text)}</div>
+          ${buildFeedImageHtml(post)}
+          ${buildLinkedCampaignHtml(post)}
+          <div class="feed-post-stats">
+            <span>${reactionCount} reaction${reactionCount === 1 ? '' : 's'}</span>
+            <span>${commentCount} comment${commentCount === 1 ? '' : 's'}</span>
+          </div>
+        </div>
+        ${buildFeedPostActions(post)}
+      </div>`;
+  }).join('');
+}
+
 function renderCampaignFeedPosts(){
   const officialPosts = campaignFeedPosts.filter(isOfficialFeedPost);
   const communityPosts = campaignFeedPosts.filter(post => !isOfficialFeedPost(post));
   renderCampaignFeedPostList('official-posts-body', officialPosts, 'No official posts yet');
   renderCampaignFeedPostList('community-posts-body', communityPosts, 'No community posts yet');
+  renderCampaignFeedComments();
 
   const activeTab = document.querySelector('[data-campaign-tab].active')?.dataset?.campaignTab;
-  if(activeTab === 'official' || activeTab === 'community'){
+  if(activeTab === 'official' || activeTab === 'community' || activeTab === 'comments'){
     switchCampaignsTab(activeTab);
   }
+}
+
+function setCampaignFeedPostFilter(value){
+  campaignFeedPostFilter = value || 'all';
+  renderCampaignFeedPosts();
+}
+
+function setCampaignFeedPostSearch(value){
+  campaignFeedPostSearch = value || '';
+  renderCampaignFeedPosts();
+}
+
+function setCampaignFeedCommentFilter(value){
+  campaignFeedCommentFilter = value || 'all';
+  renderCampaignFeedComments();
+}
+
+function setCampaignFeedCommentSearch(value){
+  campaignFeedCommentSearch = value || '';
+  renderCampaignFeedComments();
+}
+
+function campaignFeedCommentSearchText(item){
+  return [
+    item.postId,
+    item.commentId,
+    item.replyId,
+    item.postPreview,
+    item.parentCommentText,
+    item.authorName,
+    item.authorRole,
+    item.text,
+    item.mentionedUserName
+  ].join(' ').toLowerCase();
+}
+
+function filterCampaignFeedComments(items){
+  const search = campaignFeedCommentSearch.trim().toLowerCase();
+  return items.filter(item => {
+    const status = normalizeModerationStatus(item.moderationStatus);
+    if(campaignFeedCommentFilter === 'active' && status !== 'active') return false;
+    if(campaignFeedCommentFilter === 'hidden' && status !== 'hidden') return false;
+    if(campaignFeedCommentFilter === 'deleted' && status !== 'deleted') return false;
+    if(campaignFeedCommentFilter === 'comment' && item.kind !== 'comment') return false;
+    if(campaignFeedCommentFilter === 'reply' && item.kind !== 'reply') return false;
+    if(search && !campaignFeedCommentSearchText(item).includes(search)) return false;
+    return true;
+  });
+}
+
+function buildFeedCommentActions(item){
+  if(!canModerateCampaignFeed()) return '';
+  const status = normalizeModerationStatus(item.moderationStatus);
+  const postId = escapeJsString(item.postId);
+  const commentId = escapeJsString(item.commentId);
+  const replyId = escapeJsString(item.replyId || '');
+  const kind = escapeJsString(item.kind);
+  const controls = [
+    `<button class="feed-action-btn" onclick="viewCampaignFeedPost('${postId}')">View Post</button>`
+  ];
+  if(status === 'active'){
+    controls.push(`<button class="feed-action-btn" onclick="moderateCampaignFeedComment('${postId}','${commentId}','${kind}','hidden','${replyId}')">Hide ${kind === 'reply' ? 'Reply' : 'Comment'}</button>`);
+    controls.push(`<button class="feed-action-btn danger" onclick="moderateCampaignFeedComment('${postId}','${commentId}','${kind}','deleted','${replyId}')">Delete ${kind === 'reply' ? 'Reply' : 'Comment'}</button>`);
+  } else {
+    controls.push(`<button class="feed-action-btn" onclick="moderateCampaignFeedComment('${postId}','${commentId}','${kind}','active','${replyId}')">Restore ${kind === 'reply' ? 'Reply' : 'Comment'}</button>`);
+    if(status !== 'deleted'){
+      controls.push(`<button class="feed-action-btn danger" onclick="moderateCampaignFeedComment('${postId}','${commentId}','${kind}','deleted','${replyId}')">Delete ${kind === 'reply' ? 'Reply' : 'Comment'}</button>`);
+    }
+  }
+  return `<div class="feed-post-actions">${controls.join('')}</div>`;
+}
+
+function renderCampaignFeedComments(){
+  const target = document.getElementById('campaign-comments-body');
+  if(!target) return;
+  const filteredItems = filterCampaignFeedComments(campaignFeedComments);
+  if(filteredItems.length === 0){
+    target.innerHTML = '<div style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No comments match this view</div>';
+    return;
+  }
+
+  target.innerHTML = filteredItems.map(item => {
+    const createdAt = feedPostTimestamp(item.createdAt);
+    const dateText = createdAt ? new Date(createdAt).toLocaleString() : 'Recently';
+    const parentPreview = item.kind === 'reply'
+      ? `<div class="feed-parent-preview">Parent comment: ${escapeHtml(item.parentCommentText || 'No parent preview')}</div>`
+      : '';
+    const mentionText = item.kind === 'reply' && item.mentionedUserName
+      ? `<span>Mentioned ${escapeHtml(item.mentionedUserName)}</span>`
+      : '';
+    return `
+      <div class="feed-post-row" data-post-id="${escapeHtml(item.postId)}">
+        <div class="feed-post-avatar">${escapeHtml(feedPostInitials(item.authorName))}</div>
+        <div class="feed-post-content">
+          <div class="feed-post-title">
+            <span>${escapeHtml(item.authorName || 'HopeGive User')}</span>
+            ${feedModerationBadge(item.moderationStatus)}
+            <span class="feed-comment-kind">${escapeHtml(item.kind)}</span>
+          </div>
+          <div class="feed-post-meta">${escapeHtml(item.authorRole || 'user')} - ${escapeHtml(dateText)}</div>
+          <div class="feed-parent-preview">Post: ${escapeHtml(item.postPreview || item.postId)}</div>
+          ${parentPreview}
+          <div class="feed-post-text">${escapeHtml(item.text || '')}</div>
+          <div class="feed-post-stats">
+            <span>${escapeHtml(item.kind === 'reply' ? 'Reply' : 'Comment')}</span>
+            ${mentionText}
+            ${item.kind === 'comment' ? `<span>${Number(item.replyCount || 0)} repl${Number(item.replyCount || 0) === 1 ? 'y' : 'ies'}</span>` : ''}
+          </div>
+        </div>
+        ${buildFeedCommentActions(item)}
+      </div>`;
+  }).join('');
+}
+
+async function loadCampaignFeedComments(){
+  if(!window.firebaseFirestore || !window.firebaseCollection || !window.firebaseGetDocs || !window.firebaseQuery || !window.firebaseOrderBy){
+    console.warn('Firestore comment loading is not ready');
+    return;
+  }
+  if(campaignFeedPosts.length === 0){
+    campaignFeedComments = [];
+    renderCampaignFeedComments();
+    return;
+  }
+
+  try{
+    const items = [];
+    await Promise.all(campaignFeedPosts.map(async post => {
+      const commentsRef = window.firebaseCollection(window.firebaseFirestore, 'campaign_posts', post.id, 'comments');
+      const commentsQuery = window.firebaseQuery(commentsRef, window.firebaseOrderBy('createdAt', 'desc'));
+      const commentsSnapshot = await window.firebaseGetDocs(commentsQuery);
+      await Promise.all(commentsSnapshot.docs.map(async commentDoc => {
+        const comment = { id: commentDoc.id, ...commentDoc.data() };
+        const commentId = comment.id || commentDoc.id;
+        const postPreview = post.text || post.campaignTitle || post.authorName || post.id;
+        items.push({
+          kind: 'comment',
+          postId: post.id,
+          commentId,
+          replyId: '',
+          postPreview,
+          parentCommentText: '',
+          authorName: comment.authorName || comment.userName || 'HopeGive User',
+          authorRole: comment.authorRole || comment.userRole || 'user',
+          text: comment.text || '',
+          mentionedUserName: '',
+          moderationStatus: comment.moderationStatus || 'active',
+          createdAt: comment.createdAt,
+          replyCount: comment.replyCount || 0
+        });
+
+        const repliesRef = window.firebaseCollection(window.firebaseFirestore, 'campaign_posts', post.id, 'comments', commentId, 'replies');
+        const repliesQuery = window.firebaseQuery(repliesRef, window.firebaseOrderBy('createdAt', 'desc'));
+        const repliesSnapshot = await window.firebaseGetDocs(repliesQuery);
+        repliesSnapshot.docs.forEach(replyDoc => {
+          const reply = { id: replyDoc.id, ...replyDoc.data() };
+          items.push({
+            kind: 'reply',
+            postId: post.id,
+            commentId,
+            replyId: reply.id || replyDoc.id,
+            postPreview,
+            parentCommentText: comment.text || '',
+            authorName: reply.authorName || 'HopeGive User',
+            authorRole: reply.authorRole || 'user',
+            text: reply.text || '',
+            mentionedUserName: reply.mentionedUserName || reply.replyingToUserName || '',
+            moderationStatus: reply.moderationStatus || 'active',
+            createdAt: reply.createdAt,
+            replyCount: 0
+          });
+        });
+      }));
+    }));
+    campaignFeedComments = items.sort((a, b) => feedPostTimestamp(b.createdAt) - feedPostTimestamp(a.createdAt));
+    renderCampaignFeedComments();
+  }catch(error){
+    console.error('Unable to load campaign feed comments', error);
+    campaignFeedComments = [];
+    renderCampaignFeedComments();
+    showToast('Unable to load campaign feed comments.', 'error');
+  }
+}
+
+function buildModerationPayload(nextStatus, uid){
+  const status = normalizeModerationStatus(nextStatus);
+  const now = window.firebaseServerTimestamp ? window.firebaseServerTimestamp() : new Date();
+  const payload = {
+    moderationStatus: status,
+    updatedAt: now
+  };
+  if(status === 'active'){
+    payload.deletedAt = null;
+    payload.deletedBy = '';
+    payload.hiddenAt = null;
+    payload.hiddenBy = '';
+  } else if(status === 'hidden'){
+    payload.hiddenAt = now;
+    payload.hiddenBy = uid;
+  } else if(status === 'deleted'){
+    payload.deletedAt = now;
+    payload.deletedBy = uid;
+  }
+  return payload;
+}
+
+function moderationNotificationDetails(kind, status){
+  const normalizedStatus = normalizeModerationStatus(status);
+  const noun = kind === 'reply' ? 'reply' : kind === 'comment' ? 'comment' : 'post';
+  if(normalizedStatus === 'hidden'){
+    return {
+      type: `${noun}_hidden`,
+      title: `${noun.charAt(0).toUpperCase() + noun.slice(1)} hidden`,
+      message: `Your ${noun} was hidden by HopeGive moderation.`
+    };
+  }
+  if(normalizedStatus === 'deleted'){
+    return {
+      type: `${noun}_deleted`,
+      title: `${noun.charAt(0).toUpperCase() + noun.slice(1)} deleted`,
+      message: `Your ${noun} was removed by HopeGive moderation.`
+    };
+  }
+  return null;
+}
+
+function shouldCreateModerationNotification(oldStatus, nextStatus){
+  const previous = normalizeModerationStatus(oldStatus);
+  const next = normalizeModerationStatus(nextStatus);
+  if(next !== 'hidden' && next !== 'deleted') return false;
+  if(previous === next) return false;
+  if(previous === 'deleted') return false;
+  return previous === 'active' || (previous === 'hidden' && next === 'deleted');
+}
+
+function isPersistentModerationRecipient(content, adminUid){
+  const recipientId = String(content?.authorId || content?.userId || '').trim();
+  const role = normalizeNotificationRole(content?.authorRole || content?.userRole || '');
+  return recipientId && recipientId !== adminUid && role !== 'guest';
+}
+
+async function createModerationNotification({kind, postId, commentId = '', replyId = '', oldStatus, nextStatus, content, adminUser}){
+  const details = moderationNotificationDetails(kind, nextStatus);
+  const recipientId = String(content?.authorId || content?.userId || '').trim();
+  const logContext = {
+    contentType: kind,
+    contentId: replyId || commentId || postId,
+    postId,
+    commentId,
+    replyId,
+    oldModerationStatus: normalizeModerationStatus(oldStatus),
+    newModerationStatus: normalizeModerationStatus(nextStatus),
+    adminUid: adminUser?.uid || '',
+    recipientId
+  };
+
+  if(!details || !shouldCreateModerationNotification(oldStatus, nextStatus)){
+    console.log('Moderation notification skipped: status transition does not require notification', logContext);
+    return;
+  }
+  if(!isPersistentModerationRecipient(content, adminUser?.uid || '')){
+    console.log('Moderation notification skipped: missing, self, or guest recipient', logContext);
+    return;
+  }
+
+  try{
+    await createFirestoreNotification(
+      {
+        id: recipientId,
+        role: content?.authorRole || content?.userRole || ''
+      },
+      {
+        type: details.type,
+        title: details.title,
+        message: details.message,
+        postId,
+        commentId,
+        replyId
+      }
+    );
+    console.log('Moderation notification created', {
+      ...logContext,
+      notificationType: details.type
+    });
+  }catch(error){
+    console.error('Moderation notification failed', {
+      ...logContext,
+      notificationType: details.type,
+      error
+    });
+  }
+}
+
+async function currentFirebaseUserForModeration(){
+  if(window.firebaseAuthReady){
+    const readyUser = await window.firebaseAuthReady;
+    if(readyUser) return readyUser;
+  }
+  return window.firebaseAuth?.currentUser || null;
+}
+
+function confirmModerationAction(kind, status){
+  const item = kind || 'item';
+  if(status === 'hidden') return confirm(`Hide this ${item}?`);
+  if(status === 'deleted') return confirm(`Delete this ${item}?`);
+  return confirm(`Restore this ${item}?`);
+}
+
+async function moderateCampaignFeedPost(postId, nextStatus){
+  if(!canModerateCampaignFeed()){
+    showToast('Only admins and moderators can moderate community posts.', 'error');
+    return;
+  }
+  if(!confirmModerationAction('post', nextStatus)) return;
+  try{
+    const user = await currentFirebaseUserForModeration();
+    if(!user) throw new Error('No authenticated admin user.');
+    const postRef = window.firebaseDoc(window.firebaseFirestore, 'campaign_posts', postId);
+    const beforeSnapshot = await window.firebaseGetDoc(postRef);
+    const beforeData = beforeSnapshot.exists() ? beforeSnapshot.data() || {} : {};
+    const oldStatus = normalizeModerationStatus(beforeData.moderationStatus);
+    await window.firebaseSetDoc(postRef, buildModerationPayload(nextStatus, user.uid), { merge: true });
+    await createModerationNotification({
+      kind: 'post',
+      postId,
+      oldStatus,
+      nextStatus,
+      content: beforeData,
+      adminUser: user
+    });
+    console.log('Campaign feed moderation updated', {
+      contentType: 'post',
+      contentId: postId,
+      oldModerationStatus: oldStatus,
+      newModerationStatus: normalizeModerationStatus(nextStatus),
+      adminUid: user.uid
+    });
+    showToast(nextStatus === 'active' ? 'Post restored.' : nextStatus === 'hidden' ? 'Post hidden.' : 'Post deleted.');
+  }catch(error){
+    console.error('Unable to update campaign post moderation status', error);
+    showToast('Unable to update moderation status.', 'error');
+  }
+}
+
+async function moderateCampaignFeedComment(postId, commentId, kind, nextStatus, replyId = ''){
+  if(!canModerateCampaignFeed()){
+    showToast('Only admins and moderators can moderate comments.', 'error');
+    return;
+  }
+  const itemLabel = kind === 'reply' ? 'reply' : 'comment';
+  if(!confirmModerationAction(itemLabel, nextStatus)) return;
+  try{
+    const user = await currentFirebaseUserForModeration();
+    if(!user) throw new Error('No authenticated admin user.');
+    const targetRef = kind === 'reply'
+      ? window.firebaseDoc(window.firebaseFirestore, 'campaign_posts', postId, 'comments', commentId, 'replies', replyId)
+      : window.firebaseDoc(window.firebaseFirestore, 'campaign_posts', postId, 'comments', commentId);
+    const beforeSnapshot = await window.firebaseGetDoc(targetRef);
+    const beforeData = beforeSnapshot.exists() ? beforeSnapshot.data() || {} : {};
+    const oldStatus = normalizeModerationStatus(beforeData.moderationStatus);
+    await window.firebaseSetDoc(targetRef, buildModerationPayload(nextStatus, user.uid), { merge: true });
+    await createModerationNotification({
+      kind: itemLabel,
+      postId,
+      commentId,
+      replyId,
+      oldStatus,
+      nextStatus,
+      content: beforeData,
+      adminUser: user
+    });
+    console.log('Campaign feed moderation updated', {
+      contentType: itemLabel,
+      contentId: replyId || commentId,
+      postId,
+      commentId,
+      replyId,
+      oldModerationStatus: oldStatus,
+      newModerationStatus: normalizeModerationStatus(nextStatus),
+      adminUid: user.uid
+    });
+    await loadCampaignFeedComments();
+    showToast(nextStatus === 'active'
+      ? `${itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1)} restored.`
+      : nextStatus === 'hidden'
+        ? `${itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1)} hidden.`
+        : `${itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1)} deleted.`);
+  }catch(error){
+    console.error('Unable to update campaign comment moderation status', error);
+    showToast('Unable to update moderation status.', 'error');
+  }
+}
+
+function viewCampaignFeedPost(postId){
+  const post = campaignFeedPosts.find(item => item.id === postId);
+  if(!post){
+    showToast('Post is not loaded yet.', 'error');
+    return;
+  }
+  if(!isOfficialFeedPost(post)){
+    campaignFeedPostFilter = 'all';
+    campaignFeedPostSearch = '';
+    const statusFilter = document.getElementById('community-post-status-filter');
+    const searchInput = document.getElementById('community-post-search');
+    if(statusFilter) statusFilter.value = 'all';
+    if(searchInput) searchInput.value = '';
+  }
+  switchCampaignsTab(isOfficialFeedPost(post) ? 'official' : 'community');
+  renderCampaignFeedPosts();
+  setTimeout(() => {
+    const row = Array.from(document.querySelectorAll('.feed-post-row'))
+      .find(el => el.dataset.postId === postId);
+    if(row){
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.classList.add('highlight');
+      setTimeout(() => row.classList.remove('highlight'), 1800);
+    }
+  }, 80);
 }
 
 function watchCampaignFeedPosts(){
@@ -3434,9 +4180,11 @@ function watchCampaignFeedPosts(){
   window.firebaseOnFirestoreSnapshot(postsQuery, snapshot => {
     campaignFeedPosts = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
     renderCampaignFeedPosts();
+    loadCampaignFeedComments();
   }, error => {
     console.error('Campaign feed posts listener error', error);
     campaignFeedPosts = [];
+    campaignFeedComments = [];
     renderCampaignFeedPosts();
   });
 }
@@ -3825,10 +4573,12 @@ function renderCampaigns(){
   const role = window.currentUserProfile?.role || 'Viewer';
   console.log(`  Role: ${role}`);
   
-  const visibleCampaigns = ['Super Admin','Admin','Moderator'].includes(role) ? campaigns : campaigns.filter(c => !c.hidden);
-  console.log(`  Visible campaigns: ${visibleCampaigns.length} (after role filtering)`);
+  const campaignBuckets = getCampaignManagementBuckets();
+  const selectedCampaigns = getSelectedCampaignList();
+  const visibleCampaigns = selectedCampaigns;
+  console.log(`  Campaign list filter: ${selectedCampaignListFilter}, matching=${selectedCampaigns.length}`);
   
-  if(visibleCampaigns.length===0){
+  if(campaignBuckets.all.length===0){
     console.log('  → Showing empty state');
     empty.style.display='';
     list.style.display='none';
@@ -3838,11 +4588,29 @@ function renderCampaigns(){
   }
   
   console.log('  → Rendering campaign list');
+  sub.textContent = getCampaignListSummaryText();
+
+  if(selectedCampaigns.length===0){
+    empty.style.display='';
+    list.style.display='none';
+    const emptyTitle = document.querySelector('#campaigns-empty .empty-title');
+    const emptySub = document.querySelector('#campaigns-empty .empty-sub');
+    if(emptyTitle) emptyTitle.textContent = getCampaignListEmptyMessage();
+    if(emptySub){
+      emptySub.textContent = selectedCampaignListFilter === 'expired'
+        ? 'Campaigns whose end date has passed will appear here automatically.'
+        : selectedCampaignListFilter === 'active'
+          ? 'Campaigns with future end dates and active status will appear here.'
+          : 'Campaigns will appear here once they are created or made visible.';
+    }
+    if(activeCampaignTab !== 'campaigns') switchCampaignsTab(activeCampaignTab);
+    return;
+  }
+
   empty.style.display='none';
   list.style.display='';
-  sub.textContent=visibleCampaigns.length+' campaign'+(visibleCampaigns.length>1?'s':'');
-  body.innerHTML='<div class="card-header"><div class="card-title">All campaigns</div></div>'+
-    visibleCampaigns.map((c,i)=>{
+  body.innerHTML='<div class="card-header"><div class="card-title">'+getCampaignListTitle()+'</div></div>'+
+    selectedCampaigns.map((c,i)=>{
       let actionHtml = '<div style="display:flex;gap:6px">';
       if(['Super Admin','Admin','Moderator'].includes(role)){
         actionHtml += `<div class="icon-btn" onclick="editCampaign('${c.key}')">✏️</div>`;
@@ -3858,6 +4626,11 @@ function renderCampaigns(){
       const goal = Number(c.goal || 0);
       const raised = stats.total;
       const percentage = goal > 0 ? Math.round((raised / goal) * 100) : 0;
+      const displayStatus = getCampaignDisplayStatus(c);
+      const statusClass = displayStatus === 'Active' ? 'info' : 'neutral';
+      const badgeLabel = c.hidden
+        ? (displayStatus === 'Expired' ? 'Expired · Hidden' : 'Hidden')
+        : displayStatus;
       return `
       <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border)">
         <div style="width:38px;height:38px;border-radius:8px;background:var(--navy3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${getCampaignEmoji(c)}</div>
@@ -3867,7 +4640,7 @@ function renderCampaigns(){
           <div style="margin-top:6px;height:3px;background:var(--border2);border-radius:2px;overflow:hidden"><div style="width:${Math.min(percentage, 100)}%;height:100%;background:var(--accent);border-radius:2px"></div></div>
           <div style="font-size:11px;color:var(--hint);margin-top:3px">₱${Number(raised).toLocaleString()} raised · ${percentage}% · ${stats.count} donation${stats.count !== 1 ? 's' : ''}</div>
         </div>
-        <span class="badge neutral">${c.hidden? 'Hidden' : (c.status || 'Draft')}</span>
+        <span class="badge ${statusClass}">${badgeLabel}</span>
         ${actionHtml}
       </div>`;
     }).join('')+
@@ -3881,6 +4654,36 @@ function renderCampaigns(){
   console.log(`✓ Rendered ${visibleCampaigns.length} campaigns to UI`);
 }
  
+function queueExpiredCampaignStatusSync(list){
+  if(!canManageCampaigns() || !window.firebaseRef || !window.firebaseUpdate || !window.firebaseDb) return;
+
+  list.forEach(campaign => {
+    const normalizedStatus = normalizeCampaignStatus(campaign?.status);
+    if(
+      !campaign?.key ||
+      expiredCampaignStatusSyncKeys.has(campaign.key) ||
+      normalizedStatus === 'expired' ||
+      normalizedStatus === 'completed' ||
+      !isCampaignExpired(campaign)
+    ){
+      return;
+    }
+
+    expiredCampaignStatusSyncKeys.add(campaign.key);
+    const campaignRef = window.firebaseRef(window.firebaseDb, 'campaigns/' + campaign.key);
+    window.firebaseUpdate(campaignRef, {
+      status: 'Expired',
+      expiredAt: Date.now(),
+      updatedAt: Date.now()
+    }).then(() => {
+      console.log(`Synced expired status for campaign ${campaign.key}`);
+    }).catch(error => {
+      expiredCampaignStatusSyncKeys.delete(campaign.key);
+      console.error(`Unable to sync expired status for campaign ${campaign.key}`, error);
+    });
+  });
+}
+
 function watchCampaigns(){
   console.log('🔄 watchCampaigns() starting...');
   
@@ -3914,6 +4717,7 @@ function watchCampaigns(){
             console.log(`  • Campaign ID: ${key}`, value);
             return { key, ...value };
           }).sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+          queueExpiredCampaignStatusSync(campaigns);
           console.log(`✓ Parsed ${campaigns.length} total campaign(s)`);
         } else {
           console.warn('⚠️ Unexpected data type from Firebase:', typeof rawData);

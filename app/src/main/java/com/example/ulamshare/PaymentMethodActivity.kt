@@ -14,6 +14,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -24,6 +26,7 @@ class PaymentMethodActivity : AppCompatActivity() {
     private var selectedOptionId: Int = R.id.optionGCash
     private lateinit var auth: FirebaseAuth
     private lateinit var firestore: FirebaseFirestore
+    private lateinit var campaignsRef: DatabaseReference
     private lateinit var savedMethodsContainer: LinearLayout
     private lateinit var tvNoSavedMethods: TextView
     private lateinit var tvSavedMethodsTitle: TextView
@@ -37,6 +40,7 @@ class PaymentMethodActivity : AppCompatActivity() {
 
         auth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
+        campaignsRef = FirebaseDatabase.getInstance().getReference("campaigns")
 
         source = intent.getStringExtra(EXTRA_SOURCE).orEmpty().ifBlank {
             intent.getStringExtra(EXTRA_MODE).orEmpty()
@@ -104,13 +108,20 @@ class PaymentMethodActivity : AppCompatActivity() {
         optionCard.setOnClickListener {
             updateSelection(R.id.optionCard)
             if (!isManageMode) {
-                Log.d(TAG, "Opening card checkout from donation flow")
-                startActivity(Intent(this, PaymentActivity::class.java).apply {
-                    putExtra(EXTRA_SOURCE, SOURCE_DONATION)
-                    putExtra("campaignId", campaignId)
-                    putExtra("title", title)
-                    putExtra("amount", amount)
-                })
+                validateDonationCampaign(campaignId) { isAvailable ->
+                    if (!isAvailable) {
+                        showExpiredCampaignMessage()
+                        return@validateDonationCampaign
+                    }
+
+                    Log.d(TAG, "Opening card checkout from donation flow")
+                    startActivity(Intent(this, PaymentActivity::class.java).apply {
+                        putExtra(EXTRA_SOURCE, SOURCE_DONATION)
+                        putExtra("campaignId", campaignId)
+                        putExtra("title", title)
+                        putExtra("amount", amount)
+                    })
+                }
             }
         }
 
@@ -128,26 +139,64 @@ class PaymentMethodActivity : AppCompatActivity() {
     }
 
     private fun continueDonationFlow(campaignId: String?, title: String?, amount: String?) {
-        val method = selectedMethodDisplayName()
-        Log.d(TAG, "Continuing donation flow to payment review. method=$method")
+        validateDonationCampaign(campaignId) { isAvailable ->
+            if (!isAvailable) {
+                showExpiredCampaignMessage()
+                return@validateDonationCampaign
+            }
 
-        if (selectedOptionId == R.id.optionCard) {
-            startActivity(Intent(this, PaymentActivity::class.java).apply {
-                putExtra(EXTRA_SOURCE, SOURCE_DONATION)
+            val method = selectedMethodDisplayName()
+            Log.d(TAG, "Continuing donation flow to payment review. method=$method")
+
+            if (selectedOptionId == R.id.optionCard) {
+                startActivity(Intent(this, PaymentActivity::class.java).apply {
+                    putExtra(EXTRA_SOURCE, SOURCE_DONATION)
+                    putExtra("campaignId", campaignId)
+                    putExtra("title", title)
+                    putExtra("amount", amount)
+                })
+                return@validateDonationCampaign
+            }
+
+            startActivity(Intent(this, ReviewDonationActivity::class.java).apply {
                 putExtra("campaignId", campaignId)
                 putExtra("title", title)
                 putExtra("amount", amount)
+                putExtra("paymentMethod", method)
+                putExtra("donateType", "One-Time")
             })
+        }
+    }
+
+    private fun validateDonationCampaign(campaignId: String?, onResult: (Boolean) -> Unit) {
+        if (isManageMode) {
+            onResult(true)
             return
         }
 
-        startActivity(Intent(this, ReviewDonationActivity::class.java).apply {
-            putExtra("campaignId", campaignId)
-            putExtra("title", title)
-            putExtra("amount", amount)
-            putExtra("paymentMethod", method)
-            putExtra("donateType", "One-Time")
-        })
+        val id = campaignId.orEmpty()
+        if (id.isBlank()) {
+            Log.e(TAG, "Missing campaignId while validating donation flow")
+            Toast.makeText(this, "This campaign is unavailable right now.", Toast.LENGTH_SHORT).show()
+            onResult(false)
+            return
+        }
+
+        campaignsRef.child(id).get()
+            .addOnSuccessListener { snapshot ->
+                val campaign = CampaignDisplayHelper.parseCampaign(snapshot)
+                val canDonate = campaign != null && CampaignDisplayHelper.canDonate(campaign)
+                Log.d(
+                    TAG,
+                    "Donation campaign validation. campaignId=$id canDonate=$canDonate status=${campaign?.status} date=${campaign?.date}"
+                )
+                onResult(canDonate)
+            }
+            .addOnFailureListener { error ->
+                Log.e(TAG, "Unable to validate campaign before payment step", error)
+                Toast.makeText(this, "Unable to verify this campaign right now.", Toast.LENGTH_SHORT).show()
+                onResult(false)
+            }
     }
 
     private fun saveSelectedPaymentMethod() {
@@ -399,6 +448,14 @@ class PaymentMethodActivity : AppCompatActivity() {
         return !intent.getStringExtra("campaignId").isNullOrBlank() ||
             !intent.getStringExtra("amount").isNullOrBlank() ||
             !intent.getStringExtra("title").isNullOrBlank()
+    }
+
+    private fun showExpiredCampaignMessage() {
+        Toast.makeText(
+            this,
+            "This campaign has expired and is no longer accepting donations.",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun dp(value: Int): Int {

@@ -154,9 +154,14 @@ class CampaignFeedRepository(
                     authorRole = normalizeRole(author.role),
                     postType = postType
                 ),
+                "postTarget" to normalizePostTarget(draft.postTarget),
                 "postType" to postType,
                 "text" to draft.text.trim(),
                 "imageUrl" to imageUrl,
+                "linkedCampaignId" to draft.linkedCampaignId,
+                "linkedCampaignTitle" to draft.linkedCampaignTitle,
+                "linkedCampaignCategory" to draft.linkedCampaignCategory,
+                "linkedCampaignEmoji" to draft.linkedCampaignEmoji,
                 "campaignTitle" to if (isLiveCampaign) draft.campaignTitle.trim() else "",
                 "campaignGoal" to if (isLiveCampaign) draft.campaignGoal.coerceAtLeast(0L) else 0L,
                 "campaignRaised" to if (isLiveCampaign) draft.campaignRaised.coerceAtLeast(0L) else 0L,
@@ -166,7 +171,8 @@ class CampaignFeedRepository(
                 "reactCount" to 0,
                 "commentCount" to 0,
                 "shareCount" to 0,
-                "isLiveCampaign" to isLiveCampaign
+                "isLiveCampaign" to isLiveCampaign,
+                "moderationStatus" to CampaignFeedPost.MODERATION_ACTIVE
             )
             if (mentionedUsers.isNotEmpty()) {
                 payload["mentionedUsers"] = mentionedUsers.map { it.toMap() }
@@ -290,7 +296,7 @@ class CampaignFeedRepository(
                     postId = postId,
                     commentId = "",
                     replyId = "",
-                    message = "$actorName reacted ${CampaignReactionUi.emoji(normalizedReactionType)} to your post."
+                    message = "$actorName liked your post."
                 )
                 normalizedReactionType
             }
@@ -326,7 +332,8 @@ class CampaignFeedRepository(
                 "text" to text.trim(),
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp(),
-                "replyCount" to 0
+                "replyCount" to 0,
+                "moderationStatus" to CampaignFeedPost.MODERATION_ACTIVE
             )
             if (mentionedUsers.isNotEmpty()) {
                 commentPayload["mentionedUsers"] = mentionedUsers.map { it.toMap() }
@@ -417,7 +424,8 @@ class CampaignFeedRepository(
                 "replyingToUserId" to targetUserId,
                 "replyingToUserName" to targetUserName,
                 "createdAt" to FieldValue.serverTimestamp(),
-                "updatedAt" to FieldValue.serverTimestamp()
+                "updatedAt" to FieldValue.serverTimestamp(),
+                "moderationStatus" to CampaignFeedPost.MODERATION_ACTIVE
             )
             if (targetUserId.isNotBlank()) {
                 replyPayload["mentionedUsers"] = listOf(
@@ -661,9 +669,14 @@ class CampaignFeedRepository(
                 authorRole = normalizeRole(snapshot.getString("authorRole")),
                 postType = snapshot.getString("postType").orEmpty()
             ),
+            postTarget = normalizePostTarget(snapshot.getString("postTarget")),
             postType = snapshot.getString("postType").orEmpty().ifBlank { CampaignFeedPost.TYPE_NOTE },
             text = snapshot.getString("text").orEmpty(),
             imageUrl = snapshot.getString("imageUrl").orEmpty(),
+            linkedCampaignId = snapshot.getString("linkedCampaignId").orEmpty(),
+            linkedCampaignTitle = snapshot.getString("linkedCampaignTitle").orEmpty(),
+            linkedCampaignCategory = snapshot.getString("linkedCampaignCategory").orEmpty(),
+            linkedCampaignEmoji = snapshot.getString("linkedCampaignEmoji").orEmpty(),
             campaignTitle = snapshot.getString("campaignTitle").orEmpty(),
             campaignGoal = numberToLong(snapshot.get("campaignGoal")),
             campaignRaised = numberToLong(snapshot.get("campaignRaised")),
@@ -674,7 +687,8 @@ class CampaignFeedRepository(
             reactionCounts = mapReactionCounts(snapshot.get("reactionCounts")),
             commentCount = numberToInt(snapshot.get("commentCount")),
             shareCount = numberToInt(snapshot.get("shareCount")),
-            isLiveCampaign = snapshot.getBoolean("isLiveCampaign") ?: false
+            isLiveCampaign = snapshot.getBoolean("isLiveCampaign") ?: false,
+            moderationStatus = normalizeModerationStatus(snapshot.getString("moderationStatus"))
         )
     }
 
@@ -694,7 +708,8 @@ class CampaignFeedRepository(
             text = snapshot.getString("text").orEmpty(),
             createdAt = timestampToMillis(snapshot.getTimestamp("createdAt")),
             updatedAt = timestampToMillis(snapshot.getTimestamp("updatedAt")),
-            replyCount = numberToInt(snapshot.get("replyCount"))
+            replyCount = numberToInt(snapshot.get("replyCount")),
+            moderationStatus = normalizeModerationStatus(snapshot.getString("moderationStatus"))
         )
     }
 
@@ -713,7 +728,8 @@ class CampaignFeedRepository(
             replyingToUserId = snapshot.getString("replyingToUserId").orEmpty(),
             replyingToUserName = snapshot.getString("replyingToUserName").orEmpty(),
             createdAt = timestampToMillis(snapshot.getTimestamp("createdAt")),
-            updatedAt = timestampToMillis(snapshot.getTimestamp("updatedAt"))
+            updatedAt = timestampToMillis(snapshot.getTimestamp("updatedAt")),
+            moderationStatus = normalizeModerationStatus(snapshot.getString("moderationStatus"))
         )
     }
 
@@ -796,8 +812,17 @@ class CampaignFeedRepository(
         return when (raw.orEmpty().trim().lowercase(Locale.getDefault())) {
             "super admin", "super_admin", "superadmin" -> CampaignFeedPost.ROLE_SUPER_ADMIN
             "admin" -> CampaignFeedPost.ROLE_ADMIN
+            "moderator", "mod" -> CampaignFeedPost.ROLE_MODERATOR
             "guest" -> CampaignFeedPost.ROLE_GUEST
             else -> CampaignFeedPost.ROLE_USER
+        }
+    }
+
+    private fun normalizeModerationStatus(raw: String?): String {
+        return when (raw.orEmpty().trim().lowercase(Locale.getDefault())) {
+            CampaignFeedPost.MODERATION_HIDDEN -> CampaignFeedPost.MODERATION_HIDDEN
+            CampaignFeedPost.MODERATION_DELETED -> CampaignFeedPost.MODERATION_DELETED
+            else -> CampaignFeedPost.MODERATION_ACTIVE
         }
     }
 
@@ -816,6 +841,13 @@ class CampaignFeedRepository(
                     CampaignFeedPost.CATEGORY_COMMUNITY
                 }
             }
+        }
+    }
+
+    private fun normalizePostTarget(raw: String?): String {
+        return when (raw.orEmpty().trim().lowercase(Locale.getDefault())) {
+            CampaignFeedPost.TARGET_CAMPAIGN -> CampaignFeedPost.TARGET_CAMPAIGN
+            else -> CampaignFeedPost.TARGET_COMMUNITY
         }
     }
 

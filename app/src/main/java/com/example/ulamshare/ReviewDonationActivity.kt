@@ -131,7 +131,11 @@ class ReviewDonationActivity : AppCompatActivity() {
         }
 
         val campaignId = intent.getStringExtra("campaignId") ?: ""
-        val donationAmount = amount?.toIntOrNull() ?: 0
+        val donationAmount = parseDonationAmount(amount)
+        if (donationAmount <= 0L) {
+            Toast.makeText(this, "Please enter a valid donation amount.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         firestore.collection("users").document(user.uid).get()
             .addOnSuccessListener { document ->
@@ -147,13 +151,18 @@ class ReviewDonationActivity : AppCompatActivity() {
                     "amount" to donationAmount,
                     "campaignId" to campaignId,
                     "campaignTitle" to (campaignTitle ?: "Unknown Campaign"),
+                    "campaignCategory" to intent.getStringExtra("campaignCategory").orEmpty(),
                     "dateString" to dateString,
                     "donationId" to donationId,
                     "donationType" to (donateType ?: "One-Time"),
+                    "donorId" to user.uid,
                     "donorEmail" to user.email,
                     "donorName" to fullName,
                     "paymentMethod" to (paymentMethod ?: "N/A"),
                     "referenceId" to referenceId,
+                    "status" to "successful",
+                    "statsApplied" to false,
+                    "campaignProgressApplied" to false,
                     "timestamp" to timestamp,
                     "userId" to user.uid
                 )
@@ -161,57 +170,58 @@ class ReviewDonationActivity : AppCompatActivity() {
                 db.getReference("donations").child(donationId).setValue(donationData)
                     .addOnSuccessListener {
                         Log.d("ReviewDonation", "Donation saved: $donationId")
+                        UserDonationStatsRepository.applySuccessfulDonation(
+                            donationId = donationId,
+                            userId = user.uid,
+                            amount = donationAmount,
+                            campaignId = campaignId,
+                            campaignTitle = campaignTitle ?: "Unknown Campaign",
+                            campaignCategory = intent.getStringExtra("campaignCategory").orEmpty(),
+                            firestore = firestore,
+                            realtimeDatabase = db,
+                            donationPayload = donationData
+                        ) { result ->
+                            result
+                                .onSuccess {
+                                    Log.d("ReviewDonation", "Donation effects applied donationId=$donationId")
+                                    AppNotificationManager.notifyDonation(
+                                        this@ReviewDonationActivity,
+                                        campaignTitle.orEmpty(),
+                                        donationAmount.toInt()
+                                    )
+                                    createDonationNotifications(
+                                        donorId = user.uid,
+                                        donorName = fullName,
+                                        campaignId = campaignId,
+                                        campaignTitle = campaignTitle ?: "Unknown Campaign",
+                                        donationId = donationId,
+                                        amount = donationAmount.toInt()
+                                    )
 
-                        db.getReference("campaigns").child(campaignId).get()
-                            .addOnSuccessListener { snapshot ->
-                                val campaign = CampaignDisplayHelper.parseCampaign(snapshot)
-                                if (campaign == null || !CampaignDisplayHelper.canDonate(campaign)) {
-                                    Log.w("ReviewDonation", "Campaign expired after donation save, skipping raised increment. campaignId=$campaignId")
                                     Toast.makeText(
                                         this@ReviewDonationActivity,
-                                        "This campaign has expired and is no longer accepting donations.",
+                                        "Donation confirmed!",
                                         Toast.LENGTH_SHORT
                                     ).show()
-                                    return@addOnSuccessListener
-                                }
 
-                                val currentRaised = campaign.raised ?: 0
-                                val newRaised = currentRaised + donationAmount
-
-                                db.getReference("campaigns").child(campaignId).child("raised").setValue(newRaised)
-                                    .addOnSuccessListener {
-                                        Log.d("ReviewDonation", "Campaign raised amount updated to \u20B1$newRaised")
-
-                                        AppNotificationManager.notifyDonation(
-                                            this@ReviewDonationActivity,
-                                            campaignTitle.orEmpty(),
-                                            donationAmount
-                                        )
-                                        createDonationNotifications(
-                                            donorId = user.uid,
-                                            donorName = fullName,
-                                            campaignId = campaignId,
-                                            campaignTitle = campaignTitle ?: "Unknown Campaign",
-                                            donationId = donationId,
-                                            amount = donationAmount
-                                        )
-
-                                        Toast.makeText(
-                                            this@ReviewDonationActivity,
-                                            "Donation confirmed!",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-
-                                        val intent = Intent(
-                                            this@ReviewDonationActivity,
-                                            PaymentProcessingActivity::class.java
-                                        ).apply {
-                                            putExtra("amount", amount)
-                                            putExtra("donationId", donationId)
-                                            putExtra("referenceId", referenceId)
-                                        }
-                                        startActivity(intent)
+                                    val intent = Intent(
+                                        this@ReviewDonationActivity,
+                                        PaymentProcessingActivity::class.java
+                                    ).apply {
+                                        putExtra("amount", amount)
+                                        putExtra("donationId", donationId)
+                                        putExtra("referenceId", referenceId)
                                     }
+                                    startActivity(intent)
+                                }
+                                .onFailure { error ->
+                                    Log.e("ReviewDonation", "Unable to apply donation effects", error)
+                                    Toast.makeText(
+                                        this@ReviewDonationActivity,
+                                        "Donation was saved, but progress could not update. Please try refreshing.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
                             }
                     }
                     .addOnFailureListener { e ->
@@ -223,6 +233,16 @@ class ReviewDonationActivity : AppCompatActivity() {
                 Log.e("ReviewDonation", "Error fetching user data: ${e.message}", e)
                 Toast.makeText(this, "Error loading user data: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun parseDonationAmount(value: String?): Long {
+        return value.orEmpty()
+            .replace("\u20B1", "")
+            .replace(",", "")
+            .trim()
+            .toDoubleOrNull()
+            ?.toLong()
+            ?: 0L
     }
 
     private fun createDonationNotifications(
