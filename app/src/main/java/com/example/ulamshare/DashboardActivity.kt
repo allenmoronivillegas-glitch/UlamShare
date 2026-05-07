@@ -3,13 +3,11 @@ package com.example.ulamshare
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.firebase.database.*
 import java.text.ParseException
 import java.text.SimpleDateFormat
@@ -69,11 +67,11 @@ class DashboardActivity : BaseActivity() {
         }
 
         btnDonateNow.setOnClickListener {
-            showGuestBottomSheet()
+            showDonationLoginPrompt()
         }
 
         val donateListener = View.OnClickListener {
-            showGuestBottomSheet()
+            showDonationLoginPrompt()
         }
 
         btnDonate100.setOnClickListener(donateListener)
@@ -89,7 +87,7 @@ class DashboardActivity : BaseActivity() {
                 Log.d("DashboardActivity", "Data changed: ${snapshot.childrenCount}")
                 val campaigns = mutableListOf<Campaign>()
                 for (campaignSnapshot in snapshot.children) {
-                    val campaign = campaignSnapshot.getValue(Campaign::class.java)
+                    val campaign = CampaignDisplayHelper.parseCampaign(campaignSnapshot)
                     if (campaign != null) {
                         campaigns.add(campaign)
                     }
@@ -115,7 +113,7 @@ class DashboardActivity : BaseActivity() {
                     tvTrendingDetails.text = details
 
                     cardTrendingCampaign.setOnClickListener {
-                        showGuestBottomSheet()
+                        showDonationLoginPrompt()
                     }
                 } else if (campaigns.isNotEmpty()) {
                     val featured = campaigns[0]
@@ -126,7 +124,7 @@ class DashboardActivity : BaseActivity() {
                     pbCampProgress.progress = progress
                     tvTrendingDetails.text = "$progress% • No deadline"
                     cardTrendingCampaign.setOnClickListener {
-                        showGuestBottomSheet()
+                        showDonationLoginPrompt()
                     }                }
 
                 val activeCampaign = campaigns.filter { it.campaignId != trendingCampaign?.campaignId }.maxByOrNull { it.createdAt ?: 0L }
@@ -149,30 +147,10 @@ class DashboardActivity : BaseActivity() {
         })
     }
 
-    private fun showGuestBottomSheet() {
-        val bottomSheetDialog = BottomSheetDialog(this)
-        val view = LayoutInflater.from(this).inflate(R.layout.activity_guest, null)
-        bottomSheetDialog.setContentView(view)
-
-        val btnCreateAccount = view.findViewById<Button>(R.id.btnCreateAccount)
-        val btnLogin = view.findViewById<Button>(R.id.btnLogin)
-        val btnContinueGuest = view.findViewById<TextView>(R.id.btnContinueGuest)
-
-        btnCreateAccount.setOnClickListener {
-            bottomSheetDialog.dismiss()
-            startActivity(Intent(this, RegisterActivity::class.java))
-        }
-
-        btnLogin.setOnClickListener {
-            bottomSheetDialog.dismiss()
-            startActivity(Intent(this, LoginActivity::class.java))
-        }
-
-        btnContinueGuest.setOnClickListener {
-            bottomSheetDialog.dismiss()
-        }
-
-        bottomSheetDialog.show()
+    private fun showDonationLoginPrompt() {
+        GuestDonationGuard.showLoginRequiredDialog(
+            context = this
+        )
     }
 
     private fun parseCampaignDate(dateString: String?): Date? {
@@ -197,13 +175,7 @@ class DashboardActivity : BaseActivity() {
     }
 
     private fun calculateProgress(campaign: Campaign): Int {
-        val goal = campaign.goal ?: 0
-        val raised = campaign.raised ?: 0
-        return if (goal > 0) {
-            ((raised.toDouble() / goal.toDouble()) * 100).toInt().coerceIn(0, 100)
-        } else {
-            0
-        }
+        return CampaignDisplayHelper.progressPercent(campaign)
     }
 
     private fun selectTrendingCampaign(campaigns: List<Campaign>): Campaign? {

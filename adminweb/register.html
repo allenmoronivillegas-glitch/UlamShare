@@ -11,7 +11,8 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
   import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // Your web app's Firebase configuration
   const firebaseConfig = {
@@ -30,11 +31,39 @@
   const analytics = getAnalytics(app);
   const auth = getAuth(app);
   const db = getDatabase(app);
+  const firestore = getFirestore(app);
 
   // Make Firebase available globally
   window.firebaseApp = app;
   window.firebaseAnalytics = analytics;
   window.firebaseAuth = auth;
+
+  function normalizeRole(role) {
+    const key = String(role || "")
+      .trim()
+      .toLowerCase()
+      .replaceAll("-", "_")
+      .replaceAll(" ", "_");
+    if (key === "superadmin") return "super_admin";
+    if (key === "mod") return "moderator";
+    if (["super_admin", "admin", "moderator", "support"].includes(key)) return key;
+    return "user";
+  }
+
+  function displayRole(roleKey) {
+    switch (normalizeRole(roleKey)) {
+      case "super_admin":
+        return "Super Admin";
+      case "admin":
+        return "Admin";
+      case "moderator":
+        return "Moderator";
+      case "support":
+        return "Support";
+      default:
+        return "User";
+    }
+  }
 
   // Handle register form
   document.addEventListener('DOMContentLoaded', () => {
@@ -56,15 +85,59 @@
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: username });
-        // Store role in database
-        let role = document.getElementById('role').value;
-        role = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
-        await set(ref(db, `users/${userCredential.user.uid}`), {
-          email: email,
-          username: username,
-          role: role,
-          createdAt: Date.now()
+        const uid = userCredential.user.uid;
+        const normalizedRole = normalizeRole(document.getElementById('role').value);
+        const role = displayRole(normalizedRole);
+        const now = Date.now();
+        console.log("Registered Auth user uid:", uid);
+        console.log("Saving team user to Realtime Database:", uid, role);
+        const realtimeUserRef = ref(db, `users/${uid}`);
+        const realtimeSnap = await get(realtimeUserRef).catch(() => null);
+        const realtimeExisting = realtimeSnap?.exists() ? (realtimeSnap.val() || {}) : {};
+        await update(realtimeUserRef, {
+          uid,
+          email,
+          username,
+          fullName: username,
+          role,
+          roleKey: normalizedRole,
+          isActiveUser: true,
+          isDuplicate: false,
+          createdAt: realtimeExisting.createdAt || now,
+          updatedAt: now
         });
+
+        console.log("Saving team user to Firestore:", uid, normalizedRole);
+        const userDocRef = doc(firestore, 'users', uid);
+        const existingFirestoreSnap = await getDoc(userDocRef).catch(() => null);
+        const existingFirestore = existingFirestoreSnap?.exists() ? (existingFirestoreSnap.data() || {}) : {};
+        const firestorePayload = {
+          uid,
+          email,
+          username,
+          fullName: username,
+          role: normalizedRole,
+          roleKey: normalizedRole,
+          displayRole: role,
+          authProvider: "email",
+          isActiveUser: true,
+          isDuplicate: false,
+          updatedAt: serverTimestamp()
+        };
+        if (!existingFirestoreSnap?.exists()) {
+          firestorePayload.createdAt = serverTimestamp();
+        }
+        [
+          ['friendsCount', 0],
+          ['followingCount', 0],
+          ['followersCount', 0],
+          ['totalDonated', 0],
+          ['donationsCount', 0],
+          ['campaignsDonatedCount', 0]
+        ].forEach(([field, fallback]) => {
+          if (existingFirestore[field] == null) firestorePayload[field] = fallback;
+        });
+        await setDoc(userDocRef, firestorePayload, { merge: true });
         alert('Registration successful! Please login.');
         window.location.href = 'login.html';
       } catch (error) {
@@ -153,6 +226,7 @@ html,body{height:100%;background:var(--navy);color:var(--text);font-family:var(-
           <option value="Super Admin">Super Admin</option>
           <option value="Admin">Admin</option>
           <option value="Moderator">Moderator</option>
+          <option value="Support">Support</option>
           <option value="Viewer">Viewer</option>
         </select>
       </div>

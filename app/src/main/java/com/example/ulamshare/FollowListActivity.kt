@@ -32,14 +32,15 @@ class FollowListActivity : AppCompatActivity() {
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
 
     private var ownerUserId: String = ""
-    private var mode: String = MODE_FOLLOWING
+    private var mode: String = MODE_ALL_USERS
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_follow_list)
 
         ownerUserId = intent.getStringExtra(EXTRA_USER_ID).orEmpty()
-        mode = intent.getStringExtra(EXTRA_MODE).orEmpty().ifBlank { MODE_FOLLOWING }
+        mode = normalizeMode(intent.getStringExtra(EXTRA_MODE).orEmpty())
+        Log.d(TAG, "mode=$mode")
 
         titleView = findViewById(R.id.tvFollowListTitle)
         subtitleView = findViewById(R.id.tvFollowListSubtitle)
@@ -49,18 +50,12 @@ class FollowListActivity : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
 
-        titleView.text = if (mode == MODE_FOLLOWERS) {
-            getString(R.string.followers_title)
-        } else if (mode == MODE_FRIENDS) {
-            getString(R.string.friends_title)
-        } else {
-            getString(R.string.following_title)
-        }
-        subtitleView.text = getString(R.string.follow_list_subtitle)
+        titleView.text = titleForMode()
+        subtitleView.text = subtitleForMode()
 
         adapter = FollowListAdapter(
             onUserClick = { user ->
-                PublicProfileActivity.start(this, user.userId)
+                openUserProfile(user.userId)
             },
             onUnfollowClick = { user ->
                 if (mode == MODE_FRIENDS) {
@@ -73,21 +68,33 @@ class FollowListActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
-        loadFollowList()
+        loadUserList()
     }
 
-    private fun loadFollowList() {
+    private fun loadUserList() {
+        when (mode) {
+            MODE_ALL_USERS -> loadAllUsers()
+            MODE_FRIENDS -> loadRelationshipUsers(FRIENDS_COLLECTION)
+            MODE_FOLLOWERS -> loadRelationshipUsers(FOLLOWERS_COLLECTION)
+            MODE_FOLLOWING -> loadRelationshipUsers(FOLLOWING_COLLECTION)
+            else -> loadAllUsers()
+        }
+    }
+
+    private fun loadRelationshipUsers(collectionName: String) {
         if (ownerUserId.isBlank()) {
             showEmptyState()
             return
         }
 
         showLoading()
-        val collectionName = when (mode) {
-            MODE_FOLLOWERS -> FOLLOWERS_COLLECTION
-            MODE_FRIENDS -> FRIENDS_COLLECTION
-            else -> FOLLOWING_COLLECTION
+        val relationshipPath = "users/$ownerUserId/$collectionName"
+        if (collectionName == FRIENDS_COLLECTION) {
+            Log.d(TAG, "Loading friends from $relationshipPath")
+        } else {
+            Log.d(TAG, "Loading $collectionName from $relationshipPath")
         }
+
         firestore.collection(USERS_COLLECTION)
             .document(ownerUserId)
             .collection(collectionName)
@@ -95,7 +102,10 @@ class FollowListActivity : AppCompatActivity() {
             .addOnSuccessListener { snapshot ->
                 val relationshipDocs = snapshot.documents
                 if (relationshipDocs.isEmpty()) {
-                    loadDiscoverableUsersIfNeeded()
+                    if (collectionName == FRIENDS_COLLECTION) {
+                        Log.d(TAG, "Friends shown count=0")
+                    }
+                    showEmptyState()
                     return@addOnSuccessListener
                 }
 
@@ -129,10 +139,13 @@ class FollowListActivity : AppCompatActivity() {
                                 }
                             }
                             .distinctBy { it.userId }
+                        if (collectionName == FRIENDS_COLLECTION) {
+                            Log.d(TAG, "Friends shown count=${users.size}")
+                        }
                         showUsers(users)
                     }
                     .addOnFailureListener { error ->
-                        Log.w("FollowListActivity", "Unable to hydrate $collectionName profiles", error)
+                        Log.w(TAG, "Unable to hydrate $collectionName profiles", error)
                         val orderField = if (mode == MODE_FRIENDS) "friendedAt" else "followedAt"
                         val fallbackUsers = relationshipDocs
                             .sortedByDescending { relationshipTimeMillis(it, orderField) }
@@ -141,11 +154,14 @@ class FollowListActivity : AppCompatActivity() {
                                 if (userId.isBlank()) null else mapRelationshipUser(relationship, null)
                             }
                             .distinctBy { it.userId }
+                        if (collectionName == FRIENDS_COLLECTION) {
+                            Log.d(TAG, "Friends shown count=${fallbackUsers.size}")
+                        }
                         showUsers(fallbackUsers)
                     }
             }
             .addOnFailureListener { error ->
-                Log.e("FollowListActivity", "Unable to load $collectionName list", error)
+                Log.e(TAG, "Unable to load $collectionName list", error)
                 progressView.visibility = View.GONE
                 recyclerView.visibility = View.GONE
                 stateView.visibility = View.VISIBLE
@@ -153,31 +169,30 @@ class FollowListActivity : AppCompatActivity() {
             }
     }
 
-    private fun loadDiscoverableUsersIfNeeded() {
-        if (mode != MODE_FRIENDS || auth.currentUser?.uid != ownerUserId) {
-            showEmptyState()
-            return
-        }
-
+    private fun loadAllUsers() {
+        showLoading()
+        Log.d(TAG, "Loading all users from users collection")
         firestore.collection(USERS_COLLECTION)
             .get()
             .addOnSuccessListener { snapshot ->
+                Log.d(TAG, "Raw users count=${snapshot.size()}")
                 val users = dedupeProfileDocuments(snapshot.documents)
                     .map(::mapProfileUser)
                     .sortedBy { it.fullName.lowercase() }
 
                 progressView.visibility = View.GONE
+                Log.d(TAG, "Shown users count=${users.size}")
                 if (users.isEmpty()) {
                     showEmptyState()
                 } else {
-                    subtitleView.text = getString(R.string.people_you_may_know)
+                    subtitleView.text = subtitleForMode()
                     stateView.visibility = View.GONE
                     recyclerView.visibility = View.VISIBLE
                     adapter.submitList(users, canUnfollow = false)
                 }
             }
             .addOnFailureListener { error ->
-                Log.e("FollowListActivity", "Unable to load discoverable users", error)
+                Log.e(TAG, "Unable to load users", error)
                 showEmptyState()
             }
     }
@@ -188,7 +203,7 @@ class FollowListActivity : AppCompatActivity() {
         if (users.isEmpty()) {
             showEmptyState()
         } else {
-            subtitleView.text = getString(R.string.follow_list_subtitle)
+            subtitleView.text = subtitleForMode()
             stateView.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
         }
@@ -212,10 +227,10 @@ class FollowListActivity : AppCompatActivity() {
                     result
                         .onSuccess {
                             Toast.makeText(this, R.string.friend_removed, Toast.LENGTH_SHORT).show()
-                            loadFollowList()
+                            loadUserList()
                         }
                         .onFailure { error ->
-                            Log.e("FollowListActivity", "Unable to unfollow from list", error)
+                            Log.e(TAG, "Unable to unfollow from list", error)
                             Toast.makeText(this, R.string.unfollow_failed, Toast.LENGTH_SHORT).show()
                         }
                 }
@@ -237,10 +252,10 @@ class FollowListActivity : AppCompatActivity() {
                     result
                         .onSuccess {
                             Toast.makeText(this, R.string.friend_removed, Toast.LENGTH_SHORT).show()
-                            loadFollowList()
+                            loadUserList()
                         }
                         .onFailure { error ->
-                            Log.e("FollowListActivity", "Unable to unfriend from list", error)
+                            Log.e(TAG, "Unable to unfriend from list", error)
                             Toast.makeText(this, R.string.unfriend_failed, Toast.LENGTH_SHORT).show()
                         }
                 }
@@ -253,7 +268,7 @@ class FollowListActivity : AppCompatActivity() {
         recyclerView.visibility = View.GONE
         stateView.visibility = View.VISIBLE
         stateView.text = getString(R.string.follow_list_loading)
-        subtitleView.text = getString(R.string.follow_list_subtitle)
+        subtitleView.text = subtitleForMode()
     }
 
     private fun showEmptyState() {
@@ -261,9 +276,27 @@ class FollowListActivity : AppCompatActivity() {
         recyclerView.visibility = View.GONE
         stateView.visibility = View.VISIBLE
         stateView.text = when (mode) {
+            MODE_ALL_USERS -> getString(R.string.add_friends_empty_state)
             MODE_FOLLOWERS -> getString(R.string.no_followers_yet)
             MODE_FRIENDS -> getString(R.string.no_friends_yet)
             else -> getString(R.string.no_following_yet)
+        }
+    }
+
+    private fun titleForMode(): String {
+        return when (mode) {
+            MODE_ALL_USERS -> getString(R.string.add_friends_title)
+            MODE_FOLLOWERS -> getString(R.string.followers_title)
+            MODE_FRIENDS -> getString(R.string.friends_title)
+            else -> getString(R.string.following_title)
+        }
+    }
+
+    private fun subtitleForMode(): String {
+        return when (mode) {
+            MODE_ALL_USERS -> getString(R.string.add_friends_subtitle)
+            MODE_FRIENDS -> getString(R.string.friends_profile_subtitle)
+            else -> getString(R.string.follow_list_subtitle)
         }
     }
 
@@ -301,10 +334,11 @@ class FollowListActivity : AppCompatActivity() {
     }
 
     private fun mapProfileUser(document: DocumentSnapshot): FollowListUser {
-        val userId = document.getString("uid").orEmpty().ifBlank { document.id }
+        val userId = canonicalUserId(document)
         val fullName = listOf(
             document.getString("fullName").orEmpty(),
             document.getString("displayName").orEmpty(),
+            document.getString("username").orEmpty(),
             getString(R.string.hopegive_user)
         ).firstNotNullOf { candidate ->
             PrivacyDisplayHelper.publicName(candidate, "").takeIf { it.isNotBlank() }
@@ -323,17 +357,22 @@ class FollowListActivity : AppCompatActivity() {
         val seenUids = mutableSetOf<String>()
         val seenEmails = mutableSetOf<String>()
         return documents
-            .filterNot { it.getBoolean("isDuplicate") == true }
+            .filter(::isRealUserDocument)
             .sortedWith(
                 compareByDescending<DocumentSnapshot> { profileScore(it) }
+                    .thenByDescending { it.getTimestamp("updatedAt")?.toDate()?.time ?: 0L }
                     .thenBy { publicNameFromDocument(it).lowercase(Locale.getDefault()) }
             )
             .mapNotNull { document ->
-                val userId = document.getString("uid").orEmpty().ifBlank { document.id }
+                val userId = canonicalUserId(document)
                 val emailKey = document.getString("email").orEmpty().trim().lowercase(Locale.US)
-                if (userId.isBlank() || userId == ownerUserId) return@mapNotNull null
+                if (userId.isBlank()) return@mapNotNull null
+                if (userId == currentViewerId()) {
+                    Log.d(TAG, "Skipped current user uid=$userId")
+                    return@mapNotNull null
+                }
                 if (seenUids.contains(userId) || (emailKey.isNotBlank() && seenEmails.contains(emailKey))) {
-                    Log.d("FollowListActivity", "Skipping duplicate discoverable user document id=${document.id} uid=$userId")
+                    Log.d(TAG, "Skipped duplicate uid=$userId documentId=${document.id}")
                     return@mapNotNull null
                 }
                 seenUids += userId
@@ -346,6 +385,7 @@ class FollowListActivity : AppCompatActivity() {
         return listOf(
             document.getString("fullName").orEmpty(),
             document.getString("displayName").orEmpty(),
+            document.getString("username").orEmpty(),
             document.getString("name").orEmpty(),
             getString(R.string.hopegive_user)
         ).firstNotNullOf { candidate ->
@@ -354,26 +394,103 @@ class FollowListActivity : AppCompatActivity() {
     }
 
     private fun profileScore(document: DocumentSnapshot): Int {
-        val userId = document.getString("uid").orEmpty().ifBlank { document.id }
+        val storedUserId = document.getString("uid").orEmpty()
         val hasName = publicNameFromDocument(document) != getString(R.string.hopegive_user)
         val hasPhoto = document.getString("profilePhotoUrl").orEmpty().isNotBlank() ||
             document.getString("profilePhotoLocalUri").orEmpty().isNotBlank()
         return listOf(
-            if (document.id == userId) 100 else 0,
+            if (storedUserId.isNotBlank() && document.id == storedUserId) 100 else 0,
+            if (storedUserId.isNotBlank() && document.id != storedUserId) 70 else 0,
+            if (document.getBoolean("isActiveUser") == true) 50 else 0,
             if (hasName) 40 else 0,
             if (hasPhoto) 10 else 0,
-            if (document.getTimestamp("updatedAt") != null) 1 else 0
         ).sum()
+    }
+
+    private fun isRealUserDocument(document: DocumentSnapshot): Boolean {
+        val userId = canonicalUserId(document)
+        if (userId.isBlank()) return false
+        if (userId == currentViewerId()) {
+            Log.d(TAG, "Skipped current user uid=$userId")
+            return false
+        }
+        if (document.getBoolean("isActiveUser") == false) {
+            Log.d(TAG, "Skipped inactive uid=$userId")
+            return false
+        }
+        if (document.getBoolean("isDuplicate") == true) {
+            Log.d(TAG, "Skipped duplicate uid=$userId")
+            return false
+        }
+        if (document.getBoolean("archived") == true || document.getBoolean("isArchived") == true || document.get("archivedAt") != null) {
+            Log.d(TAG, "Skipped archived uid=$userId")
+            return false
+        }
+
+        val recordType = document.getString("recordType").orEmpty()
+        if (recordType == "legacy_or_invalid" || (recordType.isNotBlank() && recordType != "user")) {
+            Log.d(TAG, "Skipped non-user record uid=$userId recordType=$recordType")
+            return false
+        }
+
+        val hasStoredUid = document.getString("uid").orEmpty().isNotBlank()
+        val hasIdentity = document.getString("fullName").orEmpty().isNotBlank() ||
+            document.getString("displayName").orEmpty().isNotBlank() ||
+            document.getString("username").orEmpty().isNotBlank() ||
+            document.getString("email").orEmpty().isNotBlank() ||
+            document.getString("authProvider").orEmpty().isNotBlank() ||
+            document.get("authProviders") != null ||
+            document.get("createdAt") != null
+
+        if (!hasStoredUid && !hasIdentity) {
+            Log.d(TAG, "Skipped incomplete record documentId=${document.id}")
+            return false
+        }
+        return true
+    }
+
+    private fun canonicalUserId(document: DocumentSnapshot): String {
+        return document.getString("uid").orEmpty().ifBlank { document.id }
+    }
+
+    private fun currentViewerId(): String {
+        return auth.currentUser?.uid.orEmpty()
+    }
+
+    private fun openUserProfile(userId: String) {
+        if (userId == currentViewerId()) {
+            startActivity(Intent(this, MainActivity::class.java).apply {
+                putExtra(MainActivity.EXTRA_OPEN_PROFILE, true)
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            })
+            return
+        }
+        PublicProfileActivity.start(this, userId)
     }
 
     private fun relationshipTimeMillis(document: DocumentSnapshot, field: String): Long {
         return document.getTimestamp(field)?.toDate()?.time ?: 0L
     }
 
+    private fun normalizeMode(rawMode: String): String {
+        return when (rawMode) {
+            MODE_ALL_USERS, LEGACY_MODE_USERS -> MODE_ALL_USERS
+            MODE_FRIENDS -> MODE_FRIENDS
+            MODE_FOLLOWING -> MODE_FOLLOWING
+            MODE_FOLLOWERS -> MODE_FOLLOWERS
+            else -> MODE_ALL_USERS
+        }
+    }
+
     companion object {
+        private const val TAG = "ViewUsers"
+
+        const val MODE_ALL_USERS = "all_users"
         const val MODE_FOLLOWING = "following"
         const val MODE_FOLLOWERS = "followers"
         const val MODE_FRIENDS = "friends"
+        const val MODE_USERS = MODE_ALL_USERS
+        private const val LEGACY_MODE_USERS = "users"
 
         private const val EXTRA_USER_ID = "extra_user_id"
         private const val EXTRA_MODE = "extra_mode"

@@ -266,15 +266,24 @@ class HomeFragment : Fragment() {
         tvTrendingEmoji.text = CampaignDisplayHelper.campaignEmoji(trending)
         tvTrendingTag.text = tag
         tvCampTitle.text = trending.title ?: "Untitled campaign"
-        tvRaised.text = "${CampaignDisplayHelper.formatPeso(trending.raised)} raised"
+        tvRaised.text = "${CampaignDisplayHelper.formatPeso(CampaignDisplayHelper.campaignRaised(trending))} raised"
         pbCampProgress.progress = progress
         tvTrendingDetails.text = details
 
         trendingContainer.setOnClickListener {
+            if (GuestDonationGuard.blockIfGuest(
+                    context = requireContext(),
+                    campaignId = trending.campaignId,
+                    campaignTitle = trending.title
+                )
+            ) {
+                return@setOnClickListener
+            }
+
             val intent = Intent(requireContext(), ActivitySelectAmount::class.java).apply {
                 putExtra("campaignId", trending.campaignId)
                 putExtra("title", trending.title)
-                putExtra("goal", trending.goal ?: 0)
+                putExtra("goal", CampaignDisplayHelper.campaignGoal(trending))
             }
             startActivity(intent)
         }

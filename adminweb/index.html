@@ -10,9 +10,9 @@
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
-  import { getDatabase, ref, push, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getDatabase, ref, push, set, get, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
   import { getAuth, onAuthStateChanged, signOut, getIdTokenResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, query, orderBy, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // Your web app's Firebase configuration
   const firebaseConfig = {
@@ -54,6 +54,7 @@
   window.firebaseUsersRef = ref(db, 'users');
   window.firebasePush = push;
   window.firebaseSet = set;
+  window.firebaseGet = get;
   window.firebaseUpdate = update;
   window.firebaseOnValue = onValue;
   window.firebaseRemove = remove;
@@ -66,6 +67,9 @@
   window.firebaseQuery = query;
   window.firebaseOrderBy = orderBy;
   window.firebaseSetDoc = setDoc;
+  window.firebaseUpdateDoc = updateDoc;
+  window.firebaseDeleteDoc = deleteDoc;
+  window.firebaseAddDoc = addDoc;
   window.firebaseServerTimestamp = serverTimestamp;
   console.log('✓ All Firebase window refs configured');
   
@@ -739,6 +743,30 @@ td.muted{color:var(--muted);font-size:12px}
 /* role pill */
 .role-pill{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(47,128,237,.15);color:#60a5fa;font-weight:500}
 .role-pill.super{background:rgba(124,92,191,.15);color:#c084fc}
+.role-pill.admin{background:rgba(47,128,237,.15);color:#60a5fa}
+.role-pill.moderator{background:rgba(242,153,74,.16);color:#f6b26b}
+.role-pill.support{background:rgba(39,174,96,.16);color:#5ee08b}
+.role-pill.user{background:rgba(255,255,255,.08);color:var(--muted)}
+
+/* user management */
+.user-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.user-tools .field-input{max-width:280px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1f63c0,#60a5fa);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0}
+.user-name-stack{display:flex;flex-direction:column;gap:3px;min-width:150px}
+.user-name-stack strong{font-size:13px;color:var(--text)}
+.user-name-stack span{font-size:11px;color:var(--hint);font-family:var(--font-mono)}
+.user-status-stack{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.badge.warn{background:rgba(242,153,74,.16);color:#f6b26b}
+.badge.success{background:rgba(39,174,96,.16);color:#5ee08b}
+.badge.danger{background:rgba(229,62,62,.16);color:#ff7b7b}
+.badge.gray{background:rgba(255,255,255,.08);color:var(--muted)}
+.admin-action-row{display:flex;gap:6px;flex-wrap:wrap}
+.admin-action-row .btn{padding:6px 8px;font-size:11px}
+.detail-grid{display:grid;grid-template-columns:140px 1fr;gap:10px 14px;font-size:12px}
+.detail-grid div:nth-child(odd){color:var(--hint)}
+.detail-grid div:nth-child(even){color:var(--text);word-break:break-word}
+.warning-list{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.warning-list .badge{width:max-content}
  
 /* toast */
 .toast{position:fixed;bottom:24px;right:24px;background:var(--navy2);border:1px solid var(--green);border-radius:10px;padding:12px 18px;font-size:13px;color:var(--text);z-index:200;display:none;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
@@ -830,6 +858,90 @@ td.muted{color:var(--muted);font-size:12px}
   </div>
 </div>
 
+<div class="modal-bg" id="modal-user-details">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title">User Details</div>
+      <button class="modal-close" onclick="closeModal('modal-user-details')">âœ•</button>
+    </div>
+    <div class="modal-body">
+      <div id="admin-user-details-body" class="detail-grid"></div>
+      <div id="admin-user-details-warnings" class="warning-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-user-details')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-team-role">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">Edit Team Role</div>
+      <button class="modal-close" onclick="closeModal('modal-team-role')">Close</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="team-role-user-doc-id">
+      <div class="field-row">
+        <div class="field-label">Team member</div>
+        <input class="field-input" id="team-role-user-name" disabled>
+      </div>
+      <div class="field-row">
+        <div class="field-label">Role *</div>
+        <select class="field-input" id="team-edit-role-select">
+          <option value="user">User</option>
+          <option value="moderator">Moderator</option>
+          <option value="admin">Admin</option>
+          <option value="support">Support</option>
+          <option value="super_admin">Super Admin</option>
+        </select>
+      </div>
+      <div style="background:var(--navy3);border-radius:8px;padding:12px;font-size:12px;color:var(--muted);line-height:1.5;margin-top:4px">
+        Only Super Admin can change roles. Removing from Team sets this user back to User and does not delete their account.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-team-role')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditedTeamRole()">Save Role</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-team-member">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <div class="modal-title">Add Team Member</div>
+      <button class="modal-close" onclick="closeModal('modal-team-member')">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field-label">Search existing users</div>
+        <input class="field-input" id="team-user-search" placeholder="Search by name, email, or UID" oninput="populateTeamCandidateSelect()">
+      </div>
+      <div class="field-row">
+        <div class="field-label">User *</div>
+        <select class="field-input" id="team-user-select"></select>
+      </div>
+      <div class="field-row">
+        <div class="field-label">Role *</div>
+        <select class="field-input" id="team-role-select">
+          <option value="admin">Admin</option>
+          <option value="moderator">Moderator</option>
+          <option value="support">Support</option>
+          <option value="super_admin">Super Admin</option>
+        </select>
+      </div>
+      <div id="team-add-helper" style="background:var(--navy3);border-radius:8px;padding:12px;font-size:12px;color:var(--muted);line-height:1.5;margin-top:4px">
+        User must create an account first before being added to the team.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-team-member')">Cancel</button>
+      <button class="btn btn-primary" id="team-save-btn" onclick="saveTeamMemberRole()">Add Team Member</button>
+    </div>
+  </div>
+</div>
+
 <div class="shell">
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -849,7 +961,8 @@ td.muted{color:var(--muted);font-size:12px}
  
   <div class="nav-section">Operations</div>
   <div class="nav-item" id="nav-payments" onclick="nav('payments',this)"><span class="icon">💳</span><span>Payments</span></div>
-  <div class="nav-item" id="nav-users" onclick="nav('users',this)"><span class="icon">🔐</span><span>Team</span></div>
+  <div class="nav-item" id="nav-users" onclick="nav('users',this)"><span class="icon">US</span><span>Users</span></div>
+  <div class="nav-item" id="nav-team" onclick="nav('team',this)"><span class="icon">TM</span><span>Team</span></div>
   <div class="nav-divider"></div>
   <div class="nav-item" id="nav-settings" onclick="nav('settings',this)"><span class="icon">⚙️</span><span>Settings</span></div>
   <div class="nav-item" id="nav-support" onclick="nav('support',this)">
@@ -1221,7 +1334,7 @@ td.muted{color:var(--muted);font-size:12px}
           <div class="empty-title">No payment activity</div>
           <div class="empty-sub">Before accepting payments, make sure you've connected at least one payment provider in Settings.</div>
           <div class="empty-cta">
-            <button class="btn btn-primary" onclick="nav('settings',document.querySelectorAll('.nav-item')[6])">Configure payment providers →</button>
+            <button class="btn btn-primary" onclick="nav('settings',document.getElementById('nav-settings'))">Configure payment providers →</button>
           </div>
         </div>
       </div>
@@ -1244,7 +1357,7 @@ td.muted{color:var(--muted);font-size:12px}
           </div>
         </div>
         <div style="padding:16px 20px;border-top:1px solid var(--border)">
-          <button class="btn btn-primary btn-sm" onclick="nav('settings',document.querySelectorAll('.nav-item')[6])">Set up payment providers →</button>
+          <button class="btn btn-primary btn-sm" onclick="nav('settings',document.getElementById('nav-settings'))">Set up payment providers →</button>
         </div>
       </div>
     </div>
@@ -1252,41 +1365,104 @@ td.muted{color:var(--muted);font-size:12px}
     <!-- ═══ TEAM ═══ -->
     <div class="section" id="s-users">
       <div class="page-header">
-        <div><div class="page-heading">Team</div><div class="page-sub">Admin users and permissions</div></div>
+        <div><div class="page-heading">Users</div><div class="page-sub">Manage app users, duplicates, and archived records</div></div>
         <div class="page-actions">
-          <button class="btn btn-primary" id="btn-invite-member" onclick="openModal('modal-invite')">+ Invite member</button>
+          <button class="btn btn-ghost" onclick="renderAdminUsers()">Refresh</button>
         </div>
+      </div>
+
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+        <div class="stat-card"><div class="stat-label">Total users</div><div class="stat-value zero" id="admin-users-total">0</div><div class="stat-sub">Firestore profiles</div></div>
+        <div class="stat-card"><div class="stat-label">Active</div><div class="stat-value zero" id="admin-users-active">0</div><div class="stat-sub">Visible in Android</div></div>
+        <div class="stat-card"><div class="stat-label">Possible duplicates</div><div class="stat-value zero" id="admin-users-duplicates">0</div><div class="stat-sub">Needs review</div></div>
+        <div class="stat-card"><div class="stat-label">Archived</div><div class="stat-value zero" id="admin-users-archived">0</div><div class="stat-sub">Hidden safely</div></div>
       </div>
  
       <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title">User management</div>
+          <div class="user-tools">
+            <input id="admin-user-search" class="field-input" type="search" placeholder="Search users" oninput="renderAdminUsers()">
+            <select id="admin-user-filter" class="field-input" onchange="renderAdminUsers()">
+              <option value="all">All users</option>
+              <option value="active">Active</option>
+              <option value="duplicates">Possible duplicates</option>
+              <option value="archived">Archived/duplicate</option>
+              <option value="admins">Admin roles</option>
+            </select>
+          </div>
+        </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
-            <tbody id="team-table">
-              <tr>
-                <td><div class="row-cell"><div class="row-ava">MA</div>Maria Admin</div></td>
-                <td class="muted">maria@hopegive.ph</td>
-                <td><span class="role-pill super">Super Admin</span></td>
-                <td><span class="badge info">Active</span></td>
-                <td><span style="font-size:12px;color:var(--hint)">You</span></td>
-              </tr>
+            <thead><tr><th>User</th><th>Email</th><th>Phone</th><th>Role</th><th>UID</th><th>Provider</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+            <tbody id="admin-users-table">
+              <tr><td colspan="9" style="text-align:center;padding:28px;color:var(--hint);font-size:13px">Loading users...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
  
-      <div class="card">
+      <div class="card" style="display:none">
+        <div class="card-header"><div class="card-title">Admin team mirror</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+            <tbody id="team-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="team-empty-card">
         <div class="empty" style="padding:36px 24px">
           <div class="empty-icon">👤</div>
-          <div class="empty-title">Just you for now</div>
-          <div class="empty-sub">Invite team members to help manage campaigns, review donations, and run operations.</div>
-          <div class="empty-cta">
-            <button class="btn btn-primary" id="btn-invite-first-member" onclick="openModal('modal-invite')">+ Invite first team member</button>
-          </div>
+          <div class="empty-title">User cleanup is safe by default</div>
+          <div class="empty-sub">Archive duplicates first. Permanent delete removes only the Firestore user document and is limited to Super Admin.</div>
         </div>
       </div>
     </div>
  
+    <div class="section" id="s-team">
+      <div class="page-header">
+        <div><div class="page-heading">Team</div><div class="page-sub">Manage admin, moderator, and support team access</div></div>
+        <div class="page-actions">
+          <button class="btn btn-ghost" id="btn-sync-legacy-team" onclick="syncRealtimeUsersToFirestore()">Sync Legacy Team Users</button>
+          <button class="btn btn-primary" id="btn-add-team-member" onclick="openAddTeamMemberModal()">+ Add Team Member</button>
+        </div>
+      </div>
+
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+        <div class="stat-card"><div class="stat-label">Team members</div><div class="stat-value zero" id="team-total">0</div><div class="stat-sub">Admin/staff accounts</div></div>
+        <div class="stat-card"><div class="stat-label">Super Admins</div><div class="stat-value zero" id="team-super-admins">0</div><div class="stat-sub">Full access</div></div>
+        <div class="stat-card"><div class="stat-label">Admins</div><div class="stat-value zero" id="team-admins">0</div><div class="stat-sub">Operations access</div></div>
+        <div class="stat-card"><div class="stat-label">Moderators / Support</div><div class="stat-value zero" id="team-staff">0</div><div class="stat-sub">Community support</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Team members</div>
+          <div class="user-tools">
+            <input id="team-search" class="field-input" type="search" placeholder="Search team" oninput="renderTeamManagement()">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Member</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody id="admin-team-table">
+              <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--hint);font-size:13px">Loading team...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="empty" style="padding:26px 24px">
+          <div class="empty-icon">TM</div>
+          <div class="empty-title">Team is separate from Users</div>
+          <div class="empty-sub">Users is for duplicate cleanup. Team is only for admin, moderator, and support role access. Removing from Team changes the role back to user and keeps the account.</div>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══ SETTINGS ═══ -->
     <div class="section" id="s-settings">
       <div class="page-header">
@@ -1496,7 +1672,7 @@ td.muted{color:var(--muted);font-size:12px}
 </div>
 
 <script>
-const titles={dashboard:'Dashboard',campaigns:'Campaigns',donations:'Donations',donors:'Donors',payments:'Payments',users:'Team',settings:'Settings',support:'Support'};
+const titles={dashboard:'Dashboard',campaigns:'Campaigns',donations:'Donations',donors:'Donors',payments:'Payments',users:'Users',team:'Team',settings:'Settings',support:'Support'};
 let selectedUserId = null;
 let selectedUserEmail = '';
 let selectedConversationType = 'support';
@@ -2600,6 +2776,10 @@ function refreshRender(){
 let checks=[true,false,false,false,false];
 let campaigns=[];
 let teamMembers=[];
+let adminUsers=[];
+let adminUserDuplicateLookup=new Map();
+let detachAdminUsersListener=null;
+const pendingTeamRoleBackfills = new Set();
 const campaignFeedSettingsDefaults = {
   allowUserPosts: true,
   allowGuestPosts: false,
@@ -3568,7 +3748,7 @@ function feedPostInitials(name){
 }
 
 function escapeHtml(value){
-  return String(value || '')
+  return String(value == null ? '' : value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -4806,6 +4986,864 @@ function renderDonationStats(){
   renderEmergencyCard();
 }
 
+const TEAM_ROLES = ['super_admin', 'admin', 'moderator', 'support'];
+
+function normalizeRoleValue(value){
+  return String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function adminRoleKey(value){
+  const raw = normalizeRoleValue(value);
+  if(['super_admin','superadmin','super'].includes(raw)) return 'super_admin';
+  if(raw === 'admin') return 'admin';
+  if(['moderator','mod'].includes(raw)) return 'moderator';
+  if(['support','staff'].includes(raw)) return 'support';
+  if(raw === 'user') return 'user';
+  if(raw === 'viewer') return 'viewer';
+  return raw || 'user';
+}
+
+function normalizeRole(user){
+  if(user && typeof user === 'object'){
+    if(String(user.normalizedRole || '').trim()) return adminRoleKey(user.normalizedRole);
+    const values = roleFieldValues(user);
+    const primary = adminRoleKey(values.find(value => String(value || '').trim()) || '');
+    if(TEAM_ROLES.includes(primary)) return primary;
+    const teamFallback = values.map(adminRoleKey).find(role => TEAM_ROLES.includes(role));
+    if(teamFallback) return teamFallback;
+    if(user.isSuperAdmin === true || user.raw?.isSuperAdmin === true) return 'super_admin';
+    if(user.isAdmin === true || user.raw?.isAdmin === true) return 'admin';
+    if(user.isModerator === true || user.raw?.isModerator === true) return 'moderator';
+    return primary;
+  }
+  return adminRoleKey(user);
+}
+
+function adminRoleLabel(value){
+  const key = adminRoleKey(value);
+  if(key === 'super_admin') return 'Super Admin';
+  if(key === 'admin') return 'Admin';
+  if(key === 'moderator') return 'Moderator';
+  if(key === 'support') return 'Support';
+  return value ? String(value) : 'User';
+}
+
+function adminRoleRank(value){
+  const key = value && typeof value === 'object' ? normalizeRole(value) : adminRoleKey(value);
+  if(key === 'super_admin') return 4;
+  if(key === 'admin') return 3;
+  if(key === 'moderator') return 2;
+  if(key === 'support') return 1;
+  return 0;
+}
+
+function isAdminManagementRole(value){
+  return ['super_admin','admin'].includes(adminRoleKey(value));
+}
+
+function isSuperAdminManagementRole(value){
+  return adminRoleKey(value) === 'super_admin';
+}
+
+function isProtectedUserRole(value){
+  return TEAM_ROLES.includes(normalizeRole(value));
+}
+
+function isTeamRole(value){
+  return TEAM_ROLES.includes(normalizeRole(value));
+}
+
+function rolePillClass(value){
+  const key = normalizeRole(value);
+  if(key === 'super_admin') return 'super';
+  if(key === 'admin') return 'admin';
+  if(key === 'moderator') return 'moderator';
+  if(key === 'support') return 'support';
+  return 'user';
+}
+
+function roleFieldValues(user){
+  if(!user || typeof user !== 'object') return [user];
+  return [
+    user.role,
+    user.roleKey,
+    user.userRole,
+    user.adminRole,
+    user.accountRole,
+    user.raw?.role,
+    user.raw?.roleKey,
+    user.raw?.userRole,
+    user.raw?.adminRole,
+    user.raw?.accountRole
+  ];
+}
+
+function resolvedFirestoreUserRole(data){
+  return normalizeRole({
+    role: data?.role || '',
+    roleKey: data?.roleKey || '',
+    userRole: data?.userRole || '',
+    adminRole: data?.adminRole || '',
+    accountRole: data?.accountRole || '',
+    isSuperAdmin: data?.isSuperAdmin === true,
+    isAdmin: data?.isAdmin === true,
+    isModerator: data?.isModerator === true,
+    raw: data || {}
+  });
+}
+
+function currentAdminUid(){
+  return window.currentUserProfile?.uid || window.firebaseAuth?.currentUser?.uid || '';
+}
+
+function currentAdminName(){
+  return window.currentUserProfile?.username || window.currentUserProfile?.email || window.firebaseAuth?.currentUser?.email || 'HopeGive Admin';
+}
+
+function currentAdminRole(){
+  const uid = currentAdminUid();
+  const firestoreUser = adminUsers.find(user => user.docId === uid || user.uid === uid);
+  const profileKey = adminRoleKey(window.currentUserProfile?.role || '');
+  const firestoreKey = normalizeRole(firestoreUser || {});
+  const bestKey = adminRoleRank(firestoreKey) > adminRoleRank(profileKey) ? firestoreKey : profileKey;
+  return adminRoleLabel(bestKey || 'Viewer');
+}
+
+function setUsersNavLabel(){
+  const navUsers = document.getElementById('nav-users');
+  if(navUsers){
+    const spans = navUsers.querySelectorAll('span');
+    if(spans[0]) spans[0].textContent = 'US';
+    if(spans[1]) spans[1].textContent = 'Users';
+  }
+  const navTeam = document.getElementById('nav-team');
+  if(navTeam){
+    const spans = navTeam.querySelectorAll('span');
+    if(spans[0]) spans[0].textContent = 'TM';
+    if(spans[1]) spans[1].textContent = 'Team';
+  }
+}
+
+function normalizeComparable(value){
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function userInitials(user){
+  const value = user.fullName || user.displayName || user.username || 'HopeGive User';
+  return value.split(/\s+/).filter(Boolean).slice(0,2).map(part => part[0]).join('').toUpperCase() || 'HU';
+}
+
+function userDisplayName(user){
+  return user.fullName || user.displayName || user.username || 'HopeGive User';
+}
+
+function adminTimestampText(value){
+  if(!value) return '';
+  if(typeof value.toDate === 'function') return value.toDate().toLocaleString();
+  if(value.seconds) return new Date(value.seconds * 1000).toLocaleString();
+  if(typeof value === 'number') return new Date(value).toLocaleString();
+  return String(value);
+}
+
+function mapFirestoreUser(docSnap){
+  const data = docSnap.data() || {};
+  const uid = String(data.uid || docSnap.id || '').trim();
+  const normalizedRole = resolvedFirestoreUserRole(data);
+  return {
+    docId: docSnap.id,
+    uid,
+    rawUid: String(data.uid || '').trim(),
+    fullName: data.fullName || '',
+    displayName: data.displayName || '',
+    username: data.username || data.name || '',
+    email: data.email || '',
+    phone: data.phone || data.phoneNumber || '',
+    role: data.role || '',
+    roleKey: data.roleKey || '',
+    userRole: data.userRole || '',
+    normalizedRole,
+    authProvider: data.authProvider || (Array.isArray(data.authProviders) ? data.authProviders.join(', ') : ''),
+    profilePhotoUrl: data.profilePhotoUrl || '',
+    isActiveUser: data.isActiveUser !== false,
+    isDuplicate: data.isDuplicate === true,
+    duplicateOf: data.duplicateOf || '',
+    archivedAt: data.archivedAt || null,
+    archivedBy: data.archivedBy || '',
+    recordType: data.recordType || '',
+    createdAt: data.createdAt || null,
+    updatedAt: data.updatedAt || null,
+    totalDonated: Number(data.totalDonated || 0),
+    donationsCount: Number(data.donationsCount || 0),
+    campaignsDonatedCount: Number(data.campaignsDonatedCount || 0),
+    friendsCount: Number(data.friendsCount || 0),
+    followingCount: Number(data.followingCount || 0),
+    followersCount: Number(data.followersCount || 0),
+    raw: data,
+    duplicateReasons: []
+  };
+}
+
+function detectAdminUserDuplicates(users){
+  const groups = { email:new Map(), phone:new Map(), name:new Map(), uid:new Map() };
+  const add = (map, key, user) => {
+    if(!key) return;
+    if(!map.has(key)) map.set(key, []);
+    map.get(key).push(user);
+  };
+  users.forEach(user => {
+    add(groups.email, normalizeComparable(user.email), user);
+    add(groups.phone, normalizeComparable(user.phone), user);
+    const nameKey = normalizeComparable(user.fullName || user.displayName || user.username);
+    if(nameKey && nameKey !== 'hopegive user') add(groups.name, nameKey, user);
+    add(groups.uid, normalizeComparable(user.rawUid), user);
+  });
+  const duplicateMap = new Map();
+  const flag = (user, reason) => {
+    const reasons = duplicateMap.get(user.docId) || new Set();
+    reasons.add(reason);
+    duplicateMap.set(user.docId, reasons);
+  };
+  Object.entries(groups).forEach(([kind, map]) => {
+    map.forEach(items => {
+      if(items.length > 1){
+        items.forEach(user => flag(user, `Same ${kind}`));
+      }
+    });
+  });
+  users.forEach(user => {
+    if(user.rawUid && user.docId !== user.rawUid) flag(user, 'Document ID does not match uid');
+    if(!user.rawUid && (user.email || user.fullName || user.displayName || user.username)) flag(user, 'Missing uid field');
+    if(user.isDuplicate) flag(user, 'Already marked duplicate');
+    if(user.archivedAt || user.isActiveUser === false) flag(user, 'Archived/inactive');
+  });
+  adminUserDuplicateLookup = duplicateMap;
+  adminUsers = users.map(user => ({
+    ...user,
+    duplicateReasons: Array.from(duplicateMap.get(user.docId) || [])
+  }));
+}
+
+function missingCanonicalTeamRole(user){
+  const rawRole = String(user?.raw?.role || '').trim();
+  if(rawRole) return '';
+  if(user?.raw?.isSuperAdmin === true || user?.isSuperAdmin === true) return 'super_admin';
+  if(user?.raw?.isAdmin === true || user?.isAdmin === true) return 'admin';
+  if(user?.raw?.isModerator === true || user?.isModerator === true) return 'moderator';
+  return [
+    user?.roleKey,
+    user?.userRole,
+    user?.adminRole,
+    user?.accountRole,
+    user?.raw?.roleKey,
+    user?.raw?.userRole,
+    user?.raw?.adminRole,
+    user?.raw?.accountRole
+  ].map(adminRoleKey).find(role => TEAM_ROLES.includes(role)) || '';
+}
+
+function backfillMissingTeamRoles(users){
+  if(!window.firebaseFirestore || !window.firebaseDoc || !window.firebaseUpdateDoc || !window.firebaseServerTimestamp) return;
+  if(!isSuperAdminManagementRole(currentAdminRole())) return;
+
+  users.forEach(user => {
+    const roleKey = missingCanonicalTeamRole(user);
+    if(!roleKey || !user.docId || pendingTeamRoleBackfills.has(user.docId)) return;
+    pendingTeamRoleBackfills.add(user.docId);
+    console.log('Backfilling missing canonical team role:', {
+      uid: user.uid,
+      docId: user.docId,
+      role: user.raw?.role,
+      roleKey: user.raw?.roleKey,
+      userRole: user.raw?.userRole,
+      normalizedRole: roleKey
+    });
+    window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseFirestore, 'users', user.docId), {
+      role: roleKey,
+      updatedAt: window.firebaseServerTimestamp()
+    }).catch(error => {
+      pendingTeamRoleBackfills.delete(user.docId);
+      console.error('Unable to backfill team role', error);
+    });
+  });
+}
+
+function realtimeTeamUserPayload(user, roleKey){
+  const uid = user.uid || user.docId;
+  return {
+    uid,
+    email: user.email || user.raw?.email || '',
+    username: user.username || user.displayName || user.fullName || user.raw?.username || '',
+    fullName: user.fullName || user.displayName || user.username || user.raw?.fullName || user.raw?.username || 'HopeGive User',
+    role: adminRoleLabel(roleKey),
+    roleKey,
+    isActiveUser: user.isActiveUser !== false,
+    isDuplicate: user.isDuplicate === true,
+    updatedAt: Date.now()
+  };
+}
+
+function firestoreTeamUserPayload(user, roleKey, includeCreatedAt = false){
+  const payload = {
+    uid: user.uid || user.docId,
+    email: user.email || user.raw?.email || '',
+    username: user.username || user.displayName || user.fullName || user.raw?.username || '',
+    fullName: user.fullName || user.displayName || user.username || user.raw?.fullName || user.raw?.username || 'HopeGive User',
+    role: roleKey,
+    roleKey,
+    displayRole: adminRoleLabel(roleKey),
+    authProvider: user.authProvider || user.raw?.authProvider || 'email',
+    isActiveUser: user.isActiveUser !== false,
+    isDuplicate: user.isDuplicate === true,
+    updatedAt: window.firebaseServerTimestamp()
+  };
+  if(includeCreatedAt) payload.createdAt = window.firebaseServerTimestamp();
+  [
+    ['friendsCount', 0],
+    ['followingCount', 0],
+    ['followersCount', 0],
+    ['totalDonated', 0],
+    ['donationsCount', 0],
+    ['campaignsDonatedCount', 0]
+  ].forEach(([field, fallback]) => {
+    if(!Object.prototype.hasOwnProperty.call(user.raw || {}, field)) payload[field] = fallback;
+  });
+  return payload;
+}
+
+async function syncRealtimeUsersToFirestore(){
+  try{
+    if(!canEditTeamRoles()) throw new Error('Only Super Admin can sync legacy team users.');
+    if(!window.firebaseGet || !window.firebaseUsersRef || !window.firebaseSetDoc || !window.firebaseGetDoc){
+      throw new Error('Firebase sync tools are not ready.');
+    }
+    const snap = await window.firebaseGet(window.firebaseUsersRef);
+    const realtimeUsers = snap.exists() ? (snap.val() || {}) : {};
+    let synced = 0;
+    let skipped = 0;
+
+    for(const [key, value] of Object.entries(realtimeUsers)){
+      const realtimeUser = value || {};
+      const uid = String(realtimeUser.uid || key || '').trim();
+      const realtimeRole = adminRoleKey(realtimeUser.roleKey || realtimeUser.role || realtimeUser.userRole || '');
+      if(!uid || !TEAM_ROLES.includes(realtimeRole)){
+        skipped++;
+        continue;
+      }
+
+      const firestoreRef = window.firebaseDoc(window.firebaseFirestore, 'users', uid);
+      const firestoreSnap = await window.firebaseGetDoc(firestoreRef);
+      const firestoreData = firestoreSnap.exists() ? (firestoreSnap.data() || {}) : {};
+      const firestoreUser = mapFirestoreUser({
+        id: uid,
+        data: () => ({
+          ...firestoreData,
+          uid: firestoreData.uid || uid,
+          email: firestoreData.email || realtimeUser.email || '',
+          username: firestoreData.username || realtimeUser.username || '',
+          fullName: firestoreData.fullName || realtimeUser.fullName || realtimeUser.username || ''
+        })
+      });
+      const firestoreRole = normalizeRole(firestoreUser);
+      const finalRole = TEAM_ROLES.includes(firestoreRole) && adminRoleRank(firestoreRole) >= adminRoleRank(realtimeRole)
+        ? firestoreRole
+        : realtimeRole;
+
+      console.log('Syncing legacy team user:', {
+        uid,
+        email: realtimeUser.email || firestoreData.email || '',
+        realtimeRole,
+        firestoreRole,
+        finalRole
+      });
+      await window.firebaseSetDoc(firestoreRef, firestoreTeamUserPayload({
+        ...firestoreUser,
+        uid,
+        email: firestoreUser.email || realtimeUser.email || '',
+        username: firestoreUser.username || realtimeUser.username || '',
+        fullName: firestoreUser.fullName || realtimeUser.fullName || realtimeUser.username || '',
+        raw: firestoreData
+      }, finalRole, !firestoreSnap.exists()), { merge: true });
+      synced++;
+    }
+
+    console.log('Legacy team sync complete:', { synced, skipped });
+    showToast(`Legacy team sync complete. Synced ${synced} user${synced === 1 ? '' : 's'}.`);
+  }catch(err){
+    console.error('Legacy team sync failed', err);
+    showToast(err.message || 'Unable to sync legacy team users.', 'error');
+  }
+}
+
+function watchAdminUsers(){
+  if(!window.firebaseFirestore || !window.firebaseCollection || !window.firebaseOnFirestoreSnapshot){
+    console.warn('Firestore user management not initialized');
+    return;
+  }
+  if(detachAdminUsersListener) detachAdminUsersListener();
+  const usersRef = window.firebaseCollection(window.firebaseFirestore, 'users');
+  detachAdminUsersListener = window.firebaseOnFirestoreSnapshot(usersRef, snapshot => {
+    detectAdminUserDuplicates(snapshot.docs.map(mapFirestoreUser));
+    backfillMissingTeamRoles(adminUsers);
+    renderAdminUsers();
+    renderTeamManagement();
+    if(window.currentUserProfile) applyRoleRestrictions(currentAdminRole());
+  }, error => {
+    console.error('Unable to load Firestore users', error);
+    const tbody = document.getElementById('admin-users-table');
+    if(tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--red);font-size:13px">Unable to load users.</td></tr>';
+  });
+}
+
+function renderAdminUserStats(users){
+  const total = users.length;
+  const archived = users.filter(user => user.isDuplicate || user.isActiveUser === false || user.archivedAt).length;
+  const duplicates = users.filter(user => user.duplicateReasons.length > 0).length;
+  const active = users.filter(user => user.isActiveUser !== false && !user.isDuplicate && !user.archivedAt).length;
+  const set = (id, value) => { const el = document.getElementById(id); if(el) el.textContent = String(value); };
+  set('admin-users-total', total);
+  set('admin-users-active', active);
+  set('admin-users-duplicates', duplicates);
+  set('admin-users-archived', archived);
+}
+
+function filterAdminUsers(){
+  const query = normalizeComparable(document.getElementById('admin-user-search')?.value || '');
+  const filter = document.getElementById('admin-user-filter')?.value || 'all';
+  return adminUsers.filter(user => {
+    const archived = user.isDuplicate || user.isActiveUser === false || user.archivedAt;
+    const duplicate = user.duplicateReasons.length > 0;
+    const adminRole = isProtectedUserRole(user);
+    if(filter === 'active' && archived) return false;
+    if(filter === 'duplicates' && !duplicate) return false;
+    if(filter === 'archived' && !archived) return false;
+    if(filter === 'admins' && !adminRole) return false;
+    if(!query) return true;
+    return [
+      userDisplayName(user),
+      user.email,
+      user.phone,
+      user.uid,
+      user.docId,
+      user.role,
+      user.authProvider
+    ].some(value => normalizeComparable(value).includes(query));
+  });
+}
+
+function renderAdminUsers(){
+  renderAdminUserStats(adminUsers);
+  const tbody = document.getElementById('admin-users-table');
+  if(!tbody) return;
+  const users = filterAdminUsers();
+  if(!users.length){
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No users found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map(user => {
+    const name = userDisplayName(user);
+    const roleKey = normalizeRole(user);
+    const roleLabel = adminRoleLabel(roleKey);
+    const isArchived = user.isDuplicate || user.isActiveUser === false || user.archivedAt;
+    const isSelf = user.docId === currentAdminUid() || user.uid === currentAdminUid();
+    const duplicateBadge = user.duplicateReasons.length ? '<span class="badge warn">Possible duplicate</span>' : '';
+    const activeBadge = isArchived
+      ? '<span class="badge gray">Archived</span>'
+      : '<span class="badge success">Active</span>';
+    const protectedRole = isProtectedUserRole(user);
+    const canManage = isAdminManagementRole(currentAdminRole()) && !isSelf && (!protectedRole || isSuperAdminManagementRole(currentAdminRole()));
+    const canDelete = isSuperAdminManagementRole(currentAdminRole()) && !isSelf;
+    const disabledTitle = isSelf ? 'You cannot delete your own admin account.' : protectedRole && !isSuperAdminManagementRole(currentAdminRole()) ? 'Only Super Admin can manage admin/moderator users.' : '';
+    return `
+      <tr>
+        <td><div class="row-cell"><div class="user-avatar">${escapeHtml(userInitials(user))}</div><div class="user-name-stack"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(user.docId)}</span></div></div></td>
+        <td class="muted">${escapeHtml(user.email || '-')}</td>
+        <td class="muted">${escapeHtml(user.phone || '-')}</td>
+        <td><span class="role-pill ${rolePillClass(roleKey)}">${escapeHtml(roleLabel)}</span></td>
+        <td class="muted" style="font-family:var(--font-mono);font-size:11px">${escapeHtml(user.uid || '-')}</td>
+        <td class="muted">${escapeHtml(user.authProvider || '-')}</td>
+        <td><div class="user-status-stack">${activeBadge}${duplicateBadge}</div></td>
+        <td class="muted">${escapeHtml(adminTimestampText(user.createdAt) || '-')}</td>
+        <td><div class="admin-action-row">
+          <button class="btn btn-ghost" onclick="viewAdminUser('${escapeJsString(user.docId)}')">View</button>
+          <button class="btn btn-ghost" ${canManage ? '' : 'disabled'} title="${escapeHtml(disabledTitle)}" onclick="markAdminUserDuplicate('${escapeJsString(user.docId)}')">Mark Duplicate</button>
+          <button class="btn btn-ghost" ${canManage ? '' : 'disabled'} title="${escapeHtml(disabledTitle)}" onclick="archiveAdminUser('${escapeJsString(user.docId)}')">Archive</button>
+          <button class="btn btn-danger" ${canDelete ? '' : 'disabled'} title="${escapeHtml(disabledTitle || 'Super Admin only')}" onclick="deleteAdminUser('${escapeJsString(user.docId)}')">Delete</button>
+        </div></td>
+      </tr>`;
+  }).join('');
+}
+
+function findAdminUser(docId){
+  return adminUsers.find(user => user.docId === docId);
+}
+
+function viewAdminUser(docId){
+  const user = findAdminUser(docId);
+  if(!user) return;
+  const details = [
+    ['Document ID', user.docId],
+    ['uid', user.rawUid || '(missing)'],
+    ['fullName', user.fullName || user.displayName || user.username || 'HopeGive User'],
+    ['email', user.email || '-'],
+    ['phone', user.phone || '-'],
+    ['role', adminRoleLabel(normalizeRole(user))],
+    ['authProvider', user.authProvider || '-'],
+    ['totalDonated', user.totalDonated],
+    ['donationsCount', user.donationsCount],
+    ['campaignsDonatedCount', user.campaignsDonatedCount],
+    ['friendsCount', user.friendsCount],
+    ['followingCount', user.followingCount],
+    ['followersCount', user.followersCount],
+    ['isActiveUser', user.isActiveUser],
+    ['isDuplicate', user.isDuplicate],
+    ['duplicateOf', user.duplicateOf || '-'],
+    ['archivedAt', adminTimestampText(user.archivedAt) || '-'],
+    ['archivedBy', user.archivedBy || '-'],
+    ['createdAt', adminTimestampText(user.createdAt) || '-'],
+    ['updatedAt', adminTimestampText(user.updatedAt) || '-']
+  ];
+  document.getElementById('admin-user-details-body').innerHTML = details.map(([label, value]) => `<div>${escapeHtml(label)}</div><div>${escapeHtml(value)}</div>`).join('');
+  const warnings = user.duplicateReasons.length
+    ? user.duplicateReasons.map(reason => `<span class="badge warn">${escapeHtml(reason)}</span>`).join('')
+    : '<span class="badge success">No duplicate warnings</span>';
+  document.getElementById('admin-user-details-warnings').innerHTML = warnings;
+  openModal('modal-user-details');
+}
+
+async function writeAdminAuditLog(action, user, reason, extra = {}){
+  if(!window.firebaseAddDoc || !window.firebaseCollection) return;
+  await window.firebaseAddDoc(window.firebaseCollection(window.firebaseFirestore, 'admin_logs'), {
+    action,
+    targetUserId: user.uid || user.docId,
+    targetUserDocId: user.docId,
+    targetUserName: userDisplayName(user),
+    performedBy: currentAdminUid(),
+    performedByName: currentAdminName(),
+    reason: reason || '',
+    createdAt: window.firebaseServerTimestamp(),
+    ...extra
+  });
+}
+
+function assertCanManageAdminUser(user, requireSuper = false){
+  if(!user) throw new Error('User not found.');
+  if(user.docId === currentAdminUid() || user.uid === currentAdminUid()) throw new Error('You cannot delete your own admin account.');
+  if(requireSuper && !isSuperAdminManagementRole(currentAdminRole())) throw new Error('Only Super Admin can permanently delete user documents.');
+  if(isProtectedUserRole(user) && !isSuperAdminManagementRole(currentAdminRole())) throw new Error('Only Super Admin can archive/delete admin or moderator users.');
+  if(!isAdminManagementRole(currentAdminRole())) throw new Error('Only Admin or Super Admin can manage users.');
+}
+
+async function archiveAdminUser(docId){
+  const user = findAdminUser(docId);
+  try{
+    assertCanManageAdminUser(user, false);
+    if(!confirm(`Archive ${userDisplayName(user)}? This hides the user from Android lists but keeps a backup.`)) return;
+    const reason = prompt('Reason for archive:', 'Duplicate or inactive user') || '';
+    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseFirestore, 'users', docId), {
+      isActiveUser: false,
+      isDuplicate: true,
+      archivedAt: window.firebaseServerTimestamp(),
+      archivedBy: currentAdminUid(),
+      updatedAt: window.firebaseServerTimestamp()
+    });
+    await writeAdminAuditLog('archive_user', user, reason);
+    showToast('User archived.');
+  }catch(err){
+    console.error('Archive user failed', err);
+    showToast(err.message || 'Unable to archive user.', 'error');
+  }
+}
+
+async function markAdminUserDuplicate(docId){
+  const user = findAdminUser(docId);
+  try{
+    assertCanManageAdminUser(user, false);
+    const choices = adminUsers
+      .filter(candidate => candidate.docId !== docId && !candidate.isDuplicate && candidate.isActiveUser !== false)
+      .slice(0, 12)
+      .map(candidate => `${candidate.uid || candidate.docId} - ${userDisplayName(candidate)}`)
+      .join('\n');
+    const canonicalUid = prompt(`Enter canonical user UID/document ID for ${userDisplayName(user)}:\n\n${choices}`, '')?.trim();
+    if(!canonicalUid) return;
+    const reason = prompt('Reason for marking duplicate:', `Duplicate of ${canonicalUid}`) || '';
+    await window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseFirestore, 'users', docId), {
+      isDuplicate: true,
+      duplicateOf: canonicalUid,
+      isActiveUser: false,
+      archivedAt: window.firebaseServerTimestamp(),
+      archivedBy: currentAdminUid(),
+      updatedAt: window.firebaseServerTimestamp()
+    });
+    await writeAdminAuditLog('mark_duplicate_user', user, reason);
+    showToast('User marked as duplicate.');
+  }catch(err){
+    console.error('Mark duplicate failed', err);
+    showToast(err.message || 'Unable to mark duplicate.', 'error');
+  }
+}
+
+async function deleteAdminUser(docId){
+  const user = findAdminUser(docId);
+  try{
+    assertCanManageAdminUser(user, true);
+    const typed = prompt('Are you sure you want to permanently delete this user document? This cannot be undone.\n\nType DELETE to continue.');
+    if(typed !== 'DELETE') return;
+    const reason = prompt('Reason for permanent delete:', 'Duplicate cleanup') || '';
+    await writeAdminAuditLog('delete_user', user, reason);
+    await window.firebaseDeleteDoc(window.firebaseDoc(window.firebaseFirestore, 'users', docId));
+    showToast('Firestore user document deleted. Firebase Auth account was not deleted.');
+  }catch(err){
+    console.error('Delete user failed', err);
+    showToast(err.message || 'Unable to delete user.', 'error');
+  }
+}
+
+function teamUsers(){
+  return adminUsers.filter(user => isTeamRole(user));
+}
+
+function currentSuperAdminCount(){
+  return teamUsers().filter(user => normalizeRole(user) === 'super_admin').length;
+}
+
+function canEditTeamRoles(){
+  return isSuperAdminManagementRole(currentAdminRole());
+}
+
+function renderTeamManagement(){
+  const tbody = document.getElementById('admin-team-table');
+  const addBtn = document.getElementById('btn-add-team-member');
+  const syncBtn = document.getElementById('btn-sync-legacy-team');
+  if(addBtn) addBtn.style.display = canEditTeamRoles() ? '' : 'none';
+  if(syncBtn) syncBtn.style.display = canEditTeamRoles() ? '' : 'none';
+  const allTeam = teamUsers();
+  const moderatorSupportCount = allTeam.filter(user => {
+    const role = normalizeRole(user);
+    return role === 'moderator' || role === 'support';
+  }).length;
+  console.log('All users loaded:', adminUsers.length);
+  console.log('Team members:', allTeam.map(user => ({
+    name: user.fullName || userDisplayName(user),
+    email: user.email,
+    role: user.raw?.role ?? user.role,
+    roleKey: user.roleKey,
+    userRole: user.userRole,
+    normalizedRole: normalizeRole(user)
+  })));
+  console.log('Moderator/support count:', moderatorSupportCount);
+  console.log('Team users loaded from Firestore:', allTeam.length);
+  console.log('Moderator users:', allTeam.filter(user => normalizeRole(user) === 'moderator'));
+  const set = (id, value) => { const el = document.getElementById(id); if(el) el.textContent = String(value); };
+  set('team-total', allTeam.length);
+  set('team-super-admins', allTeam.filter(user => normalizeRole(user) === 'super_admin').length);
+  set('team-admins', allTeam.filter(user => normalizeRole(user) === 'admin').length);
+  set('team-staff', moderatorSupportCount);
+  if(!tbody) return;
+
+  const query = normalizeComparable(document.getElementById('team-search')?.value || '');
+  const users = allTeam.filter(user => {
+    if(!query) return true;
+    return [
+      userDisplayName(user),
+      user.email,
+      user.uid,
+      user.docId,
+      normalizeRole(user)
+    ].some(value => normalizeComparable(value).includes(query));
+  });
+
+  if(!users.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--hint);font-size:13px">No team members found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = users.map(user => {
+    const roleKey = normalizeRole(user);
+    const isSelf = user.docId === currentAdminUid() || user.uid === currentAdminUid();
+    const isOnlySuperAdmin = roleKey === 'super_admin' && currentSuperAdminCount() <= 1;
+    const canEdit = canEditTeamRoles() && !isSelf && !isOnlySuperAdmin;
+    const status = user.isActiveUser === false || user.archivedAt
+      ? '<span class="badge gray">Archived</span>'
+      : user.raw.teamStatus === 'removed'
+        ? '<span class="badge gray">Removed</span>'
+        : '<span class="badge success">Active</span>';
+    const disabledTitle = isSelf
+      ? 'You cannot change your own team role here.'
+      : isOnlySuperAdmin
+        ? 'Cannot remove or demote the last Super Admin.'
+        : canEditTeamRoles()
+          ? ''
+          : 'Only Super Admin can change team roles.';
+    return `
+      <tr>
+        <td><div class="row-cell"><div class="user-avatar">${escapeHtml(userInitials(user))}</div><div class="user-name-stack"><strong>${escapeHtml(userDisplayName(user))}</strong><span>${escapeHtml(user.uid || user.docId)}</span></div></div></td>
+        <td class="muted">${escapeHtml(user.email || '-')}</td>
+        <td><span class="role-pill ${rolePillClass(roleKey)}">${escapeHtml(adminRoleLabel(roleKey))}</span></td>
+        <td>${status}</td>
+        <td class="muted">${escapeHtml(adminTimestampText(user.createdAt || user.updatedAt) || '-')}</td>
+        <td><div class="admin-action-row">
+          <button class="btn btn-ghost" onclick="viewAdminUser('${escapeJsString(user.docId)}')">View</button>
+          <button class="btn btn-ghost" ${canEdit ? '' : 'disabled'} title="${escapeHtml(disabledTitle)}" onclick="editTeamRole('${escapeJsString(user.docId)}')">Edit Role</button>
+          <button class="btn btn-danger" ${canEdit ? '' : 'disabled'} title="${escapeHtml(disabledTitle)}" onclick="removeTeamMemberRole('${escapeJsString(user.docId)}')">Remove from Team</button>
+        </div></td>
+      </tr>`;
+  }).join('');
+}
+
+function openAddTeamMemberModal(){
+  if(!canEditTeamRoles()){
+    showToast('Only Super Admin can add team members.', 'error');
+    return;
+  }
+  const search = document.getElementById('team-user-search');
+  if(search) search.value = '';
+  populateTeamCandidateSelect();
+  openModal('modal-team-member');
+}
+
+function populateTeamCandidateSelect(){
+  const select = document.getElementById('team-user-select');
+  if(!select) return;
+  const query = normalizeComparable(document.getElementById('team-user-search')?.value || '');
+  const candidates = adminUsers
+    .filter(user => !isTeamRole(user))
+    .filter(user => user.isDuplicate !== true && user.isActiveUser !== false && !user.archivedAt)
+    .filter(user => {
+      if(!query) return true;
+      return [
+        userDisplayName(user),
+        user.email,
+        user.uid,
+        user.docId
+      ].some(value => normalizeComparable(value).includes(query));
+    })
+    .slice(0, 50);
+
+  select.innerHTML = candidates.length
+    ? candidates.map(user => `<option value="${escapeHtml(user.docId)}">${escapeHtml(userDisplayName(user))} - ${escapeHtml(user.email || user.uid || user.docId)}</option>`).join('')
+    : '<option value="">No existing users found</option>';
+
+  const helper = document.getElementById('team-add-helper');
+  if(helper){
+    helper.textContent = candidates.length
+      ? 'Select an existing app user and assign staff access. This updates users/{uid}; it does not create a duplicate user.'
+      : 'User must create an account first before being added to the team.';
+  }
+  const saveBtn = document.getElementById('team-save-btn');
+  if(saveBtn) saveBtn.disabled = candidates.length === 0;
+}
+
+function validAssignableTeamRole(roleKey){
+  return ['super_admin','admin','moderator','support','user'].includes(roleKey);
+}
+
+async function updateTeamRole(user, newRoleKey, action){
+  if(!user) throw new Error('User not found.');
+  if(!canEditTeamRoles()) throw new Error('Only Super Admin can change team roles.');
+  if(user.docId === currentAdminUid() || user.uid === currentAdminUid()) throw new Error('You cannot change your own team role here.');
+  if(!validAssignableTeamRole(newRoleKey)) throw new Error('Choose Admin, Moderator, Support, or User.');
+  const oldRoleKey = normalizeRole(user);
+  if(oldRoleKey === 'super_admin' && newRoleKey !== 'super_admin' && currentSuperAdminCount() <= 1){
+    throw new Error('Cannot remove or demote the last Super Admin.');
+  }
+  if(oldRoleKey === newRoleKey){
+    showToast('Role is already ' + adminRoleLabel(newRoleKey) + '.');
+    return;
+  }
+  const firestorePayload = {
+    ...firestoreTeamUserPayload(user, newRoleKey, false),
+    userRole: newRoleKey,
+    teamStatus: newRoleKey === 'user' ? 'removed' : 'active',
+    updatedAt: window.firebaseServerTimestamp()
+  };
+  const writes = [
+    window.firebaseUpdateDoc(window.firebaseDoc(window.firebaseFirestore, 'users', user.docId), firestorePayload)
+  ];
+  if(window.firebaseUpdate && window.firebaseRef && window.firebaseDb){
+    const realtimeUid = user.uid || user.docId;
+    writes.push(window.firebaseUpdate(window.firebaseRef(window.firebaseDb, `users/${realtimeUid}`), {
+      ...realtimeTeamUserPayload(user, newRoleKey),
+      teamStatus: newRoleKey === 'user' ? 'removed' : 'active'
+    }));
+  }
+  await Promise.all(writes);
+  await writeAdminAuditLog(action, user, '', {
+    oldRole: oldRoleKey,
+    newRole: newRoleKey
+  });
+}
+
+async function saveTeamMemberRole(){
+  const docId = document.getElementById('team-user-select')?.value || '';
+  const roleKey = adminRoleKey(document.getElementById('team-role-select')?.value || '');
+  const user = findAdminUser(docId);
+  try{
+    if(!docId) throw new Error('Select an existing user first.');
+    await updateTeamRole(user, roleKey, 'add_team_member');
+    closeModal('modal-team-member');
+    showToast('Team member added.');
+  }catch(err){
+    console.error('Add team member failed', err);
+    showToast(err.message || 'Unable to add team member.', 'error');
+  }
+}
+
+function editTeamRole(docId){
+  const user = findAdminUser(docId);
+  try{
+    if(!user) throw new Error('User not found.');
+    if(!canEditTeamRoles()) throw new Error('Only Super Admin can change team roles.');
+    document.getElementById('team-role-user-doc-id').value = docId;
+    document.getElementById('team-role-user-name').value = `${userDisplayName(user)} (${user.email || user.uid || user.docId})`;
+    document.getElementById('team-edit-role-select').value = normalizeRole(user);
+    openModal('modal-team-role');
+  }catch(err){
+    console.error('Open team role modal failed', err);
+    showToast(err.message || 'Unable to edit team role.', 'error');
+  }
+}
+
+async function saveEditedTeamRole(){
+  const docId = document.getElementById('team-role-user-doc-id')?.value || '';
+  const roleKey = adminRoleKey(document.getElementById('team-edit-role-select')?.value || '');
+  const user = findAdminUser(docId);
+  try{
+    await updateTeamRole(user, roleKey, roleKey === 'user' ? 'remove_team_member' : 'change_team_role');
+    closeModal('modal-team-role');
+    showToast('Team role updated.');
+  }catch(err){
+    console.error('Save team role failed', err);
+    showToast(err.message || 'Unable to change team role.', 'error');
+  }
+}
+
+async function removeTeamMemberRole(docId){
+  const user = findAdminUser(docId);
+  try{
+    if(!confirm(`Remove ${userDisplayName(user)} from Team? Their account will stay, but role changes to user.`)) return;
+    await updateTeamRole(user, 'user', 'remove_team_member');
+    showToast('Team member removed.');
+  }catch(err){
+    console.error('Remove team member failed', err);
+    showToast(err.message || 'Unable to remove team member.', 'error');
+  }
+}
+
+window.renderAdminUsers = renderAdminUsers;
+window.renderTeamManagement = renderTeamManagement;
+window.viewAdminUser = viewAdminUser;
+window.archiveAdminUser = archiveAdminUser;
+window.markAdminUserDuplicate = markAdminUserDuplicate;
+window.deleteAdminUser = deleteAdminUser;
+window.syncRealtimeUsersToFirestore = syncRealtimeUsersToFirestore;
+window.openAddTeamMemberModal = openAddTeamMemberModal;
+window.populateTeamCandidateSelect = populateTeamCandidateSelect;
+window.saveTeamMemberRole = saveTeamMemberRole;
+window.editTeamRole = editTeamRole;
+window.saveEditedTeamRole = saveEditedTeamRole;
+window.removeTeamMemberRole = removeTeamMemberRole;
+
+
 function watchUsers(){
   const usersRef = window.firebaseUsersRef;
   if(!usersRef){
@@ -4815,7 +5853,7 @@ function watchUsers(){
   window.firebaseOnValue(usersRef, snapshot => {
     const data = snapshot.val();
     teamMembers = data ? Object.entries(data).map(([key, value]) => {
-      const role = normalizeRole(value.role);
+      const role = normalizeAdminProfileRole(value.role);
       return {
         uid: key,
         email: value.email || 'unknown@domain',
@@ -4862,6 +5900,7 @@ function applyRoleRestrictions(role){
   const isAdmin = role === 'Admin' || isSuperAdmin;
   const canManage = ['Super Admin','Admin','Moderator'].includes(role);
   const navUsers = document.getElementById('nav-users');
+  const navTeam = document.getElementById('nav-team');
   const navSettings = document.getElementById('nav-settings');
   const btnTopbar = document.getElementById('btn-new-campaign-topbar');
   const btnCampaigns = document.getElementById('btn-new-campaign-campaigns');
@@ -4871,6 +5910,7 @@ function applyRoleRestrictions(role){
   const btnInviteFirst = document.getElementById('btn-invite-first-member');
 
   if(navUsers) navUsers.style.display = isAdmin ? '' : 'none';
+  if(navTeam) navTeam.style.display = isAdmin ? '' : 'none';
   if(navSettings) navSettings.style.display = isAdmin ? '' : 'none';
   if(btnTopbar) btnTopbar.style.display = canManage ? '' : 'none';
   if(btnCampaigns) btnCampaigns.style.display = canManage ? '' : 'none';
@@ -4882,19 +5922,22 @@ function applyRoleRestrictions(role){
   ensureDefaultCampaignFeedSettings();
 
   if(!isAdmin){
-    const navToHide = [document.getElementById('nav-users'), document.getElementById('nav-settings')];
+    const navToHide = [document.getElementById('nav-users'), document.getElementById('nav-team'), document.getElementById('nav-settings')];
     navToHide.forEach(el => { if(el) el.style.display = 'none'; });
-    if(document.getElementById('s-users').classList.contains('active') || document.getElementById('s-settings').classList.contains('active')){
+    if(document.getElementById('s-users').classList.contains('active') || document.getElementById('s-team').classList.contains('active') || document.getElementById('s-settings').classList.contains('active')){
       nav('dashboard', document.getElementById('nav-dashboard'));
     }
   }
+  renderAdminUsers();
+  renderTeamManagement();
 }
 
-function normalizeRole(value){
+function normalizeAdminProfileRole(value){
   const raw = String(value || 'Viewer').trim().toLowerCase();
   if(raw === 'super admin') return 'Super Admin';
   if(raw === 'admin') return 'Admin';
   if(raw === 'moderator') return 'Moderator';
+  if(raw === 'support') return 'Support';
   return 'Viewer';
 }
 
@@ -4923,7 +5966,7 @@ function watchCurrentUserProfile(){
         uid: authUser.uid,
         email: data.email || authUser.email || '',
         username: data.username || authUser.displayName || (authUser.email ? authUser.email.split('@')[0] : 'User'),
-        role: normalizeRole(data.role),
+        role: normalizeAdminProfileRole(data.role),
         status: data.status || 'Active',
         createdAt: data.createdAt || Date.now()
       };
@@ -5009,9 +6052,9 @@ function renderTeam(){
       <td><span class="icon-btn" style="font-size:11px;color:var(--red)" onclick="removeTeamMember('${m.uid}')">✕</span></td>
     </tr>`).join('');
   tbody.innerHTML=extra;
-  const emptyCard = document.querySelector('#s-users .card:last-child');
+  const emptyCard = document.getElementById('team-empty-card');
   if(emptyCard){
-    emptyCard.style.display = additionalMembers.length > 0 ? 'none' : '';
+    emptyCard.style.display = '';
   }
   renderDashboardOverview();
 }
@@ -5080,6 +6123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('⏳ Waiting for Firebase auth to be ready...');
     await window.firebaseAuthReady;
     console.log('✓ Firebase auth ready!');
+    setUsersNavLabel();
     
     console.log('👤 Watching current user profile...');
     watchCurrentUserProfile();
@@ -5095,6 +6139,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     console.log('👥 Watching users...');
     watchUsers();
+    console.log('👥 Watching Firestore user management...');
+    watchAdminUsers();
     
     console.log('💰 Watching donations...');
     watchDonations();

@@ -12,6 +12,14 @@ class PaymentProcessingActivity : AppCompatActivity() {
         setContentView(R.layout.activity_payment_processing)
 
         val amount = intent.getStringExtra("amount")
+        if (GuestDonationGuard.blockIfGuest(
+                context = this,
+                finishAfterNavigation = { finish() },
+                finishOnCancel = { finish() }
+            )
+        ) {
+            return
+        }
 
         // Simulate processing for 3 seconds
         Handler(Looper.getMainLooper()).postDelayed({

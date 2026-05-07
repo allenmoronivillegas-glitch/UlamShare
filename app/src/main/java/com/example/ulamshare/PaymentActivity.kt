@@ -58,6 +58,17 @@ class PaymentActivity : AppCompatActivity() {
         val title = intent.getStringExtra("title")
         val amount = intent.getStringExtra("amount")
 
+        if (GuestDonationGuard.blockIfGuest(
+                context = this,
+                campaignId = campaignId,
+                campaignTitle = title,
+                finishAfterNavigation = { finish() },
+                finishOnCancel = { finish() }
+            )
+        ) {
+            return
+        }
+
         initViews()
         setupCountrySpinner()
         setupCardNumberFormatter()
@@ -177,6 +188,16 @@ class PaymentActivity : AppCompatActivity() {
 
     private fun setupPayButton(campaignId: String?, title: String?, amount: String?) {
         btnPay.setOnClickListener {
+            if (GuestDonationGuard.blockIfGuest(
+                    context = this,
+                    campaignId = campaignId,
+                    campaignTitle = title,
+                    finishAfterNavigation = { finish() }
+                )
+            ) {
+                return@setOnClickListener
+            }
+
             if (!validateFields()) return@setOnClickListener
 
             validateDonationCampaign(campaignId) { isAvailable ->

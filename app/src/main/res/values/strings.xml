@@ -95,8 +95,8 @@
     <string name="admin_team_name">Admin Team</string>
     <string name="message_contact_hint">Message %1$s</string>
     <string name="add_friends">Add Friends</string>
-    <string name="add_friends_title">Add Friends</string>
-    <string name="add_friends_subtitle">Find users and start chatting</string>
+    <string name="add_friends_title">View Users</string>
+    <string name="add_friends_subtitle">HopeGive community connections</string>
     <string name="messenger_profile_title">Messenger</string>
     <string name="messenger_profile_subtitle">Chat with friends, support, and admin team</string>
     <string name="add_friend_dialog_title">Choose a user to add</string>
@@ -105,8 +105,8 @@
     <string name="friend_removed">Friend removed</string>
     <string name="friend_label">Friend</string>
     <string name="friends_label">Friends</string>
-    <string name="friends_title">View Users</string>
-    <string name="friends_profile_subtitle">Find users and start chatting</string>
+    <string name="friends_title">Friends</string>
+    <string name="friends_profile_subtitle">Your HopeGive friends</string>
     <string name="following_label">Following</string>
     <string name="followers_label">Followers</string>
     <string name="following_title">Following</string>
@@ -114,7 +114,7 @@
     <string name="follow_list_subtitle">HopeGive community connections</string>
     <string name="follow_list_loading">Loading people...</string>
     <string name="follow_list_load_failed">Unable to load this list right now.</string>
-    <string name="no_following_yet">No following yet.</string>
+    <string name="no_following_yet">Not following anyone yet.</string>
     <string name="no_followers_yet">No followers yet.</string>
     <string name="no_friends_yet">No friends yet.</string>
     <string name="profile_photo">Profile photo</string>
@@ -122,9 +122,9 @@
     <string name="profile_photo_saved_local">Profile photo saved on this device.</string>
     <string name="login_to_follow_users">Please log in to follow users.</string>
     <string name="unfollow_failed">Unable to unfollow right now.</string>
-    <string name="add_friends_search_hint">Search name or email</string>
+    <string name="add_friends_search_hint">Search users</string>
     <string name="people_you_may_know">People you may know</string>
-    <string name="add_friends_empty_state">No users match your search right now.</string>
+    <string name="add_friends_empty_state">No users found.</string>
     <string name="add_friend_action">Add Friend</string>
     <string name="friend_requested_action">Requested</string>
     <string name="respond_action">Respond</string>

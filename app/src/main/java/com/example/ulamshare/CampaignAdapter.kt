@@ -25,7 +25,7 @@ class CampaignAdapter(private var items: List<Campaign>) : RecyclerView.Adapter<
             emojiView.text = CampaignDisplayHelper.campaignEmoji(campaign)
             titleView.text = campaign.title ?: "Untitled Campaign"
             subView.text = campaign.description?.ifBlank { "No description yet." } ?: "No description yet."
-            raisedView.text = "${CampaignDisplayHelper.formatPeso(campaign.raised)} raised"
+            raisedView.text = "${CampaignDisplayHelper.formatPeso(CampaignDisplayHelper.campaignRaised(campaign))} raised"
 
             val progress = CampaignDisplayHelper.progressPercent(campaign)
             progressBar.progress = progress
@@ -40,6 +40,15 @@ class CampaignAdapter(private var items: List<Campaign>) : RecyclerView.Adapter<
             }
 
             itemView.setOnClickListener {
+                if (GuestDonationGuard.blockIfGuest(
+                        context = itemView.context,
+                        campaignId = campaign.campaignId,
+                        campaignTitle = campaign.title
+                    )
+                ) {
+                    return@setOnClickListener
+                }
+
                 if (!CampaignDisplayHelper.canDonate(campaign)) {
                     Toast.makeText(
                         itemView.context,
@@ -52,7 +61,7 @@ class CampaignAdapter(private var items: List<Campaign>) : RecyclerView.Adapter<
                 val intent = Intent(itemView.context, ActivitySelectAmount::class.java).apply {
                     putExtra("campaignId", campaign.campaignId)
                     putExtra("title", campaign.title)
-                    putExtra("goal", campaign.goal ?: 0)
+                    putExtra("goal", CampaignDisplayHelper.campaignGoal(campaign))
                 }
                 itemView.context.startActivity(intent)
             }

@@ -54,6 +54,17 @@ class PaymentMethodActivity : AppCompatActivity() {
         val title = intent.getStringExtra("title")
         val amount = intent.getStringExtra("amount")
 
+        if (!isManageMode && GuestDonationGuard.blockIfGuest(
+                context = this,
+                campaignId = campaignId,
+                campaignTitle = title,
+                finishAfterNavigation = { finish() },
+                finishOnCancel = { finish() }
+            )
+        ) {
+            return
+        }
+
         val tvSubTitle = findViewById<TextView>(R.id.tvSubTitle)
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
         val btnConfirm = findViewById<Button>(R.id.btnConfirmPayment)
@@ -108,6 +119,16 @@ class PaymentMethodActivity : AppCompatActivity() {
         optionCard.setOnClickListener {
             updateSelection(R.id.optionCard)
             if (!isManageMode) {
+                if (GuestDonationGuard.blockIfGuest(
+                        context = this,
+                        campaignId = campaignId,
+                        campaignTitle = title,
+                        finishAfterNavigation = { finish() }
+                    )
+                ) {
+                    return@setOnClickListener
+                }
+
                 validateDonationCampaign(campaignId) { isAvailable ->
                     if (!isAvailable) {
                         showExpiredCampaignMessage()
@@ -139,6 +160,16 @@ class PaymentMethodActivity : AppCompatActivity() {
     }
 
     private fun continueDonationFlow(campaignId: String?, title: String?, amount: String?) {
+        if (GuestDonationGuard.blockIfGuest(
+                context = this,
+                campaignId = campaignId,
+                campaignTitle = title,
+                finishAfterNavigation = { finish() }
+            )
+        ) {
+            return
+        }
+
         validateDonationCampaign(campaignId) { isAvailable ->
             if (!isAvailable) {
                 showExpiredCampaignMessage()

@@ -13,8 +13,6 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ServerValue
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Locale
@@ -22,8 +20,7 @@ import java.util.Locale
 class AddFriendsActivity : AppCompatActivity() {
 
     companion object {
-        private const val DATABASE_URL =
-            "https://ulamshare-4f2b9-default-rtdb.asia-southeast1.firebasedatabase.app"
+        private const val TAG = "ViewUsers"
     }
 
     private lateinit var etSearchFriends: EditText
@@ -34,7 +31,6 @@ class AddFriendsActivity : AppCompatActivity() {
     private lateinit var addFriendsAdapter: AddFriendsAdapter
 
     private val allUsers = mutableListOf<DiscoverUser>()
-    private val friendIds = mutableSetOf<String>()
     private val requestedIds = mutableSetOf<String>()
 
     private lateinit var currentUserId: String
@@ -46,7 +42,6 @@ class AddFriendsActivity : AppCompatActivity() {
     private var currentUserStatus: String = ""
 
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
-    private val firebaseDb: FirebaseDatabase by lazy { FirebaseDatabase.getInstance(DATABASE_URL) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +60,7 @@ class AddFriendsActivity : AppCompatActivity() {
             user.displayName,
             getString(R.string.hopegive_user)
         )
+        Log.d(TAG, "mode=${FollowListActivity.MODE_ALL_USERS}")
 
         bindViews()
         setupRecycler()
@@ -126,27 +122,6 @@ class AddFriendsActivity : AppCompatActivity() {
                 }
             }
             .addOnCompleteListener {
-                loadFriendIds()
-            }
-    }
-
-    private fun loadFriendIds() {
-        firestore.collection("users")
-            .document(currentUserId)
-            .collection("friends")
-            .get()
-            .addOnSuccessListener { snapshot ->
-                if (!snapshot.isEmpty) {
-                    friendIds.clear()
-                    snapshot.documents.mapNotNullTo(friendIds) { document ->
-                        document.getString("userId").orEmpty().ifBlank { document.id }
-                    }
-                }
-            }
-            .addOnFailureListener { error ->
-                Log.w("AddFriendsActivity", "Unable to load friends subcollection", error)
-            }
-            .addOnCompleteListener {
                 loadPendingFriendRequests()
             }
     }
@@ -171,19 +146,22 @@ class AddFriendsActivity : AppCompatActivity() {
     }
 
     private fun loadUsers() {
+        Log.d(TAG, "Loading all users from users collection")
         firestore.collection("users")
             .get()
             .addOnSuccessListener { result ->
+                Log.d(TAG, "Raw users count=${result.size()}")
                 allUsers.clear()
 
-                allUsers += dedupeUserDocuments(result.documents).map { document ->
-                    mapDiscoverUser(document)
-                }
+                allUsers += dedupeUserDocuments(result.documents)
+                    .map { document -> mapDiscoverUser(document) }
 
                 allUsers.sortBy { it.displayName.lowercase(Locale.getDefault()) }
+                Log.d(TAG, "Shown users count=${allUsers.size}")
                 applyFilter()
             }
-            .addOnFailureListener {
+            .addOnFailureListener { error ->
+                Log.e(TAG, "Unable to load users", error)
                 Toast.makeText(this, "Failed to load users", Toast.LENGTH_SHORT).show()
             }
     }
@@ -192,17 +170,22 @@ class AddFriendsActivity : AppCompatActivity() {
         val seenUids = mutableSetOf<String>()
         val seenEmails = mutableSetOf<String>()
         return documents
-            .filterNot { it.getBoolean("isDuplicate") == true }
+            .filter(::isRealUserDocument)
             .sortedWith(
                 compareByDescending<DocumentSnapshot> { profileScore(it) }
+                    .thenByDescending { it.getTimestamp("updatedAt")?.toDate()?.time ?: 0L }
                     .thenBy { publicNameFromDocument(it).lowercase(Locale.getDefault()) }
             )
             .mapNotNull { document ->
-                val uid = document.getString("uid").orEmpty().ifBlank { document.id }
+                val uid = canonicalUserId(document)
                 val emailKey = normalizeEmail(document.getString("email"))
-                if (uid.isBlank() || uid == currentUserId) return@mapNotNull null
+                if (uid.isBlank()) return@mapNotNull null
+                if (uid == currentUserId) {
+                    Log.d(TAG, "Skipped current user uid=$uid")
+                    return@mapNotNull null
+                }
                 if (seenUids.contains(uid) || (emailKey.isNotBlank() && seenEmails.contains(emailKey))) {
-                    Log.d("AddFriendsActivity", "Skipping duplicate user document id=${document.id} uid=$uid")
+                    Log.d(TAG, "Skipped duplicate uid=$uid documentId=${document.id}")
                     return@mapNotNull null
                 }
                 seenUids += uid
@@ -212,7 +195,7 @@ class AddFriendsActivity : AppCompatActivity() {
     }
 
     private fun mapDiscoverUser(document: DocumentSnapshot): DiscoverUser {
-        val uid = document.getString("uid").orEmpty().ifBlank { document.id }
+        val uid = canonicalUserId(document)
         return DiscoverUser(
             uid = uid,
             displayName = publicNameFromDocument(document),
@@ -221,7 +204,7 @@ class AddFriendsActivity : AppCompatActivity() {
             profilePhotoLocalUri = document.getString("profilePhotoLocalUri").orEmpty(),
             role = document.getString("role").orEmpty().ifBlank { document.getString("roleKey").orEmpty() },
             status = document.getString("status").orEmpty(),
-            isFollowing = friendIds.contains(uid),
+            isFollowing = false,
             isRequested = requestedIds.contains(uid)
         )
     }
@@ -230,6 +213,7 @@ class AddFriendsActivity : AppCompatActivity() {
         return listOf(
             document.getString("fullName").orEmpty(),
             document.getString("displayName").orEmpty(),
+            document.getString("username").orEmpty(),
             document.getString("name").orEmpty(),
             getString(R.string.hopegive_user)
         ).firstNotNullOf { candidate ->
@@ -238,20 +222,67 @@ class AddFriendsActivity : AppCompatActivity() {
     }
 
     private fun profileScore(document: DocumentSnapshot): Int {
-        val uid = document.getString("uid").orEmpty().ifBlank { document.id }
+        val storedUid = document.getString("uid").orEmpty()
         val hasName = publicNameFromDocument(document) != getString(R.string.hopegive_user)
         val hasPhoto = document.getString("profilePhotoUrl").orEmpty().isNotBlank() ||
             document.getString("profilePhotoLocalUri").orEmpty().isNotBlank()
         return listOf(
-            if (document.id == uid) 100 else 0,
+            if (storedUid.isNotBlank() && document.id == storedUid) 100 else 0,
+            if (storedUid.isNotBlank() && document.id != storedUid) 70 else 0,
+            if (document.getBoolean("isActiveUser") == true) 50 else 0,
             if (hasName) 40 else 0,
-            if (hasPhoto) 10 else 0,
-            document.getTimestamp("updatedAt")?.toDate()?.time?.coerceAtMost(99L)?.toInt() ?: 0
+            if (hasPhoto) 10 else 0
         ).sum()
+    }
+
+    private fun isRealUserDocument(document: DocumentSnapshot): Boolean {
+        val uid = canonicalUserId(document)
+        if (uid.isBlank()) return false
+        if (uid == currentUserId) {
+            Log.d(TAG, "Skipped current user uid=$uid")
+            return false
+        }
+        if (document.getBoolean("isActiveUser") == false) {
+            Log.d(TAG, "Skipped inactive uid=$uid")
+            return false
+        }
+        if (document.getBoolean("isDuplicate") == true) {
+            Log.d(TAG, "Skipped duplicate uid=$uid")
+            return false
+        }
+        if (document.getBoolean("archived") == true || document.getBoolean("isArchived") == true || document.get("archivedAt") != null) {
+            Log.d(TAG, "Skipped archived uid=$uid")
+            return false
+        }
+
+        val recordType = document.getString("recordType").orEmpty()
+        if (recordType == "legacy_or_invalid" || (recordType.isNotBlank() && recordType != "user")) {
+            Log.d(TAG, "Skipped non-user record uid=$uid recordType=$recordType")
+            return false
+        }
+
+        val hasStoredUid = document.getString("uid").orEmpty().isNotBlank()
+        val hasIdentity = document.getString("fullName").orEmpty().isNotBlank() ||
+            document.getString("displayName").orEmpty().isNotBlank() ||
+            document.getString("username").orEmpty().isNotBlank() ||
+            document.getString("email").orEmpty().isNotBlank() ||
+            document.getString("authProvider").orEmpty().isNotBlank() ||
+            document.get("authProviders") != null ||
+            document.get("createdAt") != null
+
+        if (!hasStoredUid && !hasIdentity) {
+            Log.d(TAG, "Skipped incomplete record documentId=${document.id}")
+            return false
+        }
+        return true
     }
 
     private fun normalizeEmail(value: String?): String {
         return value.orEmpty().trim().lowercase(Locale.US)
+    }
+
+    private fun canonicalUserId(document: DocumentSnapshot): String {
+        return document.getString("uid").orEmpty().ifBlank { document.id }
     }
 
     private fun applyFilter() {
@@ -336,7 +367,6 @@ class AddFriendsActivity : AppCompatActivity() {
         ) { result ->
             result
                 .onSuccess {
-                    friendIds -= user.uid
                     allUsers.find { it.uid == user.uid }?.isFollowing = false
                     applyFilter()
                     AppNotificationManager.notifyFriendRemoved(this, user.displayName)
@@ -372,5 +402,4 @@ class AddFriendsActivity : AppCompatActivity() {
             .sorted()
             .joinToString("_")
     }
-
 }

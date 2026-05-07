@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 object CampaignDisplayHelper {
 
@@ -85,7 +86,9 @@ object CampaignDisplayHelper {
         val raw = snapshot.getValue(Campaign::class.java) ?: return null
         val key = snapshot.key.orEmpty()
         return raw.copy(
-            campaignId = raw.campaignId?.ifBlank { key } ?: key
+            campaignId = raw.campaignId?.ifBlank { key } ?: key,
+            goal = campaignGoal(raw),
+            raised = campaignRaised(raw)
         )
     }
 
@@ -153,13 +156,29 @@ object CampaignDisplayHelper {
     }
 
     fun progressPercent(campaign: Campaign): Int {
-        val goal = campaign.goal ?: 0
-        val raised = campaign.raised ?: 0
-        return if (goal > 0) {
-            ((raised.toDouble() / goal.toDouble()) * 100).toInt().coerceIn(0, 100)
-        } else {
-            0
+        val goal = campaignGoal(campaign)
+        val raised = campaignRaised(campaign)
+        if (goal <= 0 || raised <= 0) return 0
+
+        val exactPercent = (raised.toDouble() / goal.toDouble()) * 100.0
+        return when {
+            exactPercent >= 100.0 -> 100
+            exactPercent < 1.0 -> 1
+            else -> exactPercent.roundToInt().coerceIn(1, 100)
         }
+    }
+
+    fun campaignGoal(campaign: Campaign): Int {
+        return highestAmount(campaign.goal, campaign.goalAmount, campaign.targetAmount)
+    }
+
+    fun campaignRaised(campaign: Campaign): Int {
+        return highestAmount(
+            campaign.raised,
+            campaign.raisedAmount,
+            campaign.currentAmount,
+            campaign.amountRaised
+        )
     }
 
     fun formatPeso(amount: Int?): String {
@@ -215,6 +234,14 @@ object CampaignDisplayHelper {
         } catch (_: ParseException) {
             null
         }
+    }
+
+    private fun highestAmount(vararg values: Int?): Int {
+        return values
+            .mapNotNull { it }
+            .maxOrNull()
+            ?.coerceAtLeast(0)
+            ?: 0
     }
 
     private val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd", Locale.US)

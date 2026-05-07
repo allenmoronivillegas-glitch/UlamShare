@@ -51,6 +51,7 @@ object FacebookAuthSupport {
         onError: (Exception) -> Unit
     ) {
         val userRef = Firebase.firestore.collection(USERS_COLLECTION).document(user.uid)
+        Log.d(TAG, "Creating/merging Firestore user profile uid=${user.uid}")
         Log.d(SOCIAL_TAG, "Checking users/{uid} for uid=${user.uid}")
         userRef.get()
             .addOnSuccessListener { document ->
@@ -101,6 +102,7 @@ object FacebookAuthSupport {
             }
             .addOnFailureListener { error ->
                 Log.e(SOCIAL_TAG, "Unable to load existing user profile before merge", error)
+                Log.e(TAG, "Firestore profile merge failed", error)
                 onError(error)
             }
     }

@@ -146,13 +146,22 @@ class HomeGuestActivity : BaseActivity() {
             campaign.description?.ifBlank { "No campaign description yet." } ?: "No campaign description yet."
         val progressPercent = CampaignDisplayHelper.progressPercent(campaign)
         progressBar.progress = progressPercent
-        tvCampaignRaised.text = "${CampaignDisplayHelper.formatPeso(campaign.raised)} raised"
+        tvCampaignRaised.text = "${CampaignDisplayHelper.formatPeso(CampaignDisplayHelper.campaignRaised(campaign))} raised"
         tvCampaignProgressPercent.text = "$progressPercent%"
         activeCampaignCard.setOnClickListener {
+            if (GuestDonationGuard.blockIfGuest(
+                    context = this,
+                    campaignId = campaign.campaignId,
+                    campaignTitle = campaign.title
+                )
+            ) {
+                return@setOnClickListener
+            }
+
             val intent = Intent(this, ActivitySelectAmount::class.java).apply {
                 putExtra("campaignId", campaign.campaignId)
                 putExtra("title", campaign.title)
-                putExtra("goal", campaign.goal ?: 0)
+                putExtra("goal", CampaignDisplayHelper.campaignGoal(campaign))
             }
             startActivity(intent)
         }

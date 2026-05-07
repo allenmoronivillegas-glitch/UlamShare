@@ -1,8 +1,10 @@
 package com.example.ulamshare
 
 import android.util.Log
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.SetOptions
 
 data class FollowProfile(
@@ -293,6 +295,52 @@ object FollowRepository {
         }.addOnSuccessListener {
             Log.d("Follow", "Unfollowed user, updating following/followers only")
             onComplete(Result.success(Unit))
+        }.addOnFailureListener { error ->
+            onComplete(Result.failure(error))
+        }
+    }
+
+    fun recalculateRelationshipCounts(
+        firestore: FirebaseFirestore,
+        userId: String,
+        onComplete: (Result<Unit>) -> Unit
+    ) {
+        if (userId.isBlank()) {
+            onComplete(Result.failure(IllegalArgumentException("Missing userId.")))
+            return
+        }
+
+        val userRef = firestore.collection(USERS_COLLECTION).document(userId)
+        val friendsTask = userRef.collection(FRIENDS_COLLECTION).get()
+        val followingTask = userRef.collection(FOLLOWING_COLLECTION).get()
+        val followersTask = userRef.collection(FOLLOWERS_COLLECTION).get()
+
+        Tasks.whenAllSuccess<QuerySnapshot>(
+            friendsTask,
+            followingTask,
+            followersTask
+        ).addOnSuccessListener { snapshots ->
+            val friendsCount = snapshots.getOrNull(0)?.size() ?: 0
+            val followingCount = snapshots.getOrNull(1)?.size() ?: 0
+            val followersCount = snapshots.getOrNull(2)?.size() ?: 0
+
+            userRef.set(
+                mapOf(
+                    "friendsCount" to friendsCount,
+                    "followingCount" to followingCount,
+                    "followersCount" to followersCount,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ),
+                SetOptions.merge()
+            ).addOnSuccessListener {
+                Log.d(
+                    "Friends",
+                    "Relationship counts recalculated uid=$userId friends=$friendsCount following=$followingCount followers=$followersCount"
+                )
+                onComplete(Result.success(Unit))
+            }.addOnFailureListener { error ->
+                onComplete(Result.failure(error))
+            }
         }.addOnFailureListener { error ->
             onComplete(Result.failure(error))
         }

@@ -121,11 +121,8 @@ class ProfileFragment : Fragment() {
         }
 
         optionFriends.setOnClickListener {
-            if (auth.currentUser == null) {
-                Toast.makeText(requireContext(), R.string.please_login_view_friends, Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            openFollowList(FollowListActivity.MODE_FRIENDS)
+            Log.d("ViewUsers", "Opening View Users from Profile")
+            openFollowList(FollowListActivity.MODE_ALL_USERS)
         }
 
         optionSupport.setOnClickListener {

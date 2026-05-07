@@ -10,7 +10,9 @@
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
-  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   // Your web app's Firebase configuration
   const firebaseConfig = {
@@ -28,11 +30,124 @@
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
   const auth = getAuth(app);
+  const db = getDatabase(app);
+  const firestore = getFirestore(app);
 
   // Make Firebase available globally
   window.firebaseApp = app;
   window.firebaseAnalytics = analytics;
   window.firebaseAuth = auth;
+
+  function normalizeRole(role) {
+    const key = String(role || "")
+      .trim()
+      .toLowerCase()
+      .replaceAll("-", "_")
+      .replaceAll(" ", "_");
+    if (key === "superadmin") return "super_admin";
+    if (key === "mod") return "moderator";
+    return key;
+  }
+
+  function displayRole(roleKey) {
+    switch (normalizeRole(roleKey)) {
+      case "super_admin":
+      case "superadmin":
+        return "Super Admin";
+      case "admin":
+        return "Admin";
+      case "moderator":
+      case "mod":
+        return "Moderator";
+      case "support":
+        return "Support";
+      default:
+        return "User";
+    }
+  }
+
+  function isTeamRole(role) {
+    const key = normalizeRole(role);
+    return ["super_admin", "superadmin", "admin", "moderator", "mod", "support"].includes(key);
+  }
+
+  function roleRank(role) {
+    const key = normalizeRole(role);
+    if (key === "super_admin" || key === "superadmin") return 4;
+    if (key === "admin") return 3;
+    if (key === "moderator") return 2;
+    if (key === "support") return 1;
+    return 0;
+  }
+
+  async function syncRealtimeRoleToFirestore(uid, authUser, realtimeUser, firestoreUser) {
+    const realtimeRole = normalizeRole(realtimeUser?.roleKey || realtimeUser?.role || "");
+    if (!isTeamRole(realtimeRole)) return "";
+    const firestoreRole = normalizeRole(firestoreUser?.roleKey || firestoreUser?.role || "");
+    const finalRole = roleRank(firestoreRole) >= roleRank(realtimeRole) && isTeamRole(firestoreRole)
+      ? firestoreRole
+      : realtimeRole;
+    const payload = {
+      uid,
+      email: firestoreUser?.email || realtimeUser?.email || authUser.email || "",
+      username: firestoreUser?.username || realtimeUser?.username || authUser.displayName || "",
+      fullName: firestoreUser?.fullName || realtimeUser?.fullName || realtimeUser?.username || authUser.displayName || "HopeGive User",
+      role: finalRole,
+      roleKey: finalRole,
+      displayRole: displayRole(finalRole),
+      authProvider: "email",
+      isActiveUser: firestoreUser?.isActiveUser === false ? false : true,
+      isDuplicate: firestoreUser?.isDuplicate === true ? true : false,
+      updatedAt: serverTimestamp()
+    };
+    [
+      ['friendsCount', 0],
+      ['followingCount', 0],
+      ['followersCount', 0],
+      ['totalDonated', 0],
+      ['donationsCount', 0],
+      ['campaignsDonatedCount', 0]
+    ].forEach(([field, fallback]) => {
+      if (firestoreUser?.[field] == null) payload[field] = fallback;
+    });
+    if (!firestoreUser?.createdAt) payload.createdAt = serverTimestamp();
+    await setDoc(doc(firestore, 'users', uid), payload, { merge: true });
+    return finalRole;
+  }
+
+  async function resolveWebAdminRole(authUser) {
+    const uid = authUser.uid;
+    console.log("Checking Firestore role for uid:", uid);
+    const firestoreRef = doc(firestore, 'users', uid);
+    const firestoreSnap = await getDoc(firestoreRef).catch(error => {
+      console.error("Firestore role read failed:", error);
+      return null;
+    });
+    const firestoreUser = firestoreSnap?.exists() ? (firestoreSnap.data() || {}) : {};
+    const firestoreRole = normalizeRole(firestoreUser.roleKey || firestoreUser.role || "");
+    console.log("Firestore role:", firestoreRole);
+    if (isTeamRole(firestoreRole)) {
+      console.log("Normalized role:", firestoreRole);
+      return firestoreRole;
+    }
+
+    console.log("Checking Realtime Database fallback role for uid:", uid);
+    const realtimeSnap = await get(ref(db, `users/${uid}`)).catch(error => {
+      console.error("Realtime role read failed:", error);
+      return null;
+    });
+    const realtimeUser = realtimeSnap?.exists() ? (realtimeSnap.val() || {}) : {};
+    const realtimeRole = normalizeRole(realtimeUser.roleKey || realtimeUser.role || "");
+    console.log("Realtime role:", realtimeRole);
+    if (isTeamRole(realtimeRole)) {
+      const migratedRole = await syncRealtimeRoleToFirestore(uid, authUser, realtimeUser, firestoreUser);
+      console.log("Normalized role:", migratedRole || realtimeRole);
+      return migratedRole || realtimeRole;
+    }
+
+    console.log("Normalized role:", firestoreRole || realtimeRole || "user");
+    return "";
+  }
 
   // Handle login form
   document.addEventListener('DOMContentLoaded', () => {
@@ -46,7 +161,13 @@
         return;
       }
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const role = await resolveWebAdminRole(userCredential.user);
+        if (!isTeamRole(role)) {
+          await signOut(auth);
+          alert('This account does not have Web Admin access.');
+          return;
+        }
         window.location.href = 'index.html';
       } catch (error) {
         console.error('Login error:', error);

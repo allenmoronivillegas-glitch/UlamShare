@@ -237,7 +237,7 @@
         android:layout_height="56dp"
         android:layout_marginTop="16dp"
         android:backgroundTint="#2172E5"
-        android:text="✓ Confirm Donation"
+        android:text="Confirm Donation"
         android:textAllCaps="false"
         android:textColor="#FFFFFF"
         android:textSize="18sp"

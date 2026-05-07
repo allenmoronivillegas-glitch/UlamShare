@@ -27,6 +27,12 @@ service cloud.firestore {
         : '';
     }
 
+    function userUserRole() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? userDoc().data.userRole
+        : '';
+    }
+
     function tokenRole() {
       return signedIn() && request.auth.token.role != null
         ? request.auth.token.role
@@ -40,6 +46,21 @@ service cloud.firestore {
         'ADMIN',
         'Super Admin',
         'super admin',
+        'super-admin',
+        'Super-Admin',
+        'SuperAdmin',
+        'super_admin',
+        'SUPER_ADMIN',
+        'superadmin'
+      ];
+    }
+
+    function isSuperAdminRole(role) {
+      return role in [
+        'Super Admin',
+        'super admin',
+        'super-admin',
+        'Super-Admin',
         'SuperAdmin',
         'super_admin',
         'SUPER_ADMIN',
@@ -48,7 +69,11 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && (isAdminRole(userRole()) || isAdminRole(userRoleKey()) || isAdminRole(tokenRole()));
+      return signedIn() && (isAdminRole(userRole()) || isAdminRole(userRoleKey()) || isAdminRole(userUserRole()) || isAdminRole(tokenRole()));
+    }
+
+    function isSuperAdmin() {
+      return signedIn() && (isSuperAdminRole(userRole()) || isSuperAdminRole(userRoleKey()) || isSuperAdminRole(userUserRole()) || isSuperAdminRole(tokenRole()));
     }
 
     function isModeratorRole(role) {
@@ -60,14 +85,29 @@ service cloud.firestore {
       ];
     }
 
+    function isSupportRole(role) {
+      return role in [
+        'Support',
+        'support',
+        'SUPPORT',
+        'staff'
+      ];
+    }
+
+    function isProtectedAccountRole(role) {
+      return isSuperAdminRole(role) || isAdminRole(role) || isModeratorRole(role) || isSupportRole(role);
+    }
+
     function isAdminOrModerator() {
       return signedIn()
         && (
           isAdminRole(userRole())
           || isAdminRole(userRoleKey())
+          || isAdminRole(userUserRole())
           || isAdminRole(tokenRole())
           || isModeratorRole(userRole())
           || isModeratorRole(userRoleKey())
+          || isModeratorRole(userUserRole())
           || isModeratorRole(tokenRole())
         );
     }
@@ -214,7 +254,112 @@ service cloud.firestore {
     function isSafeOwnUserUpdate(userId) {
       return signedIn()
         && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'roleKey']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'roleKey',
+          'userRole',
+          'displayRole',
+          'isAdmin',
+          'isSuperAdmin',
+          'isModerator',
+          'isActiveUser',
+          'isDuplicate',
+          'duplicateOf',
+          'archivedAt',
+          'archivedBy'
+        ])
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+          || (
+            (!resource.data.keys().hasAny(['role']) || resource.data.role == '' || resource.data.role == 'user')
+            && request.resource.data.role == 'user'
+          )
+        );
+    }
+
+    function canCreateOwnUserProfile(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && !request.resource.data.keys().hasAny([
+          'isAdmin',
+          'isSuperAdmin',
+          'isModerator',
+          'duplicateOf',
+          'archivedAt',
+          'archivedBy'
+        ])
+        && (
+          !request.resource.data.keys().hasAny(['role'])
+          || request.resource.data.role == 'user'
+          || isProtectedAccountRole(request.resource.data.role)
+        )
+        && (
+          !request.resource.data.keys().hasAny(['roleKey'])
+          || request.resource.data.roleKey == 'user'
+          || isProtectedAccountRole(request.resource.data.roleKey)
+        )
+        && (
+          !request.resource.data.keys().hasAny(['userRole'])
+          || request.resource.data.userRole == 'user'
+          || isProtectedAccountRole(request.resource.data.userRole)
+        )
+        && (
+          !request.resource.data.keys().hasAny(['displayRole'])
+          || request.resource.data.displayRole == 'User'
+          || isProtectedAccountRole(request.resource.data.displayRole)
+        )
+        && (
+          !request.resource.data.keys().hasAny(['isActiveUser'])
+          || request.resource.data.isActiveUser == true
+        )
+        && (
+          !request.resource.data.keys().hasAny(['isDuplicate'])
+          || request.resource.data.isDuplicate == false
+        );
+    }
+
+    function canSyncOwnLegacyTeamRole(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && (
+          !resource.data.keys().hasAny(['role'])
+          || resource.data.role == ''
+          || resource.data.role == 'user'
+          || resource.data.role == 'User'
+          || resource.data.role == 'viewer'
+          || resource.data.role == 'Viewer'
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'uid',
+          'email',
+          'username',
+          'fullName',
+          'role',
+          'roleKey',
+          'userRole',
+          'displayRole',
+          'authProvider',
+          'isActiveUser',
+          'isDuplicate',
+          'friendsCount',
+          'followingCount',
+          'followersCount',
+          'totalDonated',
+          'donationsCount',
+          'campaignsDonatedCount',
+          'createdAt',
+          'updatedAt'
+        ])
+        && isProtectedAccountRole(request.resource.data.role)
+        && isProtectedAccountRole(request.resource.data.roleKey)
+        && (
+          !request.resource.data.keys().hasAny(['isActiveUser'])
+          || request.resource.data.isActiveUser == true
+        )
+        && (
+          !request.resource.data.keys().hasAny(['isDuplicate'])
+          || request.resource.data.isDuplicate == false
+        );
     }
 
     function isFollowerCountMirrorUpdate(userId) {
@@ -233,6 +378,32 @@ service cloud.firestore {
           exists(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid))
           || existsAfter(/databases/$(database)/documents/users/$(userId)/friends/$(request.auth.uid))
         );
+    }
+
+    function userManagementFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'isActiveUser',
+        'isDuplicate',
+        'duplicateOf',
+        'archivedAt',
+        'archivedBy',
+        'updatedAt'
+      ]);
+    }
+
+    function targetUserIsProtected() {
+      return isProtectedAccountRole(resource.data.role)
+        || isProtectedAccountRole(resource.data.roleKey)
+        || isProtectedAccountRole(resource.data.userRole)
+        || isProtectedAccountRole(resource.data.displayRole);
+    }
+
+    function canAdminArchiveOrMarkDuplicateUser(userId) {
+      return isAdmin()
+        && request.auth.uid != userId
+        && resource.data.uid != request.auth.uid
+        && userManagementFieldsOnly()
+        && (!targetUserIsProtected() || isSuperAdmin());
     }
 
     function isValidFollowRecord(expectedUserId) {
@@ -382,12 +553,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if signedIn();
       allow create: if isAdmin()
-        || (
-          signedIn()
-          && request.auth.uid == userId
-          && !request.resource.data.keys().hasAny(['role', 'roleKey'])
-        );
-      allow update: if isAdmin()
+        || canCreateOwnUserProfile(userId);
+      allow update: if isSuperAdmin()
+        || canAdminArchiveOrMarkDuplicateUser(userId)
+        || canSyncOwnLegacyTeamRole(userId)
         || isSafeOwnUserUpdate(userId)
         || isFollowerCountMirrorUpdate(userId)
         || isFriendCountMirrorUpdate(userId)
@@ -395,7 +564,9 @@ service cloud.firestore {
           signedIn()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers'])
         );
-      allow delete: if isAdmin();
+      allow delete: if isSuperAdmin()
+        && request.auth.uid != userId
+        && resource.data.uid != request.auth.uid;
 
       match /following/{targetUserId} {
         allow read: if signedIn();
@@ -441,6 +612,19 @@ service cloud.firestore {
       match /donated_campaigns/{campaignId} {
         allow read: if signedIn();
         allow create, update, delete: if signedIn() && request.auth.uid == userId;
+      }
+
+      match /campaign_assignments/{campaignId} {
+        allow read: if signedIn() && (request.auth.uid == userId || isAdminOrModerator());
+        allow create, update: if isAdminOrModerator()
+          || (
+            signedIn()
+            && request.auth.uid == userId
+            && request.resource.data.userId == userId
+            && request.resource.data.campaignId == campaignId
+            && request.resource.data.status in ['active', 'removed']
+          );
+        allow delete: if isAdminOrModerator();
       }
     }
 
@@ -546,6 +730,41 @@ service cloud.firestore {
         );
       allow delete: if isAdmin()
         || (signedIn() && resource.data.recipientId == request.auth.uid);
+    }
+
+    match /admin_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.performedBy == request.auth.uid
+        && (
+          request.resource.data.action != 'delete_user'
+          || isSuperAdmin()
+        )
+        && (
+          !(request.resource.data.action in [
+            'add_team_member',
+            'change_team_role',
+            'remove_team_member'
+          ])
+          || isSuperAdmin()
+        )
+        && request.resource.data.action in [
+          'archive_user',
+          'mark_duplicate_user',
+          'delete_user',
+          'add_team_member',
+          'change_team_role',
+          'remove_team_member'
+        ]
+        && request.resource.data.keys().hasAll([
+          'action',
+          'targetUserId',
+          'targetUserName',
+          'performedBy',
+          'performedByName',
+          'createdAt'
+        ]);
+      allow update, delete: if false;
     }
 
     match /{document=**} {

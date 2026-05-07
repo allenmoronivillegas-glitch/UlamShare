@@ -48,6 +48,16 @@ class ActivitySelectAmount : AppCompatActivity() {
         btnBack.setOnClickListener { finish() }
 
         btnNext.setOnClickListener {
+            if (GuestDonationGuard.blockIfGuest(
+                    context = this,
+                    campaignId = campaignId,
+                    campaignTitle = campaignTitle,
+                    finishAfterNavigation = { finish() }
+                )
+            ) {
+                return@setOnClickListener
+            }
+
             refreshCampaignAvailability {
                 if (!canDonateToCampaign) {
                     showExpiredCampaignMessage()
@@ -94,6 +104,18 @@ class ActivitySelectAmount : AppCompatActivity() {
             if (hasFocus) {
                 amountButtons.forEach { it.isChecked = false }
             }
+        }
+
+        if (GuestDonationGuard.blockIfGuest(
+                context = this,
+                campaignId = campaignId,
+                campaignTitle = campaignTitle,
+                finishAfterNavigation = { finish() },
+                finishOnCancel = { finish() }
+            )
+        ) {
+            setDonationEnabled(false)
+            return
         }
 
         refreshCampaignAvailability()
