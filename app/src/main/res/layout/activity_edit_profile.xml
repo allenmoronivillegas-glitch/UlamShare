@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/editProfileRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F0F5FF">
@@ -45,8 +46,11 @@
 
     <!-- SCROLL CONTENT -->
     <ScrollView
+        android:id="@+id/editProfileScroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
         app:layout_constraintBottom_toTopOf="@id/btnSave"
         app:layout_constraintTop_toBottomOf="@id/headerContainer">
 
@@ -57,7 +61,7 @@
             android:paddingStart="20dp"
             android:paddingTop="24dp"
             android:paddingEnd="20dp"
-            android:paddingBottom="16dp">
+            android:paddingBottom="32dp">
 
             <!-- AVATAR SECTION -->
             <FrameLayout
@@ -137,11 +141,10 @@
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="18dp"
                 android:background="@drawable/rounded_input_border"
-                android:enabled="false"
                 android:hint="Enter your email"
                 android:inputType="textEmailAddress"
                 android:paddingHorizontal="16dp"
-                android:textColor="#8FAACC"
+                android:textColor="#0D1B3E"
                 android:textColorHint="#8FAACC"
                 android:textSize="15sp" />
 
@@ -159,9 +162,104 @@
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:layout_marginTop="6dp"
+                android:layout_marginBottom="18dp"
                 android:background="@drawable/rounded_input_border"
                 android:hint="Enter phone number"
                 android:inputType="phone"
+                android:paddingHorizontal="16dp"
+                android:textColor="#0D1B3E"
+                android:textColorHint="#8FAACC"
+                android:textSize="15sp" />
+
+            <!-- COUNTRY -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Country"
+                android:textColor="#0D1B3E"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <AutoCompleteTextView
+                android:id="@+id/etEditCountry"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="18dp"
+                android:background="@drawable/rounded_input_border"
+                android:hint="Select country"
+                android:inputType="textCapWords"
+                android:paddingHorizontal="16dp"
+                android:singleLine="true"
+                android:textColor="#0D1B3E"
+                android:textColorHint="#8FAACC"
+                android:textSize="15sp" />
+
+            <!-- PROVINCE -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Province"
+                android:textColor="#0D1B3E"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <AutoCompleteTextView
+                android:id="@+id/etEditProvince"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="18dp"
+                android:background="@drawable/rounded_input_border"
+                android:hint="Select province"
+                android:inputType="textCapWords"
+                android:paddingHorizontal="16dp"
+                android:singleLine="true"
+                android:textColor="#0D1B3E"
+                android:textColorHint="#8FAACC"
+                android:textSize="15sp" />
+
+            <!-- CITY / MUNICIPALITY -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="City / Municipality"
+                android:textColor="#0D1B3E"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <AutoCompleteTextView
+                android:id="@+id/etEditCityMunicipality"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="18dp"
+                android:background="@drawable/rounded_input_border"
+                android:hint="Select city or municipality"
+                android:inputType="textCapWords"
+                android:paddingHorizontal="16dp"
+                android:singleLine="true"
+                android:textColor="#0D1B3E"
+                android:textColorHint="#8FAACC"
+                android:textSize="15sp" />
+
+            <!-- BARANGAY -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Barangay"
+                android:textColor="#0D1B3E"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etEditBarangay"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/rounded_input_border"
+                android:hint="Enter or select barangay"
+                android:inputType="textCapWords"
                 android:paddingHorizontal="16dp"
                 android:textColor="#0D1B3E"
                 android:textColorHint="#8FAACC"

@@ -1,0 +1,73 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": false,
+
+    "campaigns": {
+      ".read": true,
+      "$campaignId": {
+        ".read": true,
+        ".write": "auth != null",
+        "raised": {
+          ".write": "auth != null"
+        },
+        "raisedAmount": {
+          ".write": "auth != null"
+        },
+        "currentAmount": {
+          ".write": "auth != null"
+        },
+        "amountRaised": {
+          ".write": "auth != null"
+        },
+        "donationCount": {
+          ".write": "auth != null"
+        }
+      }
+    },
+
+    "donations": {
+      ".read": "auth != null",
+      "$donationId": {
+        ".write": "auth != null && (!data.exists() || data.child('userId').val() == auth.uid || data.child('donorId').val() == auth.uid || newData.child('userId').val() == auth.uid || newData.child('donorId').val() == auth.uid)",
+        ".validate": "newData.hasChildren(['amount', 'campaignId', 'userId', 'timestamp']) && newData.child('amount').isNumber() && newData.child('campaignId').isString() && newData.child('userId').val() == auth.uid"
+      }
+    },
+
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('roleKey').val() == 'super_admin' || root.child('users').child(auth.uid).child('roleKey').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'Super Admin' || root.child('users').child(auth.uid).child('role').val() == 'Admin')",
+        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('roleKey').val() == 'super_admin' || root.child('users').child(auth.uid).child('roleKey').val() == 'admin' || root.child('users').child(auth.uid).child('role').val() == 'Super Admin' || root.child('users').child(auth.uid).child('role').val() == 'Admin')"
+      }
+    },
+
+    "directChats": {
+      ".read": "auth != null",
+      "$conversationId": {
+        ".read": "auth != null && data.child('participants').child(auth.uid).val() == true",
+        ".write": "auth != null && (!data.exists() || data.child('participants').child(auth.uid).val() == true || newData.child('participants').child(auth.uid).val() == true)"
+      }
+    },
+
+    "supportChats": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+
+    "adminTeamChats": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+
+    "conversations": {
+      "$conversationId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    }
+  }
+}
